@@ -30,7 +30,7 @@ jobs:
       - name: Run scan
         working-directory: tools/ucpf-scanner
         run: node src/cli.js --url "${{ inputs.url }}" --paths "${{ inputs.paths }}" --out ../../ucpf-privacy-report.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ucpf-privacy-report
           path: ucpf-privacy-report.json
