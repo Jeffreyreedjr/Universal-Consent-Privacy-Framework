@@ -7,6 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- included template; locals are not plugin globals.
+
 \UCPF\Theme_Manager::instance()->enqueue_admin_preview_styles();
 
 $layout = \UCPF\Settings::get( 'banner_layout' );

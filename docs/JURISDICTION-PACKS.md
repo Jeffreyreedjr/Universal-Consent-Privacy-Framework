@@ -12,6 +12,6 @@ Local JSON packs under `assets/jurisdiction-packs/` drive consent model, banner 
 
 Advanced Settings → “Apply recommended defaults (strict GDPR)” sets strict GDPR, GPC nonessential, local catalog, Reject All on, remote registry off.
 
-## Rights Inbox
+## Rights pages
 
-Admin → Rights Inbox lists `data_requests` with status, notes, processor checklist, and verification flag.
+Set external Data Request / Do Not Sell URLs under Generated Pages. This plugin does not host a local Rights Inbox (forms live on the home site).

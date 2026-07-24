@@ -7,6 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- included template; locals are not plugin globals.
+
 $templates   = \UCPF\Tracking_Templates::all();
 $service_ids = isset( $settings['service_ids'] ) && is_array( $settings['service_ids'] ) ? $settings['service_ids'] : array();
 $option_key  = \UCPF\Settings::OPTION_KEY;

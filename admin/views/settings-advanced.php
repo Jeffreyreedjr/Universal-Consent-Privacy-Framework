@@ -7,6 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- included template; locals are not plugin globals.
+
 if ( ! isset( $settings ) || ! is_array( $settings ) ) {
 	$settings = \UCPF\Settings::all();
 }
@@ -16,7 +18,6 @@ $ob         = ! empty( $settings['output_buffer_blocking'] );
 $remote_on  = ! empty( $settings['remote_registry_enabled'] );
 $remote_url = isset( $settings['remote_registry_url'] ) ? (string) $settings['remote_registry_url'] : '';
 $log_on     = ! empty( $settings['consent_logging'] );
-$log_ip     = ! empty( $settings['log_ip_hash'] );
 $log_days   = isset( $settings['log_retention_days'] ) ? (int) $settings['log_retention_days'] : 180;
 $uninstall  = ! empty( $settings['delete_data_on_uninstall'] );
 $scanner_url = isset( $settings['scanner_api_url'] ) ? (string) $settings['scanner_api_url'] : '';
@@ -240,11 +241,8 @@ if ( '' === $sched_email ) {
 					<label>
 						<input type="checkbox" name="<?php echo esc_attr( $option_key ); ?>[consent_logging]" value="1" <?php checked( $log_on ); ?> />
 						<?php esc_html_e( 'Enable consent logging', 'universal-consent-privacy-framework' ); ?>
-					</label><br />
-					<label>
-						<input type="checkbox" name="<?php echo esc_attr( $option_key ); ?>[log_ip_hash]" value="1" <?php checked( $log_ip ); ?> />
-						<?php esc_html_e( 'Store IP hash', 'universal-consent-privacy-framework' ); ?>
-					</label><br />
+					</label>
+					<p class="description"><?php esc_html_e( 'Stores consent UUID, action, categories, and timestamps only — not IP addresses.', 'universal-consent-privacy-framework' ); ?></p>
 					<label>
 						<?php esc_html_e( 'Retention days', 'universal-consent-privacy-framework' ); ?>
 						<input type="number" name="<?php echo esc_attr( $option_key ); ?>[log_retention_days]" value="<?php echo esc_attr( (string) max( 1, $log_days ) ); ?>" min="1" />

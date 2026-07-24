@@ -185,7 +185,7 @@ class Consent_Manager {
 			return null;
 		}
 
-		$raw  = wp_unslash( $_COOKIE[ self::COOKIE_NAME ] );
+		$raw  = sanitize_text_field( wp_unslash( $_COOKIE[ self::COOKIE_NAME ] ) );
 		$data = json_decode( rawurldecode( $raw ), true );
 
 		if ( ! is_array( $data ) ) {

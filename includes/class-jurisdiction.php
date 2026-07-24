@@ -392,7 +392,7 @@ class Jurisdiction {
 			'remote_registry_enabled' => false,
 			'registry_mode'           => 'local',
 			'privacy_api_url'         => '',
-			'enable_data_request_forms' => true,
+			'enable_data_request_forms' => false,
 			'auto_refresh_cookie_policy_after_scan' => true,
 			'consent_logging'         => true,
 			'output_buffer_blocking'  => false,

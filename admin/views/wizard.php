@@ -7,6 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- included template; locals are not plugin globals.
+
 $step     = isset( $wizard_step ) ? (int) $wizard_step : 1;
 $last_scan = isset( $last_scan ) ? $last_scan : array();
 $services  = isset( $services ) ? $services : array();
@@ -151,13 +153,6 @@ $doc_sources       = isset( $settings['document_sources'] ) && is_array( $settin
 							</td>
 						</tr>
 						<tr>
-							<th><?php esc_html_e( 'Data request forms', 'universal-consent-privacy-framework' ); ?></th>
-							<td>
-								<label><input type="radio" name="enable_data_request_forms" value="1" <?php checked( ! empty( $settings['enable_data_request_forms'] ) ); ?> /> <?php esc_html_e( 'Yes', 'universal-consent-privacy-framework' ); ?></label>
-								<label><input type="radio" name="enable_data_request_forms" value="0" <?php checked( empty( $settings['enable_data_request_forms'] ) ); ?> /> <?php esc_html_e( 'No', 'universal-consent-privacy-framework' ); ?></label>
-							</td>
-						</tr>
-						<tr>
 							<th><?php esc_html_e( 'Respect Do Not Track / GPC', 'universal-consent-privacy-framework' ); ?></th>
 							<td>
 								<label><input type="radio" name="respect_dnt_gpc" value="1" <?php checked( ! empty( $settings['respect_dnt_gpc'] ) ); ?> /> <?php esc_html_e( 'Yes', 'universal-consent-privacy-framework' ); ?></label>
@@ -194,7 +189,18 @@ $doc_sources       = isset( $settings['document_sources'] ) && is_array( $settin
 					</p>
 					<div id="ucpf-scan-status" class="ucpf-wizard__status" hidden></div>
 					<?php if ( ! empty( $last_scan['date'] ) ) : ?>
-						<p><?php echo esc_html( sprintf( __( 'Last scan: %s — %d services, %d cookies, %d unknown', 'universal-consent-privacy-framework' ), $last_scan['date'], isset( $last_scan['results'] ) ? count( $last_scan['results'] ) : 0, isset( $last_scan['cookies'] ) ? count( $last_scan['cookies'] ) : 0, isset( $last_scan['unknown_cookies'] ) ? count( $last_scan['unknown_cookies'] ) : 0 ) ); ?></p>
+						<p><?php
+						echo esc_html(
+							sprintf(
+								/* translators: 1: scan date, 2: service count, 3: cookie count, 4: unknown cookie count */
+								__( 'Last scan: %1$s — %2$d services, %3$d cookies, %4$d unknown', 'universal-consent-privacy-framework' ),
+								$last_scan['date'],
+								isset( $last_scan['results'] ) ? count( $last_scan['results'] ) : 0,
+								isset( $last_scan['cookies'] ) ? count( $last_scan['cookies'] ) : 0,
+								isset( $last_scan['unknown_cookies'] ) ? count( $last_scan['unknown_cookies'] ) : 0
+							)
+						);
+						?></p>
 					<?php endif; ?>
 
 				<?php elseif ( 6 === $step ) : ?>
@@ -433,7 +439,7 @@ $doc_sources       = isset( $settings['document_sources'] ) && is_array( $settin
 
 				<?php elseif ( 9 === $step ) : ?>
 					<h2><?php esc_html_e( 'Generate pages', 'universal-consent-privacy-framework' ); ?></h2>
-					<p><?php esc_html_e( 'Create Cookie Policy, Privacy Policy, and Consent Preferences from templates. Do Not Sell and Data Request are not auto-generated — build those pages on your site, paste [ucpf_do_not_sell_form] / [ucpf_data_request_form], then set their URLs under Generated Pages.', 'universal-consent-privacy-framework' ); ?></p>
+					<p><?php esc_html_e( 'Create Cookie Policy, Privacy Policy, and Consent Preferences from templates. Set external Data Request / Do Not Sell page URLs under Generated Pages — forms are hosted on your home site, not collected here.', 'universal-consent-privacy-framework' ); ?></p>
 					<p><button type="button" class="button button-primary" id="ucpf-wizard-generate-pages"><?php esc_html_e( 'Generate policy pages now', 'universal-consent-privacy-framework' ); ?></button></p>
 					<p><a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=ucpf-pages' ) ); ?>"><?php esc_html_e( 'Open Generated Pages (rights URLs)', 'universal-consent-privacy-framework' ); ?></a></p>
 					<div id="ucpf-pages-status" class="ucpf-wizard__status" hidden></div>

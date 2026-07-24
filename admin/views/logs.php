@@ -1,4 +1,6 @@
-<?php defined( 'ABSPATH' ) || exit; ?>
+<?php defined( 'ABSPATH' ) || exit;
+
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- included template; locals are not plugin globals. ?>
 <div class="wrap ucpf-admin">
 	<h1><?php esc_html_e( 'Consent Logs', 'universal-consent-privacy-framework' ); ?></h1>
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">

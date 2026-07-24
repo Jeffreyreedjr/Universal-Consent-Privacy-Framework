@@ -7,6 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- included template; locals are not plugin globals.
+
 $ucpf_shell_current      = 'dashboard';
 $ucpf_shell_hide_heading = true;
 $ucpf_shell_title        = __( 'Privacy Consent Dashboard', 'universal-consent-privacy-framework' );

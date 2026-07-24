@@ -25,6 +25,7 @@ package.ps1
 package.json
 package-lock.json
 webpack.config.js
+phpcs.xml.dist
 *.log
 .env
 .env.*

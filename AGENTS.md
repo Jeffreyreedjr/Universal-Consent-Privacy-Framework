@@ -31,6 +31,21 @@ Build and maintain the Universal Consent & Privacy Framework WordPress plugin. S
 ## Coding standards
 - `ABSPATH` guards, sanitize/validate/escape, `$wpdb->prepare`, nonces, capabilities
 
+## Plugin Check (wordpress.org)
+Target **ERROR = 0**. Do not ship `phpcs.xml.dist` / `*.dist` in the zip (`.dist` = `application_detected`). Keep rulesets in git only.
+
+When changing code, follow these patterns so checks stay green:
+
+- **Inputs:** never use raw `$_POST` / `$_COOKIE` / `$_SERVER` — `sanitize_*` + `wp_unslash`, nested arrays via `map_deep( ..., 'sanitize_text_field' )` then typed helpers.
+- **DB tables:** `$table = esc_sql( ucpf_table( 'consent_logs' ) );` then `` FROM `{$table}` ``. Put `phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared` on the **SQL string line** (not only the `$wpdb->get_*` line). Add `DirectQuery` / `NoCaching` ignores on intentional admin/log/uninstall queries with a one-line reason.
+- **Enqueues:** always pass a version (`UCPF_VERSION`); never `null`.
+- **CMP placeholders:** never emit literal `<script` / `<link rel="stylesheet"` in PHP strings — split tag name and `stylesheet` via `sprintf` args (Plugin Check NonEnqueued*).
+- **Filesystem:** no `fopen`/`fclose` in plugin code; build CSV/strings in memory.
+- **Views/templates:** after `ABSPATH`, keep `phpcs:disable ...PrefixAllGlobals.NonPrefixedVariableFound` (included files; locals are not globals). Do not rename every `$row` to `$ucpf_*`.
+- **WP Consent API hooks** (`wp_consent_*`): keep names; line-ignore `NonPrefixedHooknameFound`.
+- **i18n:** ordered placeholders `%1$s` + `translators:` comments; text domain `universal-consent-privacy-framework`.
+- Re-run Plugin Check on a fresh `package.ps1` zip before claiming clean.
+
 ## Cookie descriptions
 - Primary: UCPF service catalog in Script_Registry
 - Fallback: bundled Open Cookie Database snapshot (`data/open-cookie-database.min.json`) — attribution to jkwakman/Open-Cookie-Database; offline only; not a compliance guarantee

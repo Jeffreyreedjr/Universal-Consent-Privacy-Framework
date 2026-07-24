@@ -7,20 +7,16 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- included template; locals are not plugin globals.
+
 if ( ! isset( $settings ) || ! is_array( $settings ) ) {
 	$settings = \UCPF\Settings::all();
 }
 
 $option_key = \UCPF\Settings::OPTION_KEY;
 
-$presets = \UCPF\Theme_Manager::instance()->get_preset_options();
-if ( ! is_array( $presets ) || ! $presets ) {
-	$presets = array(
-		'classic'      => __( 'Classic', 'universal-consent-privacy-framework' ),
-		'studio_neon'  => __( 'Studio Neon', 'universal-consent-privacy-framework' ),
-		'studio_ocean' => __( 'Studio Ocean', 'universal-consent-privacy-framework' ),
-		'studio_light' => __( 'Studio Light', 'universal-consent-privacy-framework' ),
-	);
+if ( ! isset( $presets ) || ! is_array( $presets ) || ! $presets ) {
+	$presets = \UCPF\Theme_Manager::instance()->get_preset_options();
 }
 
 $current_theme = isset( $settings['banner_theme'] ) ? sanitize_key( (string) $settings['banner_theme'] ) : 'classic';

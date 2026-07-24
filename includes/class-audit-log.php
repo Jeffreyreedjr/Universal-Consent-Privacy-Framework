@@ -54,17 +54,8 @@ class Audit_Log {
 		global $wpdb;
 
 		$table = ucpf_table( 'consent_logs' );
-
-		$ip_hash = null;
-		if ( Settings::get( 'log_ip_hash' ) && apply_filters( 'ucpf_log_ip_hash', true ) ) {
-			$ip      = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
-			$ip_hash = $ip ? hash( 'sha256', $ip . wp_salt() ) : null;
-		}
-
-		$ua_hash = null;
-		if ( Settings::get( 'log_user_agent_hash' ) ) {
-			$ua      = isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '';
-			$ua_hash = $ua ? hash( 'sha256', $ua . wp_salt() ) : null;
+		if ( '' === $table ) {
+			return;
 		}
 
 		$retention = (int) Settings::get( 'log_retention_days' );
@@ -74,19 +65,19 @@ class Audit_Log {
 		$wpdb->insert(
 			$table,
 			array(
-				'consent_uuid'     => isset( $cookie_data['uuid'] ) ? $cookie_data['uuid'] : wp_generate_uuid4(),
-				'user_id'          => get_current_user_id() ?: null,
-				'session_hash'     => $this->session_hash(),
-				'ip_hash'          => $ip_hash,
-				'user_agent_hash'  => $ua_hash,
-				'region'           => $this->detect_region(),
-				'policy_version'   => isset( $cookie_data['policy_version'] ) ? $cookie_data['policy_version'] : '',
-				'consent_version'  => isset( $cookie_data['version'] ) ? $cookie_data['version'] : '',
-				'action'           => sanitize_key( $action ),
-				'categories'       => wp_json_encode( isset( $cookie_data['categories'] ) ? $cookie_data['categories'] : array() ),
-				'services'         => wp_json_encode( isset( $cookie_data['services'] ) ? $cookie_data['services'] : array() ),
-				'created_at'       => current_time( 'mysql', true ),
-				'expires_at'       => $expires,
+				'consent_uuid'    => isset( $cookie_data['uuid'] ) ? $cookie_data['uuid'] : wp_generate_uuid4(),
+				'user_id'         => get_current_user_id() ?: null,
+				'session_hash'    => $this->session_hash(),
+				'ip_hash'         => null,
+				'user_agent_hash' => null,
+				'region'          => $this->detect_region(),
+				'policy_version'  => isset( $cookie_data['policy_version'] ) ? $cookie_data['policy_version'] : '',
+				'consent_version' => isset( $cookie_data['version'] ) ? $cookie_data['version'] : '',
+				'action'          => sanitize_key( $action ),
+				'categories'      => wp_json_encode( isset( $cookie_data['categories'] ) ? $cookie_data['categories'] : array() ),
+				'services'        => wp_json_encode( isset( $cookie_data['services'] ) ? $cookie_data['services'] : array() ),
+				'created_at'      => current_time( 'mysql', true ),
+				'expires_at'      => $expires,
 			),
 			array( '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' )
 		);
@@ -101,14 +92,21 @@ class Audit_Log {
 	public function get_logs( $page = 1 ) {
 		global $wpdb;
 
-		$table  = ucpf_table( 'consent_logs' );
+		$table = esc_sql( ucpf_table( 'consent_logs' ) );
+		if ( '' === $table ) {
+			return array(
+				'items' => array(),
+				'page'  => $page,
+			);
+		}
 		$limit  = 50;
 		$offset = ( $page - 1 ) * $limit;
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- admin log read; not front-end cached content.
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM {$table} ORDER BY created_at DESC LIMIT %d OFFSET %d",
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table from esc_sql( ucpf_table() ) whitelist.
+				"SELECT * FROM `{$table}` ORDER BY created_at DESC LIMIT %d OFFSET %d",
 				$limit,
 				$offset
 			),
@@ -129,27 +127,60 @@ class Audit_Log {
 	public function export_csv() {
 		global $wpdb;
 
-		$table = ucpf_table( 'consent_logs' );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$rows = $wpdb->get_results( "SELECT * FROM {$table} ORDER BY created_at DESC LIMIT 5000", ARRAY_A );
+		$table = esc_sql( ucpf_table( 'consent_logs' ) );
+		if ( '' === $table ) {
+			return '';
+		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- CSV export read.
+		$rows = $wpdb->get_results(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table from esc_sql( ucpf_table() ) whitelist.
+			"SELECT * FROM `{$table}` ORDER BY created_at DESC LIMIT 5000",
+			ARRAY_A
+		);
 
-		$out = "id,consent_uuid,user_id,action,policy_version,consent_version,created_at\n";
-		foreach ( $rows as $row ) {
-			$out .= implode(
+		$lines   = array();
+		$lines[] = implode(
+			',',
+			array(
+				$this->csv_cell( 'id' ),
+				$this->csv_cell( 'consent_uuid' ),
+				$this->csv_cell( 'user_id' ),
+				$this->csv_cell( 'action' ),
+				$this->csv_cell( 'policy_version' ),
+				$this->csv_cell( 'consent_version' ),
+				$this->csv_cell( 'created_at' ),
+			)
+		);
+		foreach ( (array) $rows as $row ) {
+			$lines[] = implode(
 				',',
 				array(
-					$row['id'],
-					$row['consent_uuid'],
-					$row['user_id'],
-					$row['action'],
-					$row['policy_version'],
-					$row['consent_version'],
-					$row['created_at'],
+					$this->csv_cell( isset( $row['id'] ) ? $row['id'] : '' ),
+					$this->csv_cell( isset( $row['consent_uuid'] ) ? $row['consent_uuid'] : '' ),
+					$this->csv_cell( isset( $row['user_id'] ) ? $row['user_id'] : '' ),
+					$this->csv_cell( isset( $row['action'] ) ? $row['action'] : '' ),
+					$this->csv_cell( isset( $row['policy_version'] ) ? $row['policy_version'] : '' ),
+					$this->csv_cell( isset( $row['consent_version'] ) ? $row['consent_version'] : '' ),
+					$this->csv_cell( isset( $row['created_at'] ) ? $row['created_at'] : '' ),
 				)
-			) . "\n";
+			);
 		}
 
-		return $out;
+		return implode( "\n", $lines ) . "\n";
+	}
+
+	/**
+	 * Escape a CSV cell (RFC-style quoting).
+	 *
+	 * @param mixed $value Cell value.
+	 * @return string
+	 */
+	private function csv_cell( $value ) {
+		$value = (string) $value;
+		if ( 1 === preg_match( '/[",\r\n]/', $value ) ) {
+			return '"' . str_replace( '"', '""', $value ) . '"';
+		}
+		return $value;
 	}
 
 	/**
@@ -158,13 +189,17 @@ class Audit_Log {
 	public function purge_expired() {
 		global $wpdb;
 
-		$table = ucpf_table( 'consent_logs' );
-		$now   = current_time( 'mysql', true );
+		$table = esc_sql( ucpf_table( 'consent_logs' ) );
+		if ( '' === $table ) {
+			return;
+		}
+		$now = current_time( 'mysql', true );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- retention purge.
 		$wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM {$table} WHERE expires_at IS NOT NULL AND expires_at < %s",
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table from esc_sql( ucpf_table() ) whitelist.
+				"DELETE FROM `{$table}` WHERE expires_at IS NOT NULL AND expires_at < %s",
 				$now
 			)
 		);
@@ -184,12 +219,16 @@ class Audit_Log {
 			return 0;
 		}
 
-		$table = ucpf_table( 'consent_logs' );
+		$table = esc_sql( ucpf_table( 'consent_logs' ) );
+		if ( '' === $table ) {
+			return 0;
+		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- privacy eraser.
 		return (int) $wpdb->query(
 			$wpdb->prepare(
-				"UPDATE {$table} SET ip_hash = NULL, user_agent_hash = NULL, session_hash = NULL WHERE user_id = %d",
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table from esc_sql( ucpf_table() ) whitelist.
+				"UPDATE `{$table}` SET ip_hash = NULL, user_agent_hash = NULL, session_hash = NULL WHERE user_id = %d",
 				$user_id
 			)
 		);
@@ -209,12 +248,16 @@ class Audit_Log {
 			return 0;
 		}
 
-		$table = ucpf_table( 'consent_logs' );
+		$table = esc_sql( ucpf_table( 'consent_logs' ) );
+		if ( '' === $table ) {
+			return 0;
+		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- privacy eraser.
 		return (int) $wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM {$table} WHERE user_id = %d",
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table from esc_sql( ucpf_table() ) whitelist.
+				"DELETE FROM `{$table}` WHERE user_id = %d",
 				$user_id
 			)
 		);
@@ -229,7 +272,8 @@ class Audit_Log {
 		if ( empty( $_COOKIE[ Consent_Manager::COOKIE_NAME ] ) ) {
 			return null;
 		}
-		return hash( 'sha256', wp_unslash( $_COOKIE[ Consent_Manager::COOKIE_NAME ] ) . wp_salt() );
+		$raw = sanitize_text_field( wp_unslash( $_COOKIE[ Consent_Manager::COOKIE_NAME ] ) );
+		return hash( 'sha256', $raw . wp_salt() );
 	}
 
 	/**

@@ -96,10 +96,33 @@ function ucpf_privacy_hmac_email( $email ) {
 /**
  * Plugin table name with prefix.
  *
- * @param string $table Short table name.
- * @return string
+ * @param string $table Short table name (whitelist only).
+ * @return string Empty string if not allowed.
  */
 function ucpf_table( $table ) {
 	global $wpdb;
+
+	$table   = sanitize_key( (string) $table );
+	$allowed = array( 'consent_logs', 'script_registry' );
+	if ( ! in_array( $table, $allowed, true ) ) {
+		return '';
+	}
+
 	return $wpdb->prefix . 'ucpf_' . $table;
+}
+
+/**
+ * Escaped SQL table identifier from the UCPF whitelist (for interpolated FROM/INTO clauses).
+ *
+ * @param string $table Short table name.
+ * @return string Backtick-quoted identifier, or empty string if invalid.
+ */
+function ucpf_sql_table( $table ) {
+	$name = ucpf_table( $table );
+	if ( '' === $name ) {
+		return '';
+	}
+	// Identifier only: strip backticks then re-wrap; esc_sql for Plugin Check UnescapedDBParameter.
+	$name = str_replace( '`', '', $name );
+	return '`' . esc_sql( $name ) . '`';
 }

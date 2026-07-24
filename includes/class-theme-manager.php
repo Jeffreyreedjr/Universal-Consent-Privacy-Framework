@@ -79,6 +79,20 @@ class Theme_Manager {
 	}
 
 	/**
+	 * Preset key => label map for admin selects.
+	 *
+	 * @return array<string, string>
+	 */
+	public function get_preset_options() {
+		return array(
+			'classic'      => __( 'Classic', 'universal-consent-privacy-framework' ),
+			'studio_neon'  => __( 'Studio Neon', 'universal-consent-privacy-framework' ),
+			'studio_ocean' => __( 'Studio Ocean', 'universal-consent-privacy-framework' ),
+			'studio_light' => __( 'Studio Light', 'universal-consent-privacy-framework' ),
+		);
+	}
+
+	/**
 	 * Enqueue frontend styles.
 	 */
 	public function enqueue_styles() {

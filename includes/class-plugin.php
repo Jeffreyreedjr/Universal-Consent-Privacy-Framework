@@ -44,12 +44,6 @@ class Plugin {
 	 * Initialize plugin components.
 	 */
 	public function init() {
-		load_plugin_textdomain(
-			'universal-consent-privacy-framework',
-			false,
-			dirname( UCPF_PLUGIN_BASENAME ) . '/languages'
-		);
-
 		Migration::maybe_upgrade();
 
 		Integrations\Wp_Consent_Api_Shim::instance()->init();
@@ -62,7 +56,6 @@ class Plugin {
 		Shortcodes::instance()->init();
 		Privacy_Tools::instance()->init();
 		Vendor_Connectors::instance()->init();
-		Rights_Inbox::instance()->init();
 		Rest_Api::instance()->init();
 		Audit_Log::instance()->init();
 		Page_Generator::instance()->init();

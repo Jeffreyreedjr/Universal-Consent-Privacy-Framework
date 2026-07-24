@@ -911,7 +911,9 @@ class Cookie_Scanner {
 	 */
 	private function run_scan( array $args ) {
 		if ( function_exists( 'set_time_limit' ) ) {
-			@set_time_limit( 60 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+			// Long cookie scans may exceed default max_execution_time on shared hosts.
+			// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged, WordPress.PHP.DiscouragedPHPFunctions.runtime_configuration_set_time_limit, WordPress.PHP.NoSilencedErrors.Discouraged -- scan needs extended runtime; @ suppresses when disabled by host.
+			@set_time_limit( 60 );
 		}
 
 		$url_defs = array();

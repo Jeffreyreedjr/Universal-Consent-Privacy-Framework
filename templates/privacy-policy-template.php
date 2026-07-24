@@ -12,6 +12,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- included template; locals are not plugin globals.
+
 $cookie_policy_url = isset( $cookie_policy_url ) ? $cookie_policy_url : '';
 $data_request_url  = isset( $data_request_url ) ? $data_request_url : '';
 $dns_url           = isset( $dns_url ) ? $dns_url : '';

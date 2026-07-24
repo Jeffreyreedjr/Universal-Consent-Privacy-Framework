@@ -63,11 +63,16 @@ Then **Cookie Scanner → Import scan JSON** (pass/fail findings UI).
 | Agency | Advanced → Scanner API URL + key |
 | Community | Later — `registry_mode=community` + Remote registry (double opt-in; off by default) |
 
-### Self-hosted API
+### Self-hosted API (server)
 
-1. Configure `tools/ucpf-scanner/.env` with `UCPF_SCANNER_API_KEYS`.
-2. `npm start` behind HTTPS.
-3. WP **Advanced → Scanner API URL + key** (or `UCPF_SCANNER_API_URL` / `UCPF_SCANNER_API_KEY` in `wp-config.php`).
+Full walkthrough: **[SCANNER-SERVER.md](SCANNER-SERVER.md)** (install, `.env`, systemd, HTTPS proxy, WordPress Advanced settings).
+
+Short version:
+
+1. On the server: `cd tools/ucpf-scanner` → `npm install` → `npx playwright install chromium`
+2. Copy `.env.example` → `.env`, set `UCPF_SCANNER_API_KEYS`
+3. `npm start` (bind localhost) behind HTTPS reverse proxy
+4. WP **Advanced → Scanner API URL + key**
 
 Scanner auth: keys required for remote clients; `UCPF_SCANNER_ALLOW_LOCAL=1` only allows unauthenticated **loopback**.
 

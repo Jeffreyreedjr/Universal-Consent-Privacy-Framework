@@ -495,42 +495,6 @@
       if (prefsEl && !prefsEl.hidden) trapFocus(prefsEl.querySelector('.ucpf-prefs__dialog'), e);
       if (bannerEl && !bannerEl.hidden && config.bannerLayout === 'modal') trapFocus(bannerEl.querySelector('.ucpf-banner__panel'), e);
     });
-
-    document.querySelectorAll('.ucpf-data-request-form').forEach(function (form) {
-      form.addEventListener('submit', function (e) {
-        e.preventDefault();
-        var fd = new FormData(form);
-        var data = Object.fromEntries(fd.entries());
-        data.global_privacy_mode = !!form.querySelector('[name="global_privacy_mode"]:checked');
-        data.opt_out_sale = form.querySelector('[name="opt_out_sale"]')
-          ? !!form.querySelector('[name="opt_out_sale"]:checked')
-          : true;
-        data.opt_out_sharing = form.querySelector('[name="opt_out_sharing"]')
-          ? !!form.querySelector('[name="opt_out_sharing"]:checked')
-          : true;
-        data.opt_out_targeted = form.querySelector('[name="opt_out_targeted"]')
-          ? !!form.querySelector('[name="opt_out_targeted"]:checked')
-          : true;
-        data.limit_sensitive = !!form.querySelector('[name="limit_sensitive"]:checked');
-        fetch(config.restUrl + 'data-request', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': config.nonce },
-          body: JSON.stringify(data),
-          credentials: 'same-origin',
-        }).then(function (r) { return r.json(); }).then(function (res) {
-          var status = form.querySelector('.ucpf-form__status');
-          if (status) {
-            status.hidden = false;
-            status.textContent = (res && res.local_enforced)
-              ? 'Request submitted. Tracking opt-out is active on this site.'
-              : 'Request submitted.';
-          }
-          if (res && res.local_enforced && window.UCPF && typeof window.UCPF.rejectAll === 'function') {
-            window.UCPF.rejectAll();
-          }
-        });
-      });
-    });
   }
 
   window.UCPF = {

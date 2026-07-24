@@ -72,7 +72,6 @@ class Admin {
 			'registry'    => array( __( 'Script Registry', 'universal-consent-privacy-framework' ), 'render_registry' ),
 			'scanner'     => array( __( 'Cookie Scanner', 'universal-consent-privacy-framework' ), 'render_scanner' ),
 			'pages'       => array( __( 'Generated Pages', 'universal-consent-privacy-framework' ), 'render_pages' ),
-			'rights'      => array( __( 'Rights Inbox', 'universal-consent-privacy-framework' ), 'render_rights_inbox' ),
 			'logs'        => array( __( 'Consent Logs', 'universal-consent-privacy-framework' ), 'render_logs' ),
 			'integrations'=> array( __( 'Integrations', 'universal-consent-privacy-framework' ), 'render_integrations' ),
 			'developer'   => array( __( 'Developer API', 'universal-consent-privacy-framework' ), 'render_developer' ),
@@ -279,7 +278,6 @@ class Admin {
 			$clean['output_buffer_blocking']   = ! empty( $input['output_buffer_blocking'] );
 			$clean['remote_registry_enabled']  = ! empty( $input['remote_registry_enabled'] );
 			$clean['consent_logging']          = ! empty( $input['consent_logging'] );
-			$clean['log_ip_hash']              = ! empty( $input['log_ip_hash'] );
 			$clean['delete_data_on_uninstall'] = ! empty( $input['delete_data_on_uninstall'] );
 			if ( isset( $input['remote_registry_url'] ) ) {
 				$clean['remote_registry_url'] = esc_url_raw( $input['remote_registry_url'] );
@@ -335,10 +333,6 @@ class Admin {
 			$clean['auto_refresh_cookie_policy_after_scan'] = ! empty( $input['auto_refresh_cookie_policy_after_scan'] );
 			$clean['data_request_page_url']                 = isset( $input['data_request_page_url'] ) ? esc_url_raw( (string) $input['data_request_page_url'] ) : '';
 			$clean['do_not_sell_page_url']                  = isset( $input['do_not_sell_page_url'] ) ? esc_url_raw( (string) $input['do_not_sell_page_url'] ) : '';
-			$clean['gf_data_request_form_id']               = isset( $input['gf_data_request_form_id'] ) ? absint( $input['gf_data_request_form_id'] ) : 0;
-			$clean['gf_do_not_sell_form_id']                = isset( $input['gf_do_not_sell_form_id'] ) ? absint( $input['gf_do_not_sell_form_id'] ) : 0;
-			$clean['gf_data_request_shortcode']             = isset( $input['gf_data_request_shortcode'] ) ? $this->sanitize_form_shortcode( $input['gf_data_request_shortcode'] ) : '';
-			$clean['gf_do_not_sell_shortcode']              = isset( $input['gf_do_not_sell_shortcode'] ) ? $this->sanitize_form_shortcode( $input['gf_do_not_sell_shortcode'] ) : '';
 		}
 
 		unset( $clean['_ucpf_tracking_form'], $clean['_ucpf_banner_form'], $clean['_ucpf_advanced_form'], $clean['_ucpf_pages_form'] );
@@ -480,12 +474,7 @@ class Admin {
 			'pages'             => array(
 				'current' => 'pages',
 				'title'   => __( 'Generated Pages', 'universal-consent-privacy-framework' ),
-				'lede'    => __( 'Policy pages from templates, plus links to home-site rights request forms.', 'universal-consent-privacy-framework' ),
-			),
-			'rights-inbox'      => array(
-				'current' => 'rights',
-				'title'   => __( 'Rights Inbox', 'universal-consent-privacy-framework' ),
-				'lede'    => __( 'Operational queue for data subject and Do Not Sell requests on this site — not a legal determination.', 'universal-consent-privacy-framework' ),
+				'lede'    => __( 'Policy pages from templates, plus links to external rights request pages.', 'universal-consent-privacy-framework' ),
 			),
 			'logs'              => array(
 				'current' => 'logs',
@@ -866,19 +855,6 @@ class Admin {
 	}
 
 	/**
-	 * Rights inbox (DSAR / DNS ops).
-	 */
-	public function render_rights_inbox() {
-		$this->render(
-			'rights-inbox',
-			array(
-				'requests'      => Rights_Inbox::instance()->list_requests( 100 ),
-				'suppress_jobs' => Vendor_Connectors::list_jobs(),
-			)
-		);
-	}
-
-	/**
 	 * Integrations page.
 	 */
 	public function render_integrations() {
@@ -937,7 +913,7 @@ class Admin {
 			$update['contact_email'] = sanitize_email( wp_unslash( $_POST['contact_email'] ) );
 		}
 
-		$bool_fields = array( 'consent_logging', 'enable_data_request_forms', 'respect_dnt_gpc', 'banner_enabled', 'blocker_enabled' );
+		$bool_fields = array( 'consent_logging', 'respect_dnt_gpc', 'banner_enabled', 'blocker_enabled' );
 		foreach ( $bool_fields as $field ) {
 			if ( isset( $_POST[ $field ] ) ) {
 				$update[ $field ] = (bool) (int) $_POST[ $field ];
@@ -945,11 +921,9 @@ class Admin {
 		}
 
 		if ( isset( $_POST['document_sources'] ) && is_array( $_POST['document_sources'] ) ) {
-			$sources = array();
-			foreach ( wp_unslash( $_POST['document_sources'] ) as $key => $value ) {
-				$sources[ sanitize_key( $key ) ] = sanitize_key( $value );
-			}
-			$update['document_sources'] = $sources;
+			$update['document_sources'] = $this->sanitize_document_sources(
+				map_deep( wp_unslash( $_POST['document_sources'] ), 'sanitize_text_field' )
+			);
 		}
 
 		if ( isset( $_POST['selected_services'] ) && is_array( $_POST['selected_services'] ) ) {
@@ -959,41 +933,15 @@ class Admin {
 		}
 
 		if ( ! empty( $_POST['service_overrides'] ) && is_array( $_POST['service_overrides'] ) ) {
-			$overrides = array();
-			foreach ( wp_unslash( $_POST['service_overrides'] ) as $key => $row ) {
-				$key = sanitize_key( $key );
-				if ( ! is_array( $row ) ) {
-					continue;
-				}
-				$overrides[ $key ] = array(
-					'category'         => isset( $row['category'] ) ? sanitize_key( $row['category'] ) : '',
-					'treatment'        => isset( $row['treatment'] ) ? sanitize_key( $row['treatment'] ) : 'consent',
-					'default_blocking' => true,
-				);
-			}
-			$update['service_overrides'] = $overrides;
+			$update['service_overrides'] = $this->sanitize_service_overrides(
+				map_deep( wp_unslash( $_POST['service_overrides'] ), 'sanitize_text_field' )
+			);
 		}
 
 		if ( ! empty( $_POST['unknown_cookies'] ) && is_array( $_POST['unknown_cookies'] ) ) {
-			foreach ( wp_unslash( $_POST['unknown_cookies'] ) as $row ) {
-				if ( empty( $row['name'] ) || empty( $row['category'] ) ) {
-					continue;
-				}
-				$cat = sanitize_key( $row['category'] );
-				if ( ! in_array( $cat, Privacy_Scan_Importer::assignable_categories(), true ) ) {
-					continue;
-				}
-				Cookie_Scanner::instance()->review_unknown_cookie(
-					sanitize_text_field( $row['name'] ),
-					array(
-						'category'   => $cat,
-						'treatment'  => isset( $row['treatment'] ) ? sanitize_key( $row['treatment'] ) : 'consent',
-						'label'      => isset( $row['label'] ) ? sanitize_text_field( $row['label'] ) : '',
-						'purpose'    => isset( $row['purpose'] ) ? sanitize_textarea_field( $row['purpose'] ) : '',
-						'visibility' => isset( $row['visibility'] ) ? sanitize_key( $row['visibility'] ) : 'show',
-					)
-				);
-			}
+			$this->apply_unknown_cookie_reviews(
+				map_deep( wp_unslash( $_POST['unknown_cookies'] ), 'sanitize_text_field' )
+			);
 			Cookie_Scanner::refresh_policy_pages_after_review();
 		}
 
@@ -1024,7 +972,10 @@ class Admin {
 
 		// Merge any posted ID fields (wizard Statistics / Services steps).
 		if ( ! empty( $_POST['service_ids'] ) && is_array( $_POST['service_ids'] ) ) {
-			$service_ids         = Tracking_Templates::merge_service_ids( wp_unslash( $_POST['service_ids'] ), $service_ids );
+			$service_ids         = Tracking_Templates::merge_service_ids(
+				map_deep( wp_unslash( $_POST['service_ids'] ), 'sanitize_text_field' ),
+				$service_ids
+			);
 			$service_ids_changed = true;
 		}
 
@@ -1097,7 +1048,80 @@ class Admin {
 
 		header( 'Content-Type: text/csv; charset=utf-8' );
 		header( 'Content-Disposition: attachment; filename=ucpf-consent-logs.csv' );
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV download body; cells are escaped in Audit_Log::export_csv().
 		echo $csv;
 		exit;
+	}
+
+	/**
+	 * Sanitize wizard document_sources map.
+	 *
+	 * @param array $raw Already map_deep-sanitized input.
+	 * @return array
+	 */
+	private function sanitize_document_sources( $raw ) {
+		if ( ! is_array( $raw ) ) {
+			return array();
+		}
+		$sources = array();
+		foreach ( $raw as $key => $value ) {
+			$sources[ sanitize_key( (string) $key ) ] = sanitize_key( (string) $value );
+		}
+		return $sources;
+	}
+
+	/**
+	 * Sanitize wizard service_overrides map.
+	 *
+	 * @param array $raw Already map_deep-sanitized input.
+	 * @return array
+	 */
+	private function sanitize_service_overrides( $raw ) {
+		if ( ! is_array( $raw ) ) {
+			return array();
+		}
+		$overrides = array();
+		foreach ( $raw as $key => $row ) {
+			$key = sanitize_key( (string) $key );
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+			$overrides[ $key ] = array(
+				'category'         => isset( $row['category'] ) ? sanitize_key( (string) $row['category'] ) : '',
+				'treatment'        => isset( $row['treatment'] ) ? sanitize_key( (string) $row['treatment'] ) : 'consent',
+				'default_blocking' => true,
+			);
+		}
+		return $overrides;
+	}
+
+	/**
+	 * Apply unknown cookie reviews from wizard POST.
+	 *
+	 * @param array $rows Already map_deep-sanitized rows.
+	 */
+	private function apply_unknown_cookie_reviews( $rows ) {
+		if ( ! is_array( $rows ) ) {
+			return;
+		}
+		foreach ( $rows as $row ) {
+			if ( ! is_array( $row ) || empty( $row['name'] ) || empty( $row['category'] ) ) {
+				continue;
+			}
+			$cat = sanitize_key( (string) $row['category'] );
+			if ( ! in_array( $cat, Privacy_Scan_Importer::assignable_categories(), true ) ) {
+				continue;
+			}
+			Cookie_Scanner::instance()->review_unknown_cookie(
+				sanitize_text_field( (string) $row['name'] ),
+				array(
+					'category'   => $cat,
+					'treatment'  => isset( $row['treatment'] ) ? sanitize_key( (string) $row['treatment'] ) : 'consent',
+					'label'      => isset( $row['label'] ) ? sanitize_text_field( (string) $row['label'] ) : '',
+					'purpose'    => isset( $row['purpose'] ) ? sanitize_textarea_field( (string) $row['purpose'] ) : '',
+					'visibility' => isset( $row['visibility'] ) ? sanitize_key( (string) $row['visibility'] ) : 'show',
+				)
+			);
+		}
 	}
 }

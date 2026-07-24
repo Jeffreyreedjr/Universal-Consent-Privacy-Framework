@@ -177,9 +177,21 @@ class Script_Registry {
 	private function sync_db_to_memory() {
 		global $wpdb;
 
-		$table = ucpf_table( 'script_registry' );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$rows = $wpdb->get_results( "SELECT * FROM {$table}", ARRAY_A );
+		$table_name = ucpf_table( 'script_registry' );
+		$table      = esc_sql( $table_name );
+		if ( '' === $table || '' === $table_name ) {
+			return;
+		}
+
+		// Skip quietly if schema is not ready yet (before migration/activation).
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- existence check; table from whitelist.
+		$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table_name ) ) );
+		if ( $exists !== $table_name ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table from esc_sql( ucpf_table() ) whitelist.
+		$rows = $wpdb->get_results( "SELECT * FROM `{$table}`", ARRAY_A );
 
 		if ( ! $rows ) {
 			return;
@@ -380,6 +392,9 @@ class Script_Registry {
 		global $wpdb;
 
 		$table = ucpf_table( 'script_registry' );
+		if ( '' === $table ) {
+			return 0;
+		}
 		$count = 0;
 
 		foreach ( $services as $service ) {
@@ -390,7 +405,7 @@ class Script_Registry {
 
 			$this->register_service( $validated, 'imported' );
 
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- registry import write.
 			$wpdb->replace(
 				$table,
 				array(

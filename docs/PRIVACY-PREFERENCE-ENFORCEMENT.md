@@ -107,7 +107,7 @@ add_action( 'ucpf_privacy_opt_out', function( $record, $status ) {
 
 Wire these to CRM / ads / ESP connectors. Website script blocking alone does not stop server-side audience uploads.
 
-**Ops UI (1.4.1+):** Rights Inbox → Vendor suppress queue. Mark complete only after confirming suppression in the vendor console/API. REST: `GET/DELETE /ucpf/v1/vendor-suppress-queue`, `POST /ucpf/v1/vendor-suppress-queue/{index}`.
+**Vendor suppress queue:** REST `GET/DELETE /ucpf/v1/vendor-suppress-queue`, `POST /ucpf/v1/vendor-suppress-queue/{index}` for connector jobs. Mark complete only after confirming suppression in the vendor console/API.
 
 **Scanner (1.4.1+):** `dns_opt_out` session + `still_loaded_after_dns` / `still_loaded_after_gpc` fail findings. Cookie Scanner → unknown host suggestions → site-local catalog (feeds network gate extras).
 

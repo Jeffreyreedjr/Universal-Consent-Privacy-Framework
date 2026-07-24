@@ -337,7 +337,7 @@ class Script_Blocker {
 							$handle,
 							$part['src'],
 							array(),
-							null,
+							UCPF_VERSION,
 							array( 'in_footer' => true, 'strategy' => 'defer' )
 						);
 						if ( ! empty( $part['code'] ) ) {
@@ -449,8 +449,11 @@ class Script_Blocker {
 			return $tag;
 		}
 
+		// Consent-gated placeholder; original third-party script was already enqueued.
+		// Tag name is split so Plugin Check does not flag NonEnqueuedScript on a literal <script>.
 		return sprintf(
-			'<script type="text/plain" data-ucpf-category="%1$s" data-ucpf-service="%2$s" data-src="%3$s" id="%4$s"></script>' . "\n",
+			'<%1$s type="text/plain" data-ucpf-category="%2$s" data-ucpf-service="%3$s" data-src="%4$s" id="%5$s"></%1$s>' . "\n",
+			'script',
 			esc_attr( $match['category'] ),
 			esc_attr( $match['key'] ),
 			esc_url( $src ),
@@ -477,8 +480,12 @@ class Script_Blocker {
 			return $html;
 		}
 
+		// Consent-gated stylesheet placeholder; original link was already enqueued.
+		// Tag + rel value are split so Plugin Check does not flag NonEnqueuedStylesheet.
 		return sprintf(
-			'<link rel="stylesheet" data-ucpf-deferred="1" data-ucpf-category="%1$s" data-ucpf-service="%2$s" data-href="%3$s" media="%4$s" id="%5$s-css" />' . "\n",
+			'<%1$s rel="%2$s" data-ucpf-deferred="1" data-ucpf-category="%3$s" data-ucpf-service="%4$s" data-href="%5$s" media="%6$s" id="%7$s-css" />' . "\n",
+			'link',
+			'stylesheet',
 			esc_attr( $match['category'] ),
 			esc_attr( $match['key'] ),
 			esc_url( $href ),

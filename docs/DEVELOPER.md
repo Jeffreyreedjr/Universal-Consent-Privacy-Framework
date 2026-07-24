@@ -63,12 +63,10 @@ UCPF.on('ucpf:consent:changed', (state) => {});
 - `POST /cookies/review` — categorize unknown cookies
 - `POST /services/override` — set treatment/category for a service
 - `POST /pages/generate`
-- `POST /data-request` — DSAR / Do Not Sell (public nonce); see [RIGHTS-FORMS.md](RIGHTS-FORMS.md)
-- `GET/POST /registry/export|import`
 
 ## Rights request pages (Data Request / Do Not Sell)
 
-These pages are **not** auto-generated. Set external URLs under Generated Pages and paste `[ucpf_data_request_form]` / `[ucpf_do_not_sell_form]` on home-site pages, or POST the field contract in [RIGHTS-FORMS.md](RIGHTS-FORMS.md). Gravity Forms embeds alone do not feed Rights Inbox.
+Forms are **not** collected on this WordPress install. Set external URLs under Generated Pages. See [RIGHTS-FORMS.md](RIGHTS-FORMS.md).
 
 ## Scanner contexts
 

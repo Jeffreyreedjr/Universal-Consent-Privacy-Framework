@@ -10,6 +10,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- included template; locals are not plugin globals.
+
 $product = \UCPF\Brand::product_name();
 $current = isset( $ucpf_shell_current ) ? (string) $ucpf_shell_current : 'dashboard';
 $title   = isset( $ucpf_shell_title ) ? (string) $ucpf_shell_title : $product;
@@ -22,7 +24,6 @@ $nav = array(
 	'registry'     => array( __( 'Script Registry', 'universal-consent-privacy-framework' ), admin_url( 'admin.php?page=ucpf-registry' ) ),
 	'scanner'      => array( __( 'Cookie Scanner', 'universal-consent-privacy-framework' ), admin_url( 'admin.php?page=ucpf-scanner' ) ),
 	'pages'        => array( __( 'Generated Pages', 'universal-consent-privacy-framework' ), admin_url( 'admin.php?page=ucpf-pages' ) ),
-	'rights'       => array( __( 'Rights Inbox', 'universal-consent-privacy-framework' ), admin_url( 'admin.php?page=ucpf-rights' ) ),
 	'logs'         => array( __( 'Consent Logs', 'universal-consent-privacy-framework' ), admin_url( 'admin.php?page=ucpf-logs' ) ),
 	'integrations' => array( __( 'Integrations', 'universal-consent-privacy-framework' ), admin_url( 'admin.php?page=ucpf-integrations' ) ),
 	'developer'    => array( __( 'Developer API', 'universal-consent-privacy-framework' ), admin_url( 'admin.php?page=ucpf-developer' ) ),

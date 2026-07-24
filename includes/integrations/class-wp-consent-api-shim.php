@@ -216,8 +216,10 @@ class Wp_Consent_Api_Shim {
 	 * @param string $value    Value.
 	 */
 	public function shim_set_consent( $category, $value ) {
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WP Consent API compatibility hook.
 		$prefix = apply_filters( 'wp_consent_cookie_prefix', 'wp_consent' );
 		$name   = $prefix . '_' . sanitize_key( $category );
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WP Consent API compatibility hook.
 		$days   = (int) apply_filters( 'wp_consent_api_cookie_expiration', 30 );
 
 		setcookie(

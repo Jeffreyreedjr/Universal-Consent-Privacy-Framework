@@ -32,10 +32,13 @@ Import `report-*.json` in WordPress: **Privacy Consent → Cookie Scanner → Im
 
 ## Self-hosted / agency API
 
+**Full server guide:** [docs/SCANNER-SERVER.md](../../docs/SCANNER-SERVER.md) (VPS install, systemd, TLS, WordPress wiring).
+
 ```bash
 cp .env.example .env
 # Set UCPF_SCANNER_API_KEYS=long-random-secret
 npm start
+# Default listen: http://0.0.0.0:3847 — put HTTPS in front for production
 ```
 
 - `GET /health`, `GET /v1/node` — node registration metadata
@@ -43,12 +46,12 @@ npm start
 - `POST /v1/drift` — compare baselines
 - `POST /v1/verify-domain` — `/.well-known/ucpf-scan-token` challenge (no redirect follow)
 
-Auth required off-loopback. SSRF protections block private IPs.
+Auth: header `X-UCPF-Scanner-Key` or `Authorization: Bearer …`. Required off-loopback. SSRF protections block private IPs.
 
 ## WordPress wiring
 
 1. **Local:** import JSON (no API).
-2. **Agency:** Advanced → Scanner API URL + key.
+2. **Self-hosted:** Advanced → Scanner API URL + key ([SCANNER-SERVER.md](../../docs/SCANNER-SERVER.md)).
 3. **Registry mode:** `local` (default) | `agency` | `community` | `disabled` — community requires Remote registry enabled (double gate).
 
 ## Package

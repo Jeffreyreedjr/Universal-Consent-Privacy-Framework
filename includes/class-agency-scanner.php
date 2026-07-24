@@ -59,7 +59,7 @@ class Agency_Scanner {
 	public function serve_well_known() {
 		if ( ! get_query_var( 'ucpf_scan_token' ) ) {
 			// Fallback without rewrite flush: match REQUEST_URI.
-			$uri = isset( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
+			$uri = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
 			if ( ! preg_match( '#/\.well-known/ucpf-scan-token/?(\?|$)#', $uri ) ) {
 				return;
 			}

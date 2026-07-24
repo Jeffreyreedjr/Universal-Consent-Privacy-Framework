@@ -13,6 +13,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- included template; locals are not plugin globals.
+
 if ( ! isset( $last_scan ) || ! is_array( $last_scan ) ) {
 	$last_scan = array();
 }

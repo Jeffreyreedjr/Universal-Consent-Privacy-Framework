@@ -1,4 +1,6 @@
-<?php defined( 'ABSPATH' ) || exit; ?>
+<?php defined( 'ABSPATH' ) || exit;
+
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- included template; locals are not plugin globals. ?>
 <div class="wrap ucpf-admin">
 	<h1><?php esc_html_e( 'Developer API', 'universal-consent-privacy-framework' ); ?></h1>
 	<p><?php esc_html_e( 'Register services with ucpf_register_service() or contribute JSON definitions to the vendor catalog.', 'universal-consent-privacy-framework' ); ?></p>

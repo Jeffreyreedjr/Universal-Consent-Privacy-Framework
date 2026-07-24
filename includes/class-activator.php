@@ -32,9 +32,9 @@ class Activator {
 	}
 
 	/**
-	 * Create custom database tables.
+	 * Create or upgrade custom database tables (safe to re-run via dbDelta).
 	 */
-	private static function create_tables() {
+	public static function create_tables() {
 		global $wpdb;
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -83,21 +83,6 @@ class Activator {
 			updated_at datetime DEFAULT NULL,
 			PRIMARY KEY  (id),
 			UNIQUE KEY service_key (service_key)
-		) {$charset};";
-		dbDelta( $sql );
-
-		$requests = ucpf_table( 'data_requests' );
-		$sql      = "CREATE TABLE {$requests} (
-			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-			request_type varchar(50) NOT NULL,
-			email_hash char(64) NOT NULL,
-			status varchar(30) NOT NULL DEFAULT 'pending',
-			user_request_id bigint(20) unsigned DEFAULT NULL,
-			meta longtext,
-			created_at datetime NOT NULL,
-			PRIMARY KEY  (id),
-			KEY email_hash (email_hash),
-			KEY status (status)
 		) {$charset};";
 		dbDelta( $sql );
 

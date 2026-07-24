@@ -21,6 +21,9 @@ class Migration {
 		// Clear a stuck scanner lock so PHP workers cannot stay wedged.
 		delete_transient( 'ucpf_scan_running' );
 
+		// Ensure schema exists after zip updates without deactivate/reactivate.
+		Activator::create_tables();
+
 		$installed = get_option( 'ucpf_db_version', '0' );
 		if ( version_compare( (string) $installed, UCPF_VERSION, '<' ) ) {
 			self::run_safe_mode_fixes();

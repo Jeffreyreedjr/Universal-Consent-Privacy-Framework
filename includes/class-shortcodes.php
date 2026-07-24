@@ -43,7 +43,6 @@ class Shortcodes {
 		add_shortcode( 'ucpf_data_request_form', array( $this, 'data_request_form' ) );
 		add_shortcode( 'ucpf_do_not_sell_form', array( $this, 'do_not_sell_form' ) );
 		add_shortcode( 'ucpf_privacy_summary', array( $this, 'privacy_summary' ) );
-		add_shortcode( 'ucpf_gravity_form', array( $this, 'gravity_form_shortcode' ) );
 	}
 
 	/**
@@ -505,64 +504,23 @@ class Shortcodes {
 	}
 
 	/**
-	 * Data request form shortcode.
+	 * Data request shortcode — link to external rights URL (forms are not hosted on this site).
 	 *
 	 * @return string
 	 */
 	public function data_request_form() {
-		if ( ! Settings::get( 'enable_data_request_forms', true ) ) {
-			return '';
-		}
-		$gf = $this->render_configured_form( 'data_request' );
-		return '' !== $gf ? $gf : $this->render_request_form( 'access' );
+		return $this->rights_external_link( 'data_request', __( 'Privacy rights request', 'universal-consent-privacy-framework' ) );
 	}
 
 	/**
-	 * Do not sell form shortcode.
+	 * Do not sell shortcode — link to external rights URL.
 	 *
 	 * @return string
 	 */
 	public function do_not_sell_form() {
-		if ( ! Settings::get( 'enable_data_request_forms', true ) ) {
-			return '';
-		}
-		$gf = $this->render_configured_form( 'do_not_sell' );
-		return '' !== $gf ? $gf : $this->render_request_form( 'do_not_sell' );
-	}
-
-	/**
-	 * Explicit Gravity Form embed: [ucpf_gravity_form id="12"] or shortcode="...".
-	 *
-	 * @param array $atts Attributes.
-	 * @return string
-	 */
-	public function gravity_form_shortcode( $atts ) {
-		$atts = shortcode_atts(
-			array(
-				'id'        => '',
-				'shortcode' => '',
-			),
-			$atts,
-			'ucpf_gravity_form'
-		);
-
-		if ( ! empty( $atts['shortcode'] ) ) {
-			return $this->wrap_gravity_output( do_shortcode( $atts['shortcode'] ) );
-		}
-
-		$form_id = absint( $atts['id'] );
-		if ( ! $form_id ) {
-			return '';
-		}
-
-		return $this->wrap_gravity_output(
-			do_shortcode(
-				sprintf(
-					'[gravityform id="%d" title="false" description="false" ajax="true"]',
-					$form_id
-				)
-			)
-		);
+		$pack  = Jurisdiction::instance()->resolve();
+		$label = ! empty( $pack['copy']['dns_title'] ) ? $pack['copy']['dns_title'] : __( 'Do Not Sell or Share', 'universal-consent-privacy-framework' );
+		return $this->rights_external_link( 'do_not_sell', $label );
 	}
 
 	/**
@@ -582,110 +540,22 @@ class Shortcodes {
 	}
 
 	/**
-	 * Render GF when form ID or custom shortcode is configured.
+	 * Render a link to the configured external rights page.
 	 *
 	 * @param string $which data_request|do_not_sell.
-	 * @return string Empty when built-in should be used.
-	 */
-	private function render_configured_form( $which ) {
-		$custom = trim( (string) Settings::get( 'gf_' . $which . '_shortcode', '' ) );
-		$form_id = absint( Settings::get( 'gf_' . $which . '_form_id', 0 ) );
-
-		if ( '' === $custom && $form_id < 1 ) {
-			return '';
-		}
-
-		if ( '' !== $custom ) {
-			return $this->wrap_gravity_output( do_shortcode( $custom ) );
-		}
-
-		if ( ! class_exists( 'GFCommon' ) && ! function_exists( 'gravity_form' ) ) {
-			return '<div class="ucpf-legal"><p class="ucpf-form__notice">' . esc_html__( 'Gravity Forms is not active. Activate it or clear the form ID to use the built-in request form.', 'universal-consent-privacy-framework' ) . '</p></div>';
-		}
-
-		return $this->wrap_gravity_output(
-			do_shortcode(
-				sprintf(
-					'[gravityform id="%d" title="false" description="false" ajax="true"]',
-					$form_id
-				)
-			)
-		);
-	}
-
-	/**
-	 * Wrap third-party form markup for UCPF legal styling.
-	 *
-	 * @param string $html Form HTML.
+	 * @param string $label Link text.
 	 * @return string
 	 */
-	private function wrap_gravity_output( $html ) {
-		$html = (string) $html;
-		if ( '' === trim( $html ) ) {
+	private function rights_external_link( $which, $label ) {
+		$url = Page_Generator::instance()->get_rights_url( $which );
+		if ( ! $url ) {
 			return '';
 		}
-		return '<div class="ucpf-legal ucpf-gf-wrap">' . $html . '</div>';
-	}
-
-	/**
-	 * Render DSAR form.
-	 *
-	 * @param string $default_type Default request type.
-	 * @return string
-	 */
-	private function render_request_form( $default_type = 'access' ) {
 		ob_start();
-		$is_dns = ( 'do_not_sell' === $default_type );
 		?>
-		<form class="ucpf-form ucpf-data-request-form" data-ucpf-form="data-request">
-			<input type="hidden" name="request_type" value="<?php echo esc_attr( $default_type ); ?>" />
-			<div class="ucpf-field">
-				<label for="ucpf-dsar-email"><?php esc_html_e( 'Email address', 'universal-consent-privacy-framework' ); ?></label>
-				<input class="ucpf-field__input" type="email" id="ucpf-dsar-email" name="email" required autocomplete="email" />
-			</div>
-			<?php if ( $is_dns ) : ?>
-				<?php
-				$pack = \UCPF\Jurisdiction::instance()->resolve();
-				$show_limit = ! empty( $pack['show_limit_sensitive'] );
-				$dns_title = ! empty( $pack['copy']['dns_title'] ) ? $pack['copy']['dns_title'] : __( 'Do Not Sell or Share My Personal Information', 'universal-consent-privacy-framework' );
-				$dns_intro = ! empty( $pack['copy']['dns_intro'] ) ? $pack['copy']['dns_intro'] : '';
-				?>
-				<p class="ucpf-form__notice"><strong><?php echo esc_html( $dns_title ); ?></strong><?php echo $dns_intro ? ' ' . esc_html( $dns_intro ) : ''; ?></p>
-				<p class="ucpf-form__notice"><?php esc_html_e( 'This form helps support privacy rights workflows. It is not legal advice and does not guarantee regulatory compliance.', 'universal-consent-privacy-framework' ); ?></p>
-				<fieldset class="ucpf-field">
-					<legend><?php esc_html_e( 'What would you like to opt out of?', 'universal-consent-privacy-framework' ); ?></legend>
-					<label><input type="checkbox" name="opt_out_sale" value="1" checked /> <?php esc_html_e( 'Sale of personal information', 'universal-consent-privacy-framework' ); ?></label><br />
-					<label><input type="checkbox" name="opt_out_sharing" value="1" checked /> <?php esc_html_e( 'Sharing of personal information (including for cross-context behavioral advertising)', 'universal-consent-privacy-framework' ); ?></label><br />
-					<label><input type="checkbox" name="opt_out_targeted" value="1" checked /> <?php esc_html_e( 'Targeted advertising', 'universal-consent-privacy-framework' ); ?></label><br />
-					<?php if ( $show_limit ) : ?>
-						<label><input type="checkbox" name="limit_sensitive" value="1" /> <?php esc_html_e( 'Limit use of sensitive personal information', 'universal-consent-privacy-framework' ); ?></label><br />
-					<?php endif; ?>
-				</fieldset>
-				<fieldset class="ucpf-field">
-					<legend><?php esc_html_e( 'Apply this request to', 'universal-consent-privacy-framework' ); ?></legend>
-					<label><input type="radio" name="scope" value="site" checked /> <?php esc_html_e( 'This website only', 'universal-consent-privacy-framework' ); ?></label><br />
-					<label><input type="radio" name="scope" value="controller" /> <?php esc_html_e( 'All websites operated by this business (when a privacy API is configured)', 'universal-consent-privacy-framework' ); ?></label><br />
-					<label><input type="radio" name="scope" value="selected" /> <?php esc_html_e( 'Selected businesses / websites (processed by the privacy team)', 'universal-consent-privacy-framework' ); ?></label>
-				</fieldset>
-				<p class="ucpf-field">
-					<label>
-						<input type="checkbox" name="global_privacy_mode" value="1" />
-						<?php esc_html_e( 'Also block all nonessential tracking on this site (analytics, embeds, personalization)', 'universal-consent-privacy-framework' ); ?>
-					</label>
-				</p>
-				<p class="ucpf-form__notice"><?php esc_html_e( 'We enforce this on this site immediately (scripts and tags). Cross-site enforcement for the same business uses Global Privacy Control in your browser and/or an optional agency privacy API — we do not set cross-domain tracking cookies.', 'universal-consent-privacy-framework' ); ?></p>
-			<?php endif; ?>
-			<div class="ucpf-field ucpf-field--honeypot" aria-hidden="true">
-				<label for="ucpf-website"><?php esc_html_e( 'Website', 'universal-consent-privacy-framework' ); ?></label>
-				<input class="ucpf-field__input" type="text" id="ucpf-website" name="website" tabindex="-1" autocomplete="off" />
-			</div>
-			<div class="ucpf-field">
-				<label for="ucpf-dsar-message"><?php esc_html_e( 'Message (optional)', 'universal-consent-privacy-framework' ); ?></label>
-				<textarea class="ucpf-field__input ucpf-field__textarea" id="ucpf-dsar-message" name="message" rows="4"></textarea>
-			</div>
-			<button type="submit" class="ucpf-btn ucpf-btn--pill ucpf-btn--primary-tier ucpf-btn--fill"><?php esc_html_e( 'Submit request', 'universal-consent-privacy-framework' ); ?></button>
-			<p class="ucpf-form__status" role="status" aria-live="polite" hidden></p>
-		</form>
+		<div class="ucpf-legal">
+			<p><a href="<?php echo esc_url( $url ); ?>"><?php echo esc_html( $label ); ?></a></p>
+		</div>
 		<?php
 		return ob_get_clean();
 	}

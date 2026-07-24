@@ -245,36 +245,6 @@ class Rest_Api {
 
 		register_rest_route(
 			self::NAMESPACE,
-			'/data-request',
-			array(
-				'methods'             => \WP_REST_Server::CREATABLE,
-				'callback'            => array( $this, 'post_data_request' ),
-				'permission_callback' => array( $this, 'public_nonce_permission' ),
-			)
-		);
-
-		register_rest_route(
-			self::NAMESPACE,
-			'/rights-inbox',
-			array(
-				'methods'             => \WP_REST_Server::READABLE,
-				'callback'            => array( $this, 'get_rights_inbox' ),
-				'permission_callback' => array( $this, 'admin_permission' ),
-			)
-		);
-
-		register_rest_route(
-			self::NAMESPACE,
-			'/rights-inbox/(?P<id>\d+)',
-			array(
-				'methods'             => \WP_REST_Server::EDITABLE,
-				'callback'            => array( $this, 'patch_rights_inbox' ),
-				'permission_callback' => array( $this, 'admin_permission' ),
-			)
-		);
-
-		register_rest_route(
-			self::NAMESPACE,
 			'/agency-preset',
 			array(
 				'methods'             => \WP_REST_Server::CREATABLE,
@@ -1021,63 +991,6 @@ class Rest_Api {
 		}
 
 		$result = Page_Generator::instance()->generate_all( $overwrite );
-		return rest_ensure_response( $result );
-	}
-
-	/**
-	 * POST data request form.
-	 *
-	 * @param \WP_REST_Request $request Request.
-	 * @return \WP_REST_Response|\WP_Error
-	 */
-	public function post_data_request( $request ) {
-		if ( ! $this->rate_limit( 'dsar', 5 ) ) {
-			return new \WP_Error( 'ucpf_rate_limit', __( 'Too many requests.', 'universal-consent-privacy-framework' ), array( 'status' => 429 ) );
-		}
-
-		$body = $request->get_json_params();
-
-		if ( ! empty( $body['website'] ) ) {
-			return new \WP_Error( 'ucpf_spam', __( 'Invalid submission.', 'universal-consent-privacy-framework' ), array( 'status' => 400 ) );
-		}
-
-		$result = Privacy_Tools::instance()->handle_data_request( $body );
-		if ( is_wp_error( $result ) ) {
-			return $result;
-		}
-
-		return rest_ensure_response( is_array( $result ) ? $result : array( 'success' => true ) );
-	}
-
-	/**
-	 * GET rights inbox list.
-	 *
-	 * @return \WP_REST_Response
-	 */
-	public function get_rights_inbox() {
-		return rest_ensure_response(
-			array(
-				'requests' => Rights_Inbox::instance()->list_requests( 100 ),
-			)
-		);
-	}
-
-	/**
-	 * PATCH rights inbox item.
-	 *
-	 * @param \WP_REST_Request $request Request.
-	 * @return \WP_REST_Response|\WP_Error
-	 */
-	public function patch_rights_inbox( $request ) {
-		$id   = (int) $request['id'];
-		$body = $request->get_json_params();
-		if ( ! is_array( $body ) ) {
-			$body = array();
-		}
-		$result = Rights_Inbox::instance()->update_request( $id, $body );
-		if ( is_wp_error( $result ) ) {
-			return $result;
-		}
 		return rest_ensure_response( $result );
 	}
 

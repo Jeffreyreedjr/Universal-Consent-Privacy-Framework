@@ -40,7 +40,8 @@ $ExcludeFiles = @(
     "package.ps1",
     "package.json",
     "package-lock.json",
-    "webpack.config.js"
+    "webpack.config.js",
+    "phpcs.xml.dist"
 )
 
 function Should-Exclude([string]$relativePath) {
@@ -73,7 +74,7 @@ if ((Test-Path $PkgJson) -and (Get-Command npm -ErrorAction SilentlyContinue)) {
 }
 
 if (-not (Test-Path $AdminBuild)) {
-    throw "Missing admin/build/index.js — run npm install && npm run build before packaging."
+    throw "Missing admin/build/index.js - run npm install and npm run build before packaging."
 }
 
 if (Test-Path $DistDir) {
@@ -155,4 +156,4 @@ Write-Host "Done: $($zipInfo.FullName)"
 Write-Host ("Size: {0:N1} KB" -f ($zipInfo.Length / 1KB))
 Write-Host ""
 Write-Host "Before uploading: delete any broken copy under wp-content/plugins/universal-consent-privacy-framework"
-Write-Host "Then: Plugins → Add New → Upload Plugin → this zip → Activate"
+Write-Host "Then: Plugins > Add New > Upload Plugin > this zip > Activate"

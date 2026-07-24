@@ -27,10 +27,10 @@ Agencies: see [docs/WHITE-LABEL.md](docs/WHITE-LABEL.md) (`wp-content/ucpf-brand
 | Path | When |
 |------|------|
 | Built-in guest crawl | Always available in Cookie Scanner |
-| Local deep scan | `cd tools/ucpf-scanner` → `.\scan.ps1 https://example.com/` → Import JSON |
-| Self-hosted scanner API | Optional; set Advanced → Scanner API URL + key |
+| Local deep scan | `cd tools/ucpf-scanner` → scan CLI → Import JSON |
+| Self-hosted scanner API | [docs/SCANNER-SERVER.md](docs/SCANNER-SERVER.md) — Node service + HTTPS + WP Advanced URL/key |
 
-Details: [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md), [tools/ucpf-scanner/README.md](tools/ucpf-scanner/README.md).
+Details: [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md), [tools/ucpf-scanner/README.md](tools/ucpf-scanner/README.md), [docs/SCANNER-SERVER.md](docs/SCANNER-SERVER.md).
 
 ## Updates (secure, no phone-home)
 
@@ -57,6 +57,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Good first contributions: noise filters 
 | [WHITE-LABEL](docs/WHITE-LABEL.md) | Agency branding without forking |
 | [RELEASING](docs/RELEASING.md) | Version tags, WP.org, checksums |
 | [DEVELOPER](docs/DEVELOPER.md) | Hooks, registry, REST |
+| [SCANNER-SERVER](docs/SCANNER-SERVER.md) | Self-host Playwright API on your VPS |
 | [AGENTS.md](AGENTS.md) | Conventions for automated agents |
 
 ## Disclaimer

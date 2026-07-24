@@ -1,3 +1,14 @@
+<?php
+/**
+ * Consent Preferences generated-page template.
+ *
+ * @package UCPF
+ */
+
+defined( 'ABSPATH' ) || exit;
+
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- included template; locals are not plugin globals.
+?>
 <div class="ucpf-legal">
 	<p class="ucpf-legal__label"><?php echo esc_html( isset( $site_name ) ? $site_name : get_bloginfo( 'name' ) ); ?></p>
 	<h1 class="ucpf-legal__title"><?php esc_html_e( 'Consent Preferences', 'universal-consent-privacy-framework' ); ?></h1>
