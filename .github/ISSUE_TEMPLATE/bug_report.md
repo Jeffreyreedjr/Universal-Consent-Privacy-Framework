@@ -1,11 +1,11 @@
 ---
 name: Bug report
-about: Report a defect in the plugin or scanner companion
-labels: bug
+description: Report a defect in the WordPress plugin or the optional scanner companion
+labels: [bug]
 ---
 
 **Describe the bug**
-A clear description of what went wrong.
+What went wrong?
 
 **Steps to reproduce**
 1.
@@ -13,6 +13,7 @@ A clear description of what went wrong.
 3.
 
 **Expected behavior**
+What should have happened?
 
 **Environment**
 - WordPress version:
@@ -22,7 +23,7 @@ A clear description of what went wrong.
 
 **Scanner involved?**
 - [ ] No
-- [ ] Yes (CLI / self-hosted API) — Node version:
+- [ ] Yes (local CLI or self-hosted API) — Node version:
 
 **Additional context**
-Screenshots, console errors (no secrets / no full scan reports with client data).
+Screenshots or console errors. Do not paste secrets, API keys, or full scan reports that contain client site data.

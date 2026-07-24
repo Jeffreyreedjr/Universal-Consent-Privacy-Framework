@@ -14,10 +14,15 @@ Trusted updates without a phone-home updater:
 
 ## Build zip
 
+Requires Node 20+ (builds `admin/build`). Source of truth: `package.ps1` only.
+
 ```powershell
+npm install
 .\package.ps1
 # → dist/universal-consent-privacy-framework.zip
 ```
+
+The GitHub Release workflow (`.github/workflows/release.yml`) runs the same on tag `v*`, verifies `admin/build/index.js` is inside the zip, and attaches `SHA256SUMS.txt`.
 
 Compute checksum (PowerShell):
 

@@ -22,6 +22,9 @@ SECURITY.md
 CHANGELOG.md
 README.md
 package.ps1
+package.json
+package-lock.json
+webpack.config.js
 *.log
 .env
 .env.*

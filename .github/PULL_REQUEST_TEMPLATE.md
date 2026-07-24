@@ -1,14 +1,14 @@
 ## Summary
 
-Briefly describe the change.
+What changed and why.
 
 ## Checklist
 
-- [ ] I have not committed secrets, `.env`, or `report*.json` scan artifacts
-- [ ] User-facing changes noted in `CHANGELOG.md` (Unreleased or version section)
-- [ ] Follows `AGENTS.md` / coding standards (sanitize, escape, no phone-home)
-- [ ] Docs updated if setup or branding behavior changed
-- [ ] Tested on a local WordPress install (describe briefly)
+- [ ] No secrets, `.env`, or scanner `report*.json` artifacts in this PR
+- [ ] User-facing changes noted in `CHANGELOG.md` and/or `readme.txt`
+- [ ] Input sanitized / output escaped; no phone-home or remote executable code
+- [ ] Docs updated if install, branding, or scanner setup changed
+- [ ] Tested on a local WordPress install (note version)
 
 ## Test plan
 

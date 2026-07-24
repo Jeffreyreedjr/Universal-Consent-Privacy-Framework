@@ -38,7 +38,6 @@ $ExcludeFiles = @(
     "CHANGELOG.md",
     "README.md",
     "package.ps1",
-    "package.sh",
     "package.json",
     "package-lock.json",
     "webpack.config.js"
@@ -59,6 +58,7 @@ Write-Host "Packaging $PluginSlug..."
 
 # Build admin React app when Node is available.
 $PkgJson = Join-Path $Root "package.json"
+$AdminBuild = Join-Path $Root "admin\build\index.js"
 if ((Test-Path $PkgJson) -and (Get-Command npm -ErrorAction SilentlyContinue)) {
     Write-Host "Building admin UI (npm run build)..."
     Push-Location $Root
@@ -70,6 +70,10 @@ if ((Test-Path $PkgJson) -and (Get-Command npm -ErrorAction SilentlyContinue)) {
     }
 } else {
     Write-Host "Skipping npm build (npm or package.json missing). Ensure admin/build exists."
+}
+
+if (-not (Test-Path $AdminBuild)) {
+    throw "Missing admin/build/index.js — run npm install && npm run build before packaging."
 }
 
 if (Test-Path $DistDir) {
