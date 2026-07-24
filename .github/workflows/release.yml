@@ -1,0 +1,41 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build plugin zip
+        shell: pwsh
+        run: |
+          .\package.ps1
+          $zip = Get-Item "dist\universal-consent-privacy-framework.zip"
+          $hash = (Get-FileHash $zip.FullName -Algorithm SHA256).Hash
+          Set-Content -Path dist\SHA256SUMS.txt -Value "$hash  $($zip.Name)"
+          Write-Host "SHA256: $hash"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/universal-consent-privacy-framework.zip
+            dist/SHA256SUMS.txt
+          body: |
+            ## Universal Consent & Privacy Framework
+
+            See CHANGELOG.md for details.
+
+            **Verify:** SHA256 is in `SHA256SUMS.txt` attached to this release.
+
+            This plugin does not phone home. Optional Playwright scanner is separate companion software under `tools/ucpf-scanner`.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

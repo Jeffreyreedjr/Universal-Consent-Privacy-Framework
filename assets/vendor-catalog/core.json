@@ -1,0 +1,176 @@
+{
+  "services": [
+    {
+      "key": "wordpress_core",
+      "name": "WordPress Core",
+      "provider": "WordPress",
+      "category": "necessary",
+      "treatment": "necessary",
+      "description": "Essential cookies for login, security, comments, and site functionality.",
+      "privacy_url": "https://wordpress.org/about/privacy/",
+      "script_patterns": [],
+      "cookie_patterns": [
+        "wordpress_*",
+        "wordpress_logged_in_*",
+        "wordpress_sec_*",
+        "wordpress_test_cookie",
+        "wp-settings-*",
+        "wp-settings-time-*",
+        "comment_author_*"
+      ],
+      "cookies": [
+        {
+          "name": "wordpress_logged_in_*",
+          "pattern": "wordpress_logged_in_*",
+          "purpose": "Keeps a logged-in user authenticated across pages.",
+          "retention": "Session / 14 days (Remember Me)",
+          "category": "necessary",
+          "treatment": "necessary",
+          "contexts": ["logged_in"]
+        },
+        {
+          "name": "wordpress_sec_*",
+          "pattern": "wordpress_sec_*",
+          "purpose": "Protects logged-in sessions against unauthorized access.",
+          "retention": "Session / 14 days",
+          "category": "necessary",
+          "treatment": "necessary",
+          "contexts": ["logged_in"]
+        },
+        {
+          "name": "wordpress_test_cookie",
+          "pattern": "wordpress_test_cookie",
+          "purpose": "Checks whether the browser accepts cookies.",
+          "retention": "Session",
+          "category": "necessary",
+          "treatment": "necessary",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "wp-settings-*",
+          "pattern": "wp-settings-*",
+          "purpose": "Stores logged-in user interface preferences in wp-admin.",
+          "retention": "1 year",
+          "category": "necessary",
+          "treatment": "necessary",
+          "contexts": ["logged_in"]
+        },
+        {
+          "name": "wp-settings-time-*",
+          "pattern": "wp-settings-time-*",
+          "purpose": "Stores timing of wp-admin UI preference updates.",
+          "retention": "1 year",
+          "category": "necessary",
+          "treatment": "necessary",
+          "contexts": ["logged_in"]
+        },
+        {
+          "name": "comment_author_*",
+          "pattern": "comment_author_*",
+          "purpose": "Remembers commenter name, email, and URL for future comments.",
+          "retention": "1 year",
+          "category": "preferences",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": false
+    },
+    {
+      "key": "ucpf_consent",
+      "name": "UCPF Consent Cookie",
+      "provider": "Universal Consent & Privacy Framework",
+      "category": "necessary",
+      "treatment": "necessary",
+      "description": "Stores your cookie consent choices so the site can respect them.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": ["ucpf_consent"],
+      "cookies": [
+        {
+          "name": "ucpf_consent",
+          "pattern": "ucpf_consent",
+          "purpose": "Stores consent preferences and policy version.",
+          "retention": "Configurable (default 180 days)",
+          "category": "necessary",
+          "treatment": "necessary",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": false
+    },
+    {
+      "key": "wp_consent_api",
+      "name": "WP Consent API",
+      "provider": "WordPress",
+      "category": "preferences",
+      "treatment": "necessary",
+      "description": "Category consent cookies written by the WP Consent API (or UCPF shim) so plugins can read allow/deny per category.",
+      "privacy_url": "https://wordpress.org/plugins/wp-consent-api/",
+      "script_patterns": [],
+      "cookie_patterns": ["wp_consent_*"],
+      "cookies": [
+        {
+          "name": "wp_consent_*",
+          "pattern": "wp_consent_*",
+          "purpose": "Stores allow/deny for a WP Consent API category.",
+          "retention": "Session / short-lived",
+          "category": "preferences",
+          "treatment": "necessary",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": false
+    },
+    {
+      "key": "cloudflare",
+      "name": "Cloudflare",
+      "provider": "Cloudflare",
+      "category": "necessary",
+      "treatment": "necessary",
+      "description": "Security and performance cookies set by Cloudflare when the site uses Cloudflare.",
+      "privacy_url": "https://www.cloudflare.com/privacypolicy/",
+      "script_patterns": ["cdnjs.cloudflare.com", "cloudflareinsights.com", "static.cloudflareinsights.com"],
+      "cookie_patterns": ["__cf_bm", "cf_clearance", "__cfruid", "_cfuvid"],
+      "cookies": [
+        {
+          "name": "__cf_bm",
+          "pattern": "__cf_bm",
+          "purpose": "Cloudflare bot management.",
+          "retention": "30 minutes",
+          "category": "necessary",
+          "treatment": "necessary",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "cf_clearance",
+          "pattern": "cf_clearance",
+          "purpose": "Clearance after Cloudflare challenge.",
+          "retention": "varies",
+          "category": "necessary",
+          "treatment": "necessary",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": false
+    },
+    {
+      "key": "defender",
+      "name": "Defender Security",
+      "provider": "WPMU DEV",
+      "category": "security",
+      "treatment": "necessary",
+      "description": "Security plugin cookies related to login protection and firewall when present.",
+      "privacy_url": "https://wpmudev.com/docs/privacy/",
+      "script_patterns": [],
+      "cookie_patterns": ["wdf*", "defender*"],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": false
+    }
+  ]
+}

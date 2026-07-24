@@ -1,0 +1,69 @@
+/* Self-hosted Plus Jakarta Sans (OFL) — no CDN */
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../../assets/fonts/plus-jakarta-sans-latin-400-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("../../assets/fonts/plus-jakarta-sans-latin-500-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../../assets/fonts/plus-jakarta-sans-latin-600-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../../assets/fonts/plus-jakarta-sans-latin-700-normal.woff2") format("woff2");
+}
+
+.ucpf-admin,
+.ucpf-shell,
+#ucpf-admin-root {
+  --ucpf-font: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ucpf-admin-bg: #f4f5f4;
+  --ucpf-admin-surface: #ffffff;
+  --ucpf-admin-surface-2: #0f1411;
+  --ucpf-admin-ink: #121814;
+  --ucpf-admin-muted: #4a554e;
+  --ucpf-admin-border: #d5dbd7;
+  --ucpf-admin-accent: #135629;
+  --ucpf-admin-accent-hover: #1a7a38;
+  --ucpf-admin-accent-active: #0e4420;
+  --ucpf-admin-on-accent: #ffffff;
+  --ucpf-admin-focus: #c9a227;
+  --ucpf-admin-warn: #8a6200;
+  --ucpf-admin-warn-bg: #fff6e5;
+  --ucpf-admin-fail: #b32d2e;
+  --ucpf-admin-fail-bg: #fdf0f0;
+  --ucpf-admin-ok-bg: #e8f5ec;
+  --ucpf-admin-radius: 12px;
+  --ucpf-admin-radius-sm: 8px;
+  --ucpf-admin-shadow: 0 8px 28px rgba(15, 20, 17, 0.08);
+  --ucpf-admin-space: 8px;
+  font-family: var(--ucpf-font);
+  color: var(--ucpf-admin-ink);
+  line-height: 1.5;
+}
+
+.ucpf-admin *:focus {
+  outline: none;
+}
+
+.ucpf-admin *:focus-visible,
+.ucpf-shell *:focus-visible,
+#ucpf-admin-root *:focus-visible {
+  outline: 3px solid var(--ucpf-admin-focus);
+  outline-offset: 2px;
+}

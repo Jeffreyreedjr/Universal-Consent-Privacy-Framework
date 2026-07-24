@@ -1,0 +1,34 @@
+{
+  "id": "br_lgpd",
+  "label": "Brazil LGPD",
+  "regions": ["BR"],
+  "consent_model": "optin",
+  "require_reject_parity": true,
+  "esc_behavior": "reject",
+  "gpc_enforcement": "nonessential",
+  "dns_required": false,
+  "privacy_choices_link": false,
+  "show_limit_sensitive": false,
+  "category_defaults": {
+    "necessary": true,
+    "preferences": false,
+    "analytics": false,
+    "marketing": false,
+    "functional": false,
+    "security": true
+  },
+  "signals": {
+    "respect_gpc": true,
+    "respect_dnt": true
+  },
+  "copy": {
+    "banner_title": "Cookies",
+    "banner_text": "We use essential cookies for security and optional cookies based on your choices under Brazil's LGPD-oriented defaults. This plugin helps support privacy compliance; review with legal counsel.",
+    "prefs_title": "Cookie Preferences",
+    "prefs_intro": "Choose optional categories. Essential cookies stay on. Escape rejects optional cookies.",
+    "fab_label": "Cookie Settings",
+    "privacy_choices_label": "Privacy Settings",
+    "dns_title": "Privacy Rights Request",
+    "dns_intro": "Submit a data subject request. Use the data request form for access, correction, or deletion."
+  }
+}

@@ -1,0 +1,30 @@
+# Build / vendor
+dist/
+.wp-env/
+node_modules/
+vendor/
+*.log
+
+# Secrets & local env
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Scanner artifacts (client site inventories — never commit)
+tools/ucpf-scanner/report*.json
+!tools/ucpf-scanner/report.example.json
+
+# IDE / agent local
+.cursor/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Package lock noise from accidental root installs
+/package-lock.json

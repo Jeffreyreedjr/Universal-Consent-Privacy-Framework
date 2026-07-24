@@ -1,0 +1,89 @@
+{
+  "services": [
+    {
+      "key": "youtube",
+      "name": "YouTube Embeds",
+      "provider": "Google",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Embedded YouTube videos.",
+      "privacy_url": "https://policies.google.com/privacy",
+      "script_patterns": ["youtube.com/iframe_api", "www.youtube.com/s"],
+      "cookie_patterns": ["VISITOR_INFO1_LIVE", "YSC", "PREF"],
+      "cookies": [
+        {
+          "name": "VISITOR_INFO1_LIVE",
+          "pattern": "VISITOR_INFO1_LIVE",
+          "purpose": "Estimates user bandwidth on YouTube pages.",
+          "retention": "6 months",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "YSC",
+          "pattern": "YSC",
+          "purpose": "Registers a unique ID for statistics of which YouTube videos the user has seen.",
+          "retention": "Session",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": ["youtube.com/embed", "youtube-nocookie.com/embed"],
+      "default_blocking": true
+    },
+    {
+      "key": "vimeo",
+      "name": "Vimeo Embeds",
+      "provider": "Vimeo",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Embedded Vimeo videos.",
+      "privacy_url": "https://vimeo.com/privacy",
+      "script_patterns": ["player.vimeo.com"],
+      "cookie_patterns": ["vuid"],
+      "cookies": [
+        {
+          "name": "vuid",
+          "pattern": "vuid",
+          "purpose": "Collects data about Vimeo video visits.",
+          "retention": "2 years",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": ["player.vimeo.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "google_maps",
+      "name": "Google Maps",
+      "provider": "Google",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Embedded Google Maps.",
+      "privacy_url": "https://policies.google.com/privacy",
+      "script_patterns": ["maps.googleapis.com", "maps.google.com"],
+      "cookie_patterns": ["NID"],
+      "cookies": [],
+      "iframe_patterns": ["google.com/maps", "maps.google.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "openstreetmap",
+      "name": "OpenStreetMap",
+      "provider": "OpenStreetMap Foundation",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Embedded OpenStreetMap tiles or embeds.",
+      "privacy_url": "https://wiki.osmfoundation.org/wiki/Privacy_Policy",
+      "script_patterns": ["openstreetmap.org", "tile.openstreetmap.org"],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["openstreetmap.org"],
+      "default_blocking": true
+    }
+  ]
+}

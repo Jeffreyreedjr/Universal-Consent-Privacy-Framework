@@ -1,0 +1,70 @@
+{
+  "services": [
+    {
+      "key": "gravity_forms",
+      "name": "Gravity Forms",
+      "provider": "Rocketgenius",
+      "category": "necessary",
+      "treatment": "necessary",
+      "description": "Essential form functionality (validation, multi-page forms). Third-party add-ons like reCAPTCHA are separate services.",
+      "privacy_url": "https://www.gravityforms.com/privacy/",
+      "script_patterns": [],
+      "cookie_patterns": ["gform*", "gf_*"],
+      "cookies": [
+        {
+          "name": "gform_*",
+          "pattern": "gform_*",
+          "purpose": "Supports multi-page and form state for Gravity Forms.",
+          "retention": "Session / short-lived",
+          "category": "necessary",
+          "treatment": "necessary",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": false
+    },
+    {
+      "key": "contact_form_7",
+      "name": "Contact Form 7",
+      "provider": "Rock Lobster",
+      "category": "necessary",
+      "treatment": "necessary",
+      "description": "Contact form submissions. Captcha add-ons are separate.",
+      "privacy_url": "https://contactform7.com/privacy-policy/",
+      "script_patterns": ["contact-form-7"],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": false
+    },
+    {
+      "key": "wpforms",
+      "name": "WPForms",
+      "provider": "WPForms",
+      "category": "necessary",
+      "treatment": "necessary",
+      "description": "Form builder essential cookies/state.",
+      "privacy_url": "https://wpforms.com/privacy-policy/",
+      "script_patterns": ["/wpforms/", "wpforms.min.js", "wpforms.js"],
+      "cookie_patterns": ["_wpf*", "wpforms*"],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": false
+    },
+    {
+      "key": "forminator",
+      "name": "Forminator",
+      "provider": "WPMU DEV",
+      "category": "necessary",
+      "treatment": "necessary",
+      "description": "Forminator form functionality.",
+      "privacy_url": "https://wpmudev.com/docs/privacy/",
+      "script_patterns": ["/forminator/", "forminator.min.js", "forminator-front"],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": false
+    }
+  ]
+}

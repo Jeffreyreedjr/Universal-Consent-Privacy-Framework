@@ -1,0 +1,94 @@
+{
+  "services": [
+    {
+      "key": "hotjar",
+      "name": "Hotjar",
+      "provider": "Hotjar",
+      "category": "analytics",
+      "treatment": "consent",
+      "description": "Heatmaps and behavior analytics.",
+      "privacy_url": "https://www.hotjar.com/legal/policies/privacy/",
+      "script_patterns": ["static.hotjar.com", "script.hotjar.com"],
+      "cookie_patterns": ["_hj*"],
+      "cookies": [
+        {
+          "name": "_hjSessionUser_*",
+          "pattern": "_hjSessionUser_*",
+          "purpose": "Persists a Hotjar user ID.",
+          "retention": "1 year",
+          "category": "analytics",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "_hjSession_*",
+          "pattern": "_hjSession_*",
+          "purpose": "Holds current Hotjar session data.",
+          "retention": "30 minutes",
+          "category": "analytics",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "tiktok_pixel",
+      "name": "TikTok Pixel",
+      "provider": "TikTok",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Advertising and conversion tracking.",
+      "privacy_url": "https://www.tiktok.com/legal/privacy-policy",
+      "script_patterns": ["analytics.tiktok.com"],
+      "cookie_patterns": ["_ttp", "_tt_enable_cookie"],
+      "cookies": [
+        {
+          "name": "_ttp",
+          "pattern": "_ttp",
+          "purpose": "Measures and improves ad performance.",
+          "retention": "13 months",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "linkedin_insight",
+      "name": "LinkedIn Insight Tag",
+      "provider": "LinkedIn",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Advertising and conversion tracking.",
+      "privacy_url": "https://www.linkedin.com/legal/privacy-policy",
+      "script_patterns": ["snap.licdn.com"],
+      "cookie_patterns": ["li_*", "AnalyticsSyncHistory", "UserMatchHistory", "bcookie", "lidc"],
+      "cookies": [
+        {
+          "name": "li_sugr",
+          "pattern": "li_sugr",
+          "purpose": "Browser identifier when Identity App is not available.",
+          "retention": "90 days",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "bcookie",
+          "pattern": "bcookie",
+          "purpose": "Browser cookie to identify devices for LinkedIn.",
+          "retention": "1 year",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": true
+    }
+  ]
+}

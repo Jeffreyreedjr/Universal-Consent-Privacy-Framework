@@ -1,0 +1,6 @@
+[
+  { "action": "scroll" },
+  { "action": "focus", "selector": "form input:not([type=hidden]), form textarea" },
+  { "action": "click", "selector": "video, .wp-block-video", "optional": true },
+  { "action": "click", "selector": ".wpgmza-map, [class*=\"map\"]", "optional": true }
+]

@@ -1,0 +1,204 @@
+{
+  "plugins": {
+    "elementor": {
+      "provider": "Elementor",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Page builder front-end runtime — typically required for site layout."
+    },
+    "elementor-pro": {
+      "provider": "Elementor Pro",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "the-plus-addons-for-elementor-page-builder": {
+      "provider": "The Plus Addons for Elementor",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "google-site-kit": {
+      "provider": "Google Site Kit",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "May load GA/Ads tags after consent."
+    },
+    "wp-google-maps": {
+      "provider": "WP Go Maps",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "wp-google-maps-pro": {
+      "provider": "WP Go Maps Pro",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "wp-google-maps-gold": {
+      "provider": "WP Go Maps Gold",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "wp-consent-api": {
+      "provider": "WP Consent API",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "universal-consent-privacy-framework": {
+      "provider": "UCPF",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "woocommerce": {
+      "provider": "WooCommerce",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "gravityforms": {
+      "provider": "Gravity Forms",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "gravitysmtp": {
+      "provider": "Gravity SMTP",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Usually admin/server only — rarely loads for visitors."
+    },
+    "wp-defender": {
+      "provider": "Defender Security",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "defender-security": {
+      "provider": "Defender Security",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "wordfence": {
+      "provider": "Wordfence",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "smartcrawl-seo": {
+      "provider": "SmartCrawl",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "wpmu-dev-seo": {
+      "provider": "SmartCrawl",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "jetpack": {
+      "provider": "Jetpack",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "contact-form-7": {
+      "provider": "Contact Form 7",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "wpforms": {
+      "provider": "WPForms",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "wpforms-lite": {
+      "provider": "WPForms",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "forminator": {
+      "provider": "Forminator",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "pixelyoursite": {
+      "provider": "PixelYourSite",
+      "category": "advertising",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "hotjar": {
+      "provider": "Hotjar",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "mailchimp-for-wp": {
+      "provider": "Mailchimp",
+      "category": "advertising",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "mailchimp-for-woocommerce": {
+      "provider": "Mailchimp",
+      "category": "advertising",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "revslider": {
+      "provider": "Slider Revolution",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "tawkto-live-chat": {
+      "provider": "Tawk.to",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "complianz-gdpr": {
+      "provider": "Complianz (rival CMP)",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Rival consent tool — prefer UCPF; do not treat as tracking."
+    },
+    "wpmudev-updates": {
+      "provider": "WPMU DEV Dashboard",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Admin tooling — usually not on visitor pages."
+    },
+    "wp-crontrol": {
+      "provider": "WP Crontrol",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Admin tooling."
+    }
+  },
+  "themes": {
+    "hello-elementor": {
+      "provider": "Hello Elementor theme",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    }
+  }
+}

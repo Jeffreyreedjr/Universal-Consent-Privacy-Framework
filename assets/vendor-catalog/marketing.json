@@ -1,0 +1,118 @@
+{
+  "services": [
+    {
+      "key": "klaviyo",
+      "name": "Klaviyo",
+      "provider": "Klaviyo",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Email/SMS marketing and onsite tracking.",
+      "privacy_url": "https://www.klaviyo.com/legal/privacy-notice",
+      "script_patterns": ["static.klaviyo.com", "static-forms.klaviyo.com", "klaviyo.com/onsite"],
+      "cookie_patterns": ["__kla_id", "klaviyo*"],
+      "cookies": [
+        {
+          "name": "__kla_id",
+          "pattern": "__kla_id",
+          "purpose": "Stores a Klaviyo identity for tracking and messaging.",
+          "retention": "2 years",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "pixelyoursite",
+      "name": "PixelYourSite",
+      "provider": "PixelYourSite",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Loads Meta and other marketing pixels via PixelYourSite.",
+      "privacy_url": "https://www.pixelyoursite.com/privacy-policy",
+      "script_patterns": ["/pixelyoursite/", "pys.library", "pys.js"],
+      "cookie_patterns": ["pys_*", "pysTracking"],
+      "cookies": [
+        {
+          "name": "pys_*",
+          "pattern": "pys_*",
+          "purpose": "PixelYourSite tracking and event state.",
+          "retention": "Session / months",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "paypal",
+      "name": "PayPal",
+      "provider": "PayPal",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "PayPal checkout and payment widgets.",
+      "privacy_url": "https://www.paypal.com/us/legalhub/privacy-full",
+      "script_patterns": ["paypal.com/sdk", "paypalobjects.com", "www.paypal.com/sdk/js"],
+      "cookie_patterns": ["paypal*", "ts*", "enforce_policy"],
+      "cookies": [],
+      "iframe_patterns": ["paypal.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "stripe",
+      "name": "Stripe",
+      "provider": "Stripe",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Stripe payment elements and fraud prevention.",
+      "privacy_url": "https://stripe.com/privacy",
+      "script_patterns": ["js.stripe.com", "hooks.stripe.com"],
+      "cookie_patterns": ["__stripe_*", "stripe*"],
+      "cookies": [
+        {
+          "name": "__stripe_mid",
+          "pattern": "__stripe_mid",
+          "purpose": "Stripe fraud prevention / device identification.",
+          "retention": "1 year",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in", "checkout"]
+        }
+      ],
+      "iframe_patterns": ["js.stripe.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "square",
+      "name": "Square",
+      "provider": "Square",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Square payment forms and processing.",
+      "privacy_url": "https://squareup.com/us/en/legal/general/privacy",
+      "script_patterns": ["squareup.com", "squarecdn.com", "web.squarecdn.com"],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["squareup.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "constant_contact",
+      "name": "Constant Contact",
+      "provider": "Constant Contact",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Email marketing forms and tracking.",
+      "privacy_url": "https://www.constantcontact.com/legal/privacy-center",
+      "script_patterns": ["static.ctctcdn.com", "constantcontact.com"],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    }
+  ]
+}

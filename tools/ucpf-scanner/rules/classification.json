@@ -1,0 +1,267 @@
+[
+  {
+    "match": ["_ga", "_gid", "_gat"],
+    "provider": "Google Analytics",
+    "category": "analytics",
+    "treatment": "consent",
+    "type": "cookie",
+    "importance": "non_essential"
+  },
+  {
+    "match": ["_ga_"],
+    "provider": "Google Analytics",
+    "category": "analytics",
+    "treatment": "consent",
+    "type": "cookie",
+    "prefix": true,
+    "importance": "non_essential"
+  },
+  {
+    "match": ["_gcl_au", "_gcl_aw", "_gcl_"],
+    "provider": "Google Ads",
+    "category": "advertising",
+    "treatment": "consent",
+    "type": "cookie",
+    "prefix": true,
+    "importance": "non_essential"
+  },
+  {
+    "match": ["_fbp", "_fbc", "fr"],
+    "provider": "Meta",
+    "category": "advertising",
+    "treatment": "consent",
+    "type": "cookie",
+    "importance": "non_essential"
+  },
+  {
+    "match": ["_clck", "_clsk", "CLID", "ANONCHK", "MR", "MUID", "SM"],
+    "provider": "Microsoft Clarity",
+    "category": "analytics",
+    "treatment": "consent",
+    "type": "cookie",
+    "importance": "non_essential"
+  },
+  {
+    "match": ["_hjSession", "_hjSessionUser", "_hjAbsoluteSessionInProgress", "_hjFirstSeen", "_hjIncludedInSessionSample", "_hj"],
+    "provider": "Hotjar",
+    "category": "analytics",
+    "treatment": "consent",
+    "type": "cookie",
+    "prefix": true,
+    "importance": "non_essential"
+  },
+  {
+    "match": ["wordpress_logged_in_", "wordpress_sec_", "wordpress_test_cookie"],
+    "provider": "WordPress",
+    "category": "necessary",
+    "treatment": "necessary",
+    "type": "cookie",
+    "prefix": true,
+    "importance": "required"
+  },
+  {
+    "match": ["wp-settings-", "wp-settings-time-"],
+    "provider": "WordPress",
+    "category": "necessary",
+    "treatment": "necessary",
+    "type": "cookie",
+    "prefix": true,
+    "importance": "required"
+  },
+  {
+    "match": ["woocommerce_cart_hash", "woocommerce_items_in_cart", "woocommerce_recently_viewed"],
+    "provider": "WooCommerce",
+    "category": "necessary",
+    "treatment": "necessary",
+    "type": "cookie",
+    "importance": "required"
+  },
+  {
+    "match": ["wp_woocommerce_session_"],
+    "provider": "WooCommerce",
+    "category": "necessary",
+    "treatment": "necessary",
+    "type": "cookie",
+    "prefix": true,
+    "importance": "required"
+  },
+  {
+    "match": ["ucpf_consent"],
+    "provider": "UCPF",
+    "category": "necessary",
+    "treatment": "necessary",
+    "type": "cookie",
+    "importance": "required"
+  },
+  {
+    "match": ["wp_consent_"],
+    "provider": "WP Consent API",
+    "category": "necessary",
+    "treatment": "necessary",
+    "type": "cookie",
+    "prefix": true,
+    "importance": "required"
+  },
+  {
+    "match": ["__cf_bm", "cf_clearance", "__cfruid", "_cfuvid"],
+    "provider": "Cloudflare",
+    "category": "necessary",
+    "treatment": "necessary",
+    "type": "cookie",
+    "importance": "required"
+  },
+  {
+    "match": ["PHPSESSID"],
+    "provider": "PHP Session",
+    "category": "necessary",
+    "treatment": "necessary",
+    "type": "cookie",
+    "importance": "required"
+  },
+  {
+    "match": ["elementor"],
+    "provider": "Elementor",
+    "category": "necessary",
+    "treatment": "necessary",
+    "type": "cookie",
+    "prefix": true,
+    "importance": "required"
+  },
+  {
+    "match": ["wpgmza", "wpgmaps"],
+    "provider": "WP Go Maps",
+    "category": "preferences",
+    "treatment": "consent",
+    "type": "cookie",
+    "prefix": true,
+    "importance": "non_essential"
+  },
+  {
+    "match": ["MCPopupClosed", "MCPopupSubscribed", "mailchimp_landing_site", "_mcid"],
+    "provider": "Mailchimp",
+    "category": "advertising",
+    "treatment": "consent",
+    "type": "cookie",
+    "importance": "non_essential"
+  },
+  {
+    "match": ["googletagmanager.com", "gtm.js", "www.googletagmanager.com"],
+    "provider": "Google Tag Manager",
+    "category": "analytics",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": ["google-analytics.com", "googletagmanager.com/gtag", "analytics.google.com", "gtag/js"],
+    "provider": "Google Analytics",
+    "category": "analytics",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": ["connect.facebook.net", "facebook.com/tr", "facebook.net"],
+    "provider": "Meta Pixel",
+    "category": "advertising",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": ["clarity.ms", "www.clarity.ms"],
+    "provider": "Microsoft Clarity",
+    "category": "analytics",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": ["static.hotjar.com", "script.hotjar.com", "hotjar.com"],
+    "provider": "Hotjar",
+    "category": "analytics",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": ["static.cloudflareinsights.com", "cloudflareinsights.com", "beacon.min.js"],
+    "provider": "Cloudflare Web Analytics",
+    "category": "analytics",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": ["youtube.com", "youtube-nocookie.com", "ytimg.com"],
+    "provider": "YouTube",
+    "category": "preferences",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": ["player.vimeo.com", "vimeo.com"],
+    "provider": "Vimeo",
+    "category": "preferences",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": ["google.com/recaptcha", "gstatic.com/recaptcha", "recaptcha.net"],
+    "provider": "reCAPTCHA",
+    "category": "necessary",
+    "treatment": "necessary",
+    "type": "script_host",
+    "importance": "required"
+  },
+  {
+    "match": ["maps.google.com", "maps.googleapis.com", "maps.gstatic.com", "openstreetmap.org", "tile.openstreetmap.org"],
+    "provider": "Maps",
+    "category": "preferences",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": ["embed.tawk.to", "tawk.to", "js.driftt.com", "widget.intercom.io"],
+    "provider": "Chat widget",
+    "category": "preferences",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": ["doubleclick.net", "googlesyndication.com", "googleadservices.com", "adservice.google"],
+    "provider": "Google Advertising",
+    "category": "advertising",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": ["unpkg.com"],
+    "provider": "unpkg CDN",
+    "category": "preferences",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": ["wp-includes/js/jquery", "wp-includes/js/jquery/jquery"],
+    "provider": "WordPress Core",
+    "category": "necessary",
+    "treatment": "necessary",
+    "type": "script_host",
+    "importance": "required"
+  },
+  {
+    "match": ["wp-emoji-release", "s.w.org/images/core/emoji"],
+    "provider": "WordPress Emoji",
+    "category": "necessary",
+    "treatment": "necessary",
+    "type": "script_host",
+    "importance": "required"
+  }
+]

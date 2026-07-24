@@ -1,0 +1,40 @@
+{
+  "services": [
+    {
+      "key": "meta_pixel",
+      "name": "Meta Pixel",
+      "provider": "Meta",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Advertising and conversion tracking for Meta platforms.",
+      "privacy_url": "https://www.facebook.com/privacy/policy/",
+      "script_patterns": [
+        "connect.facebook.net",
+        "fbevents.js"
+      ],
+      "cookie_patterns": ["_fbp", "_fbc", "fr"],
+      "cookies": [
+        {
+          "name": "_fbp",
+          "pattern": "_fbp",
+          "purpose": "Stores and tracks visits across Meta Pixel sites.",
+          "retention": "3 months",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "_fbc",
+          "pattern": "_fbc",
+          "purpose": "Stores last click Facebook ad attribution when present.",
+          "retention": "3 months",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": true
+    }
+  ]
+}

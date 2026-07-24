@@ -1,0 +1,438 @@
+/* UCPF legal / generated policy pages
+ *
+ * Self-contained light document shell so Privacy / Cookie Policy stay readable
+ * on dark or custom themes (no full-bleed black, no low-contrast links).
+ */
+
+.ucpf-legal-page {
+  --ucpf-legal-ink: #1c1f1d;
+  --ucpf-legal-muted: #4a524c;
+  --ucpf-legal-border: #d5ddd7;
+  --ucpf-legal-surface: #ffffff;
+  --ucpf-legal-wash: #f4f7f5;
+  --ucpf-legal-accent: #0f5c2e;
+  --ucpf-legal-accent-hover: #147a3c;
+  --ucpf-legal-focus: #0f5c2e;
+}
+
+/* Soften theme chrome around the document; do not zero out padding. */
+.ucpf-legal-page .site-main,
+.ucpf-legal-page main#content,
+.ucpf-legal-page .page-content,
+.ucpf-legal-page .entry-content {
+  max-width: none !important;
+  box-shadow: none !important;
+}
+
+.ucpf-legal-page .page-header,
+.ucpf-legal-page .entry-header {
+  display: none !important;
+}
+
+.ucpf-legal-page .elementor,
+.ucpf-legal-page .elementor-section,
+.ucpf-legal-page .elementor-container,
+.ucpf-legal-page .elementor-widget-wrap,
+.ucpf-legal-page .elementor-widget-container {
+  background: transparent !important;
+  max-width: none !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+/* Document card */
+.ucpf-legal-shell {
+  --ucpf-legal-ink: #1c1f1d;
+  --ucpf-legal-muted: #4a524c;
+  --ucpf-legal-border: #d5ddd7;
+  --ucpf-legal-surface: #ffffff;
+  --ucpf-legal-wash: #f4f7f5;
+  --ucpf-legal-accent: #0f5c2e;
+  --ucpf-legal-accent-hover: #147a3c;
+
+  max-width: min(46rem, calc(100% - 2rem));
+  width: 100%;
+  margin: 2.5rem auto 4rem;
+  padding: 2.5rem 2rem 3rem;
+  color: var(--ucpf-legal-ink) !important;
+  background: var(--ucpf-legal-surface) !important;
+  border: 1px solid var(--ucpf-legal-border);
+  border-radius: 0.85rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+  font-family: Georgia, "Iowan Old Style", "Palatino Linotype", "Times New Roman", serif;
+  font-size: 1.0625rem;
+  line-height: 1.7;
+  box-sizing: border-box;
+}
+
+.ucpf-legal-shell .ucpf-legal {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  color: inherit !important;
+  background: transparent !important;
+  font: inherit;
+}
+
+.ucpf-legal {
+  color: var(--ucpf-legal-ink, #1c1f1d) !important;
+}
+
+.ucpf-legal h1,
+.ucpf-legal h2,
+.ucpf-legal h3 {
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  letter-spacing: -0.01em;
+  color: var(--ucpf-legal-ink, #1c1f1d) !important;
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+.ucpf-legal h2 {
+  margin: 2.25rem 0 0.85rem;
+  font-size: 1.35rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid var(--ucpf-legal-border, #d5ddd7);
+}
+
+.ucpf-legal h3 {
+  margin: 1.75rem 0 0.65rem;
+  font-size: 1.1rem;
+}
+
+.ucpf-legal p,
+.ucpf-legal li,
+.ucpf-legal td,
+.ucpf-legal th,
+.ucpf-legal span {
+  color: var(--ucpf-legal-ink, #1c1f1d) !important;
+}
+
+.ucpf-legal p {
+  margin: 0 0 1rem;
+  max-width: 42rem;
+}
+
+.ucpf-legal ul,
+.ucpf-legal ol {
+  margin: 0 0 1.25rem;
+  padding-left: 1.35rem;
+  max-width: 42rem;
+}
+
+.ucpf-legal li {
+  margin: 0 0 0.5rem;
+}
+
+.ucpf-legal__label {
+  margin: 0 0 0.35rem;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ucpf-legal-accent, #0f5c2e) !important;
+}
+
+.ucpf-legal__title {
+  margin: 0 0 0.5rem;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--ucpf-legal-ink, #1c1f1d) !important;
+  border: 0;
+  padding: 0;
+}
+
+.ucpf-legal__meta {
+  color: var(--ucpf-legal-muted, #4a524c) !important;
+  font-size: 0.95rem;
+  margin: 0 0 1.25rem;
+}
+
+.ucpf-legal__categories {
+  margin: 0 0 1.5rem !important;
+  padding-left: 1.25rem !important;
+}
+
+.ucpf-legal__categories .description {
+  opacity: 0.9;
+  color: var(--ucpf-legal-muted, #4a524c) !important;
+}
+
+.ucpf-legal a {
+  color: var(--ucpf-legal-accent, #0f5c2e) !important;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  font-weight: 600;
+}
+
+.ucpf-legal a:hover {
+  color: var(--ucpf-legal-accent-hover, #147a3c) !important;
+}
+
+.ucpf-legal a:focus-visible {
+  outline: 2px solid var(--ucpf-legal-focus, #0f5c2e);
+  outline-offset: 2px;
+}
+
+/* Tables */
+.ucpf-cookie-table-wrap {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  margin: 1.15rem 0 1.85rem;
+  border: 1px solid var(--ucpf-legal-border, #d5ddd7);
+  border-radius: 0.65rem;
+  background: var(--ucpf-legal-wash, #f4f7f5);
+  box-sizing: border-box;
+}
+
+.ucpf-cookie-table {
+  width: 100%;
+  min-width: 40rem;
+  border-collapse: collapse;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 0.9rem;
+  background: transparent;
+  table-layout: auto;
+}
+
+.ucpf-cookie-table--compact {
+  min-width: 28rem;
+}
+
+.ucpf-cookie-table th,
+.ucpf-cookie-table td {
+  border-bottom: 1px solid var(--ucpf-legal-border, #d5ddd7);
+  padding: 0.75rem 0.9rem;
+  text-align: left;
+  vertical-align: top;
+  color: var(--ucpf-legal-ink, #1c1f1d) !important;
+  background: transparent !important;
+  line-height: 1.45;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  hyphens: none;
+}
+
+.ucpf-cookie-table thead th {
+  background: var(--ucpf-legal-accent, #0f5c2e) !important;
+  color: #fff !important;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  border-bottom: 0;
+  white-space: nowrap;
+}
+
+.ucpf-cookie-table tbody tr:nth-child(even) td {
+  background: rgba(15, 92, 46, 0.06) !important;
+}
+
+.ucpf-cookie-table tbody tr:hover td {
+  background: rgba(15, 92, 46, 0.1) !important;
+}
+
+.ucpf-cookie-table:not(.ucpf-cookie-table--compact) th:nth-child(5),
+.ucpf-cookie-table:not(.ucpf-cookie-table--compact) td:nth-child(5) {
+  white-space: nowrap;
+}
+
+.ucpf-cookie-table .ucpf-cookie-sub {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.75rem;
+  opacity: 0.75;
+  font-family: inherit;
+  background: none !important;
+  padding: 0;
+  color: var(--ucpf-legal-muted, #4a524c) !important;
+}
+
+.ucpf-cookie-table code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82em;
+  color: var(--ucpf-legal-ink, #1c1f1d) !important;
+  background: rgba(15, 92, 46, 0.08) !important;
+  padding: 0.12em 0.4em;
+  border-radius: 0.25rem;
+  word-break: break-all;
+  white-space: normal;
+}
+
+/* Forms (data request) */
+.ucpf-form {
+  display: grid;
+  gap: 1rem;
+  max-width: 32rem;
+}
+
+.ucpf-field label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ucpf-legal-ink, #1c1f1d) !important;
+}
+
+.ucpf-field__input,
+.ucpf-field__textarea {
+  width: 100%;
+  border: 1px solid var(--ucpf-legal-border, #d5ddd7);
+  border-radius: 0.5rem;
+  background: #fff !important;
+  color: var(--ucpf-legal-ink, #1c1f1d) !important;
+  padding: 0.75rem 1rem;
+  font: inherit;
+  box-sizing: border-box;
+}
+
+.ucpf-field__input:focus-visible,
+.ucpf-field__textarea:focus-visible {
+  outline: 2px solid var(--ucpf-legal-accent, #0f5c2e);
+  outline-offset: 2px;
+}
+
+.ucpf-field--honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.ucpf-form__status {
+  font-size: 0.9375rem;
+  color: var(--ucpf-legal-ink, #1c1f1d) !important;
+}
+
+.ucpf-form__notice {
+  color: var(--ucpf-legal-muted, #4a524c) !important;
+}
+
+.ucpf-legal-page .ucpf-btn--fill,
+.ucpf-legal .ucpf-btn--fill {
+  background: var(--ucpf-legal-accent, #0f5c2e) !important;
+  color: #fff !important;
+  border-color: var(--ucpf-legal-accent, #0f5c2e) !important;
+}
+
+@media (max-width: 720px) {
+  .ucpf-legal-shell {
+    margin: 1.25rem auto 2.5rem;
+    padding: 1.5rem 1.15rem 2.25rem;
+    border-radius: 0.65rem;
+  }
+
+  .ucpf-cookie-table {
+    min-width: 36rem;
+  }
+}
+
+/* Gravity Forms on UCPF legal pages */
+.ucpf-legal-page .ucpf-gf-wrap,
+.ucpf-gf-wrap {
+  margin-top: 1.5rem;
+  max-width: 32rem;
+}
+
+.ucpf-legal-page .ucpf-gf-wrap .gform_wrapper,
+.ucpf-gf-wrap .gform_wrapper {
+  color: var(--ucpf-legal-ink, #1c1f1d) !important;
+  margin: 0 !important;
+}
+
+.ucpf-legal-page .ucpf-gf-wrap .gform_wrapper label,
+.ucpf-legal-page .ucpf-gf-wrap .gform_wrapper legend,
+.ucpf-legal-page .ucpf-gf-wrap .gform_wrapper .gfield_description,
+.ucpf-gf-wrap .gform_wrapper label,
+.ucpf-gf-wrap .gform_wrapper legend,
+.ucpf-gf-wrap .gform_wrapper .gfield_description {
+  color: var(--ucpf-legal-ink, #1c1f1d) !important;
+}
+
+.ucpf-legal-page .ucpf-gf-wrap .gform_wrapper input[type="text"],
+.ucpf-legal-page .ucpf-gf-wrap .gform_wrapper input[type="email"],
+.ucpf-legal-page .ucpf-gf-wrap .gform_wrapper input[type="tel"],
+.ucpf-legal-page .ucpf-gf-wrap .gform_wrapper input[type="url"],
+.ucpf-legal-page .ucpf-gf-wrap .gform_wrapper input[type="number"],
+.ucpf-legal-page .ucpf-gf-wrap .gform_wrapper textarea,
+.ucpf-legal-page .ucpf-gf-wrap .gform_wrapper select,
+.ucpf-gf-wrap .gform_wrapper input[type="text"],
+.ucpf-gf-wrap .gform_wrapper input[type="email"],
+.ucpf-gf-wrap .gform_wrapper input[type="tel"],
+.ucpf-gf-wrap .gform_wrapper input[type="url"],
+.ucpf-gf-wrap .gform_wrapper input[type="number"],
+.ucpf-gf-wrap .gform_wrapper textarea,
+.ucpf-gf-wrap .gform_wrapper select {
+  width: 100%;
+  max-width: 100%;
+  border: 1px solid var(--ucpf-legal-border, #d5ddd7) !important;
+  border-radius: 0.5rem !important;
+  background: #fff !important;
+  color: var(--ucpf-legal-ink, #1c1f1d) !important;
+  padding: 0.75rem 1rem !important;
+  box-shadow: none !important;
+  box-sizing: border-box;
+}
+
+.ucpf-legal-page .ucpf-gf-wrap .gform_wrapper input:focus-visible,
+.ucpf-legal-page .ucpf-gf-wrap .gform_wrapper textarea:focus-visible,
+.ucpf-legal-page .ucpf-gf-wrap .gform_wrapper select:focus-visible,
+.ucpf-gf-wrap .gform_wrapper input:focus-visible,
+.ucpf-gf-wrap .gform_wrapper textarea:focus-visible,
+.ucpf-gf-wrap .gform_wrapper select:focus-visible {
+  outline: 3px solid var(--ucpf-legal-accent, #0f5c2e) !important;
+  outline-offset: 2px;
+}
+
+.ucpf-legal-page .ucpf-gf-wrap .gform_wrapper .gform_button,
+.ucpf-legal-page .ucpf-gf-wrap .gform_wrapper input[type="submit"],
+.ucpf-gf-wrap .gform_wrapper .gform_button,
+.ucpf-gf-wrap .gform_wrapper input[type="submit"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3rem;
+  padding: 0.625rem 1.5rem !important;
+  border: 2px solid var(--ucpf-legal-accent, #0f5c2e) !important;
+  border-radius: 0.5rem !important;
+  background: var(--ucpf-legal-accent, #0f5c2e) !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.ucpf-legal-page .ucpf-gf-wrap .gform_wrapper .gform_button:hover,
+.ucpf-legal-page .ucpf-gf-wrap .gform_wrapper input[type="submit"]:hover,
+.ucpf-gf-wrap .gform_wrapper .gform_button:hover,
+.ucpf-gf-wrap .gform_wrapper input[type="submit"]:hover {
+  background: var(--ucpf-legal-accent-hover, #147a3c) !important;
+  border-color: var(--ucpf-legal-accent-hover, #147a3c) !important;
+  color: #fff !important;
+}
+
+.ucpf-legal-page .ucpf-gf-wrap .gform_wrapper .validation_message,
+.ucpf-legal-page .ucpf-gf-wrap .gform_wrapper .gform_validation_errors,
+.ucpf-gf-wrap .gform_wrapper .validation_message,
+.ucpf-gf-wrap .gform_wrapper .gform_validation_errors {
+  color: #a11 !important;
+}
+
+/* Wider shell when inventory tables need room */
+.ucpf-legal-shell:has(.ucpf-cookie-table-wrap) {
+  max-width: min(56rem, calc(100% - 2rem));
+}

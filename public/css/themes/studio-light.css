@@ -1,0 +1,16 @@
+#ucpf-root.ucpf-theme-studio_light {
+  --ucpf-black: #fafafa;
+  --ucpf-surface: #ffffff;
+  --ucpf-cream: #1a1a1a;
+  --ucpf-muted: #4a4a4a;
+  --ucpf-accent: #1d4ed8;
+  --ucpf-accent-hover: #1e3a8a;
+  --ucpf-accent-active: #172554;
+  --ucpf-accent-2: #64748b;
+  --ucpf-on-accent: #ffffff;
+  --ucpf-label: #1a1a1a;
+  --ucpf-focus: #1a1a1a;
+  --ucpf-focus-ring: #b45309;
+  --ucpf-border: rgba(26, 26, 26, 0.35);
+  --ucpf-shadow-panel: 0 -8px 40px rgba(0, 0, 0, 0.12);
+}

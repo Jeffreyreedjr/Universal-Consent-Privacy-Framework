@@ -1,0 +1,17 @@
+/* Alias: Studio Dark follows Classic (AAA defaults) */
+#ucpf-root.ucpf-theme-studio_dark {
+  --ucpf-black: #000000;
+  --ucpf-surface: #111111;
+  --ucpf-cream: #ffffff;
+  --ucpf-muted: #d4d4d4;
+  --ucpf-border: rgba(255, 255, 255, 0.35);
+  --ucpf-accent: #135629;
+  --ucpf-accent-hover: #0e4420;
+  --ucpf-accent-active: #0a3318;
+  --ucpf-accent-2: #1a6b35;
+  --ucpf-on-accent: #ffffff;
+  --ucpf-label: #ffffff;
+  --ucpf-focus: #ffffff;
+  --ucpf-focus-ring: #ffd100;
+  --ucpf-shadow-panel: 0 12px 40px rgba(0, 0, 0, 0.65);
+}

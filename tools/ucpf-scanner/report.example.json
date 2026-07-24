@@ -1,0 +1,43 @@
+{
+  "schema": "ucpf-playwright-scan/2.0",
+  "site_url": "https://example.com/",
+  "scanned_at": "2026-01-01T00:00:00.000Z",
+  "pages": ["https://example.com/"],
+  "options": { "profile": "standard", "interact": false },
+  "findings_summary": { "total": 1, "fail": 0, "info": 1, "pass": true },
+  "findings": [
+    {
+      "type": "cookie",
+      "name": "ucpf_consent",
+      "finding": "blocked_before_consent",
+      "severity": "info",
+      "reason": "Necessary cookie present pre-consent (example)."
+    }
+  ],
+  "cookies": [
+    {
+      "name": "ucpf_consent",
+      "domain": "example.com",
+      "category": "necessary",
+      "ucpf_category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "status": "classified",
+      "contexts": ["no_consent", "accept_all"],
+      "provider": "UCPF"
+    }
+  ],
+  "storage": [],
+  "scripts": [],
+  "requests": [],
+  "iframes": [],
+  "beacons": [],
+  "pixels": [],
+  "consent_leaks": [],
+  "noise_omitted": [],
+  "privacy_signals": {
+    "gpc": { "header_profile_ran": true },
+    "disclaimer": "Observational only — not a compliance claim."
+  },
+  "notice": "Example report only — replace with a real scan. Technical inventory, not a compliance guarantee."
+}

@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "note": "Technical inventory cleanup — omit scan/admin/WAF lockout artifacts, ephemeral challenge cookies, and logged-in-only WP cookies from public inventories (Complianz-style ignore). Keep real visitor cookies (consent, analytics, cf_clearance, __cf_bm). Not a legal determination.",
+  "cookie_omit": [
+    { "pattern": "wpdef_lockout_*", "reason": "Defender Pro IP lockout (scanner/admin artifact)" },
+    { "pattern": "wpdef_*_lockout*", "reason": "Defender lockout variant" },
+    { "pattern": "wfls_*", "reason": "Wordfence login-security session (admin)" },
+    { "pattern": "wf_loginalerted_*", "reason": "Wordfence login alert (admin)" },
+    { "pattern": "wfwaf-authcookie-*", "reason": "Wordfence WAF auth (admin/scan)" },
+    { "pattern": "itsec-hb-login-*", "reason": "Solid Security hide-backend" },
+    { "pattern": "itsec-handshake-*", "reason": "Solid Security handshake" },
+    { "pattern": "cf_chl_*", "reason": "Cloudflare challenge platform (ephemeral)" },
+    { "pattern": "cf_chl_rc_*", "reason": "Cloudflare challenge diagnostics" },
+    { "pattern": "__cfwaitingroom", "reason": "Cloudflare waiting room" },
+    { "pattern": "wordpress_test_cookie", "reason": "WP login probe only" },
+    { "pattern": "wordpress_logged_in_*", "reason": "Logged-in only — omit from public visitor inventory" },
+    { "pattern": "wordpress_sec_*", "reason": "Logged-in only — omit from public visitor inventory" },
+    { "pattern": "wp-settings-*", "reason": "Logged-in WP admin UI prefs" },
+    { "pattern": "wp-settings-time-*", "reason": "Logged-in WP admin UI prefs" },
+    { "pattern": "wp-saving-post", "reason": "WP admin editor" },
+    { "pattern": "wp-autosave-*", "reason": "WP admin autosave" },
+    { "pattern": "ucpf_discover", "reason": "UCPF guest-crawl token" }
+  ],
+  "cookie_omit_regex": [
+    { "regex": "^wpdef_lockout_", "reason": "Defender lockout" },
+    { "regex": "^wfls-", "reason": "Wordfence LS" },
+    { "regex": "^wfvt_", "reason": "Wordfence transient" },
+    { "regex": "^wfwaf-authcookie-", "reason": "Wordfence WAF auth" },
+    { "regex": "^itsec-hb-login-", "reason": "Solid Security hide-backend" },
+    { "regex": "^itsec-handshake-", "reason": "Solid Security handshake" },
+    { "regex": "^cf_chl", "reason": "Cloudflare challenge" },
+    { "regex": "^wordpress_logged_in_", "reason": "Logged-in only" },
+    { "regex": "^wordpress_sec_", "reason": "Logged-in only" },
+    { "regex": "^wp-settings-", "reason": "Logged-in WP settings" },
+    { "regex": "^wp-autosave-", "reason": "WP admin autosave" }
+  ],
+  "leak_ignore_cookies": [
+    { "pattern": "wpdef_lockout_*", "reason": "Security lockout, not a consent leak" },
+    { "pattern": "cf_clearance", "reason": "Necessary Cloudflare clearance" },
+    { "pattern": "__cf_bm", "reason": "Cloudflare bot management (necessary/security)" },
+    { "pattern": "ucpf_consent", "reason": "Consent record itself" },
+    { "pattern": "wp_consent_*", "reason": "WP Consent API category cookies" },
+    { "pattern": "wordpress_test_cookie", "reason": "Login probe" }
+  ],
+  "leak_ignore_hosts": [
+    { "host": "challenges.cloudflare.com", "reason": "CF Turnstile / challenge platform" }
+  ],
+  "leak_ignore_url_substrings": [
+    "/cdn-cgi/challenge-platform/",
+    "challenges.cloudflare.com/turnstile"
+  ],
+  "storage_omit": [
+    { "key": "wpEmojiSettingsSupports", "reason": "WP emoji capability probe" }
+  ]
+}

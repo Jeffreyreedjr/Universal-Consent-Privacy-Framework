@@ -1,0 +1,34 @@
+{
+  "id": "us_colorado",
+  "label": "Colorado CPA",
+  "regions": ["US-CO"],
+  "consent_model": "optout",
+  "require_reject_parity": true,
+  "esc_behavior": "reject",
+  "gpc_enforcement": "sale_share",
+  "dns_required": true,
+  "privacy_choices_link": true,
+  "show_limit_sensitive": false,
+  "category_defaults": {
+    "necessary": true,
+    "preferences": false,
+    "analytics": false,
+    "marketing": false,
+    "functional": false,
+    "security": true
+  },
+  "signals": {
+    "respect_gpc": true,
+    "respect_dnt": true
+  },
+  "copy": {
+    "banner_title": "Your Privacy Choices",
+    "banner_text": "We use cookies and similar technologies. Colorado residents may opt out of the sale of personal data and targeted advertising. GPC signals are honored where applicable. This tool helps support privacy compliance; it is not legal advice.",
+    "prefs_title": "Privacy & Cookie Preferences",
+    "prefs_intro": "Manage optional cookies and privacy opt-outs. Essential cookies stay on.",
+    "fab_label": "Your Privacy Choices",
+    "privacy_choices_label": "Your Privacy Choices",
+    "dns_title": "Opt Out of Sale / Targeted Advertising",
+    "dns_intro": "Opt out of the sale of personal data and targeted advertising under Colorado law where applicable. Enforced on this site immediately."
+  }
+}

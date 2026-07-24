@@ -1,0 +1,76 @@
+{
+  "services": [
+    {
+      "key": "woocommerce",
+      "name": "WooCommerce",
+      "provider": "Automattic",
+      "category": "necessary",
+      "treatment": "necessary",
+      "description": "Cart, session, and checkout cookies required for e-commerce functionality.",
+      "privacy_url": "https://automattic.com/privacy/",
+      "script_patterns": [
+        "/woocommerce/assets",
+        "woocommerce.min.js",
+        "wc-add-to-cart",
+        "wc-cart-fragments",
+        "wc-checkout"
+      ],
+      "cookie_patterns": [
+        "woocommerce_cart_hash",
+        "woocommerce_items_in_cart",
+        "wp_woocommerce_session_*",
+        "woocommerce_recently_viewed",
+        "store_notice*"
+      ],
+      "cookies": [
+        {
+          "name": "woocommerce_cart_hash",
+          "pattern": "woocommerce_cart_hash",
+          "purpose": "Helps WooCommerce determine when cart contents change.",
+          "retention": "Session",
+          "category": "necessary",
+          "treatment": "necessary",
+          "contexts": ["guest", "logged_in", "checkout"]
+        },
+        {
+          "name": "woocommerce_items_in_cart",
+          "pattern": "woocommerce_items_in_cart",
+          "purpose": "Records whether the cart contains items.",
+          "retention": "Session",
+          "category": "necessary",
+          "treatment": "necessary",
+          "contexts": ["guest", "logged_in", "checkout"]
+        },
+        {
+          "name": "wp_woocommerce_session_*",
+          "pattern": "wp_woocommerce_session_*",
+          "purpose": "Contains a unique code for each customer so cart data can be retrieved.",
+          "retention": "2 days",
+          "category": "necessary",
+          "treatment": "necessary",
+          "contexts": ["guest", "logged_in", "checkout"]
+        },
+        {
+          "name": "woocommerce_recently_viewed",
+          "pattern": "woocommerce_recently_viewed",
+          "purpose": "Stores recently viewed products for recommendations.",
+          "retention": "Session",
+          "category": "preferences",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "store_notice*",
+          "pattern": "store_notice*",
+          "purpose": "Allows visitors to dismiss store notices.",
+          "retention": "Session",
+          "category": "preferences",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": false
+    }
+  ]
+}

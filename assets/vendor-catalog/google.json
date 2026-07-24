@@ -1,0 +1,129 @@
+{
+  "services": [
+    {
+      "key": "google_analytics_4",
+      "name": "Google Analytics 4",
+      "provider": "Google",
+      "category": "analytics",
+      "treatment": "consent",
+      "description": "Analytics service used to measure website traffic and behavior.",
+      "privacy_url": "https://policies.google.com/privacy",
+      "script_patterns": [
+        "googletagmanager.com/gtag",
+        "googletagmanager.com/gtag/js",
+        "google-analytics.com",
+        "analytics.google.com",
+        "region1.google-analytics.com",
+        "/g/collect"
+      ],
+      "cookie_patterns": ["_ga", "_ga_*", "_gid", "_gat", "_gat_*"],
+      "cookies": [
+        {
+          "name": "_ga",
+          "pattern": "_ga",
+          "purpose": "Distinguishes users for analytics.",
+          "retention": "2 years",
+          "category": "analytics",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "_ga_*",
+          "pattern": "_ga_*",
+          "purpose": "Persists GA4 session state.",
+          "retention": "2 years",
+          "category": "analytics",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "_gid",
+          "pattern": "_gid",
+          "purpose": "Distinguishes users for 24 hours.",
+          "retention": "24 hours",
+          "category": "analytics",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "_gat",
+          "pattern": "_gat*",
+          "purpose": "Throttles request rate.",
+          "retention": "1 minute",
+          "category": "analytics",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": true,
+      "supports_google_consent_mode": true,
+      "google_consent_mapping": {
+        "analytics_storage": "analytics"
+      }
+    },
+    {
+      "key": "google_tag_manager",
+      "name": "Google Tag Manager",
+      "provider": "Google",
+      "category": "analytics",
+      "treatment": "consent",
+      "description": "Tag management system for marketing and analytics tags.",
+      "privacy_url": "https://policies.google.com/privacy",
+      "script_patterns": [
+        "googletagmanager.com/gtm.js",
+        "googletagmanager.com/gtm",
+        "googletagmanager.com/ns.html"
+      ],
+      "cookie_patterns": ["_ga", "_ga_*", "_gid", "_gcl_*"],
+      "cookies": [
+        {
+          "name": "_ga",
+          "pattern": "_ga",
+          "purpose": "May be set by tags fired through GTM (e.g. GA4).",
+          "retention": "2 years",
+          "category": "analytics",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": true,
+      "supports_google_consent_mode": true
+    },
+    {
+      "key": "google_ads",
+      "name": "Google Ads",
+      "provider": "Google",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Advertising and conversion tracking.",
+      "privacy_url": "https://policies.google.com/privacy",
+      "script_patterns": [
+        "googleadservices.com",
+        "doubleclick.net",
+        "googlesyndication.com"
+      ],
+      "cookie_patterns": ["_gcl_*", "IDE", "NID"],
+      "cookies": [
+        {
+          "name": "_gcl_*",
+          "pattern": "_gcl_*",
+          "purpose": "Stores ad click information for conversions.",
+          "retention": "90 days",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": true,
+      "supports_google_consent_mode": true,
+      "google_consent_mapping": {
+        "ad_storage": "marketing",
+        "ad_user_data": "marketing",
+        "ad_personalization": "marketing"
+      }
+    }
+  ]
+}

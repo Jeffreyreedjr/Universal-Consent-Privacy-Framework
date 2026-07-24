@@ -1,0 +1,34 @@
+{
+  "id": "strict_gdpr",
+  "label": "EU / UK GDPR & ePrivacy (strict)",
+  "regions": ["AT","BE","BG","HR","CY","CZ","DK","EE","FI","FR","DE","GR","HU","IE","IT","LV","LT","LU","MT","NL","PL","PT","RO","SK","SI","ES","SE","IS","LI","NO","GB","UK","CH"],
+  "consent_model": "optin",
+  "require_reject_parity": true,
+  "esc_behavior": "reject",
+  "gpc_enforcement": "nonessential",
+  "dns_required": false,
+  "privacy_choices_link": false,
+  "show_limit_sensitive": false,
+  "category_defaults": {
+    "necessary": true,
+    "preferences": false,
+    "analytics": false,
+    "marketing": false,
+    "functional": false,
+    "security": true
+  },
+  "signals": {
+    "respect_gpc": true,
+    "respect_dnt": true
+  },
+  "copy": {
+    "banner_title": "Cookies",
+    "banner_text": "We use essential cookies for security and optional cookies based on your choices. This plugin helps support privacy compliance; review with legal counsel.",
+    "prefs_title": "Cookie Preferences",
+    "prefs_intro": "Choose which optional cookie categories to allow. Essential cookies stay on. Use Tab to move, Space or Enter to toggle, and Escape to reject optional cookies.",
+    "fab_label": "Cookie Settings",
+    "privacy_choices_label": "Your Privacy Choices",
+    "dns_title": "Do Not Sell My Personal Information",
+    "dns_intro": "Submit a request to opt out of the sale of personal information where applicable."
+  }
+}

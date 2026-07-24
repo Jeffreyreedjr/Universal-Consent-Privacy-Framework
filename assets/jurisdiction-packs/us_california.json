@@ -1,0 +1,34 @@
+{
+  "id": "us_california",
+  "label": "California CPRA",
+  "regions": ["US-CA", "CA"],
+  "consent_model": "optout",
+  "require_reject_parity": true,
+  "esc_behavior": "reject",
+  "gpc_enforcement": "sale_share",
+  "dns_required": true,
+  "privacy_choices_link": true,
+  "show_limit_sensitive": true,
+  "category_defaults": {
+    "necessary": true,
+    "preferences": false,
+    "analytics": false,
+    "marketing": false,
+    "functional": false,
+    "security": true
+  },
+  "signals": {
+    "respect_gpc": true,
+    "respect_dnt": true
+  },
+  "copy": {
+    "banner_title": "Your Privacy Choices",
+    "banner_text": "We use cookies and similar technologies. California residents have the right to opt out of the sale or sharing of personal information and to limit use of sensitive personal information. Global Privacy Control (GPC) signals are honored. This tool helps support privacy compliance; it is not legal advice.",
+    "prefs_title": "California Privacy & Cookie Preferences",
+    "prefs_intro": "Manage optional cookies and open Do Not Sell or Share / Limit Use of Sensitive Personal Information. Essential cookies stay on.",
+    "fab_label": "Your Privacy Choices",
+    "privacy_choices_label": "Do Not Sell or Share",
+    "dns_title": "Do Not Sell or Share My Personal Information",
+    "dns_intro": "Under the CCPA/CPRA you may opt out of the sale or sharing of personal information and limit the use of sensitive personal information. Opt-outs are enforced on this site immediately."
+  }
+}
