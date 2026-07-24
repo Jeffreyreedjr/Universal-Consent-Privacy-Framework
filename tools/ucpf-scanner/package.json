@@ -16,7 +16,7 @@
     "node": ">=20"
   },
   "dependencies": {
-    "express": "^4.21.2",
+    "express": "^5.2.1",
     "playwright": "^1.49.1",
     "uuid": "^11.0.3"
   }
