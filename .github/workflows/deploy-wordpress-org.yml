@@ -32,7 +32,7 @@ jobs:
 
       - name: Checkout
         if: steps.creds.outputs.configured == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Deploy plugin to WordPress.org SVN
         if: steps.creds.outputs.configured == 'true'
