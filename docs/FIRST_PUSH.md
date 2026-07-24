@@ -2,7 +2,7 @@
 
 Use this once when publishing the repo.
 
-1. Create GitHub org/repo matching Plugin URI: `universal-consent-privacy-framework/ucpf` (or update the plugin header URI).
+1. Create GitHub repo matching Plugin URI: `Jeffreyreedjr/Universal-Consent-Privacy-Framework` (or update the plugin header URI).
 2. Confirm ignored: `.env`, `tools/ucpf-scanner/report*.json`, `.cursor/`, `dist/`, `node_modules/`
 3. Confirm no personal paths or client domains in tracked docs
 4. `git add` → review `git status` → commit

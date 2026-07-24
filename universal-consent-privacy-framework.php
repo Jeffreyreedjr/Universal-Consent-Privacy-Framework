@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:       Universal Consent & Privacy Framework
- * Plugin URI:        https://github.com/universal-consent-privacy-framework/ucpf
+ * Plugin URI:        https://github.com/Jeffreyreedjr/Universal-Consent-Privacy-Framework
  * Description:       Standardizes privacy, cookie consent, GDPR-style consent handling, script blocking, privacy pages, and a developer API for registering services.
  * Version:           1.4.7
  * Requires at least: 6.3

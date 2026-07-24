@@ -32,7 +32,7 @@ $labels = array(
 $docs_rights = UCPF_PLUGIN_DIR . 'docs/RIGHTS-FORMS.md';
 $docs_url    = file_exists( $docs_rights )
 	? ''
-	: 'https://github.com/universal-consent-privacy-framework/ucpf/blob/main/docs/RIGHTS-FORMS.md';
+	: 'https://github.com/Jeffreyreedjr/Universal-Consent-Privacy-Framework/blob/main/docs/RIGHTS-FORMS.md';
 ?>
 <div class="wrap ucpf-admin">
 	<h1><?php esc_html_e( 'Generated Pages', 'universal-consent-privacy-framework' ); ?></h1>

@@ -8,7 +8,7 @@ Security fixes are applied to the latest release on `main` and published via Git
 
 Please use **GitHub Security Advisories** on the public repository:
 
-https://github.com/universal-consent-privacy-framework/ucpf/security/advisories/new
+https://github.com/Jeffreyreedjr/Universal-Consent-Privacy-Framework/security/advisories/new
 
 If Advisories are unavailable, email the maintainers listed on the repository — do not file a public issue with exploit details.
 

@@ -52,7 +52,7 @@ class Brand {
 		$defaults = array(
 			'product_name'    => __( 'Universal Consent & Privacy Framework', 'universal-consent-privacy-framework' ),
 			'menu_title'      => __( 'Privacy Consent', 'universal-consent-privacy-framework' ),
-			'support_url'     => 'https://github.com/universal-consent-privacy-framework/ucpf',
+			'support_url'     => 'https://github.com/Jeffreyreedjr/Universal-Consent-Privacy-Framework',
 			'scanner_api_url' => '',
 			'default_theme'   => 'classic',
 		);

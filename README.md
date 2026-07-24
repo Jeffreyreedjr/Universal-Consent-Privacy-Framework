@@ -10,7 +10,7 @@ Open-source WordPress privacy & cookie consent toolkit. Strict GDPR-oriented def
 
 ### 1. Install the plugin
 
-1. Download a [release zip](https://github.com/universal-consent-privacy-framework/ucpf/releases) or run `.\package.ps1` from this repo.
+1. Download a [release zip](https://github.com/Jeffreyreedjr/Universal-Consent-Privacy-Framework/releases) or run `.\package.ps1` from this repo.
 2. Upload to WordPress (**Plugins → Add New → Upload**) or copy the folder to `wp-content/plugins/`.
 3. Activate → **Privacy Consent → Setup Wizard**.
 
