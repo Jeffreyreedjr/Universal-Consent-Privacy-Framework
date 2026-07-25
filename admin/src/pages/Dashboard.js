@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
@@ -16,20 +16,68 @@ export function Dashboard( { data } ) {
 	const productName = data.productName || 'UCPF';
 	const urls = data.urls || {};
 
-	useEffect( () => {
+	useLayoutEffect( () => {
 		const root = rootRef.current;
 		if ( ! root ) {
 			return undefined;
 		}
+
 		const mm = gsap.matchMedia();
 		mm.add( '(prefers-reduced-motion: no-preference)', () => {
-			const cards = root.querySelectorAll( '[data-ucpf-animate="card"]' );
-			gsap.fromTo(
-				cards,
-				{ opacity: 0, y: 16 },
-				{ opacity: 1, y: 0, duration: 0.45, stagger: 0.06, ease: 'power2.out', clearProps: 'transform' }
-			);
+			const ctx = gsap.context( () => {
+				const bento = root.querySelector( '.ucpf-bento' );
+				const bentoCards = bento
+					? gsap.utils.toArray( bento.querySelectorAll( '[data-ucpf-animate="card"]' ) )
+					: [];
+				const other = gsap.utils
+					.toArray( root.querySelectorAll( '[data-ucpf-animate="card"]' ) )
+					.filter( ( el ) => ! bentoCards.includes( el ) );
+
+				if ( bento ) {
+					bento.classList.add( 'ucpf-bento--intro' );
+				}
+
+				if ( bentoCards.length ) {
+					gsap.fromTo(
+						bentoCards,
+						{ autoAlpha: 0, y: 28, scale: 0.96 },
+						{
+							autoAlpha: 1,
+							y: 0,
+							scale: 1,
+							duration: 0.55,
+							stagger: 0.1,
+							ease: 'power3.out',
+							clearProps: 'transform',
+							onComplete: () => {
+								if ( bento ) {
+									bento.classList.remove( 'ucpf-bento--intro' );
+								}
+								gsap.set( bentoCards, { clearProps: 'visibility,opacity' } );
+							},
+						}
+					);
+				}
+
+				if ( other.length ) {
+					gsap.fromTo(
+						other,
+						{ autoAlpha: 0, y: 14 },
+						{
+							autoAlpha: 1,
+							y: 0,
+							duration: 0.4,
+							stagger: 0.05,
+							ease: 'power2.out',
+							clearProps: 'transform,visibility,opacity',
+						}
+					);
+				}
+			}, root );
+
+			return () => ctx.revert();
 		} );
+
 		return () => mm.revert();
 	}, [] );
 
