@@ -635,9 +635,15 @@
       setStatus($status, 'Scan stopped.');
       return;
     }
-    if (attempt > 90) {
+    // ~4s × 225 ≈ 15 min — deep Playwright scans often exceed the old ~6 min cap.
+    if (attempt > 225) {
       setScanBusy(false);
-      setStatus($status, 'Deep scan timed out. Check the scanner service and try again.', true);
+      setStatus(
+        $status,
+        'Deep scan timed out in WordPress after ~15 minutes. The scanner may still finish on the server — wait for Chromium to exit, then run Deep scan again or import JSON. Job: ' +
+          jobId,
+        true
+      );
       return;
     }
     var signal = scanRuntime.abortController ? scanRuntime.abortController.signal : null;
