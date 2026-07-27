@@ -637,28 +637,79 @@ class Privacy_Scan_Importer {
 	}
 
 	/**
+	 * Map WP scan depth to Playwright scanner profile + page cap.
+	 *
+	 * @param string $depth quick|standard|deep.
+	 * @return array{profile:string,maxPages:int}
+	 */
+	public static function depth_to_scanner_options( $depth ) {
+		$depth = sanitize_key( (string) $depth );
+		if ( 'quick' === $depth ) {
+			return array(
+				'profile'  => 'quick',
+				'maxPages' => 8,
+			);
+		}
+		if ( 'deep' === $depth ) {
+			return array(
+				'profile'  => 'compliance',
+				'maxPages' => 80,
+			);
+		}
+		return array(
+			'profile'  => 'standard',
+			'maxPages' => 40,
+		);
+	}
+
+	/**
 	 * Create a remote deep scan job.
 	 *
-	 * @param string $url   Target URL.
-	 * @param array  $paths Paths.
+	 * @param string $url     Target URL.
+	 * @param array  $paths   Paths.
+	 * @param array  $options Client options (depth, profile, maxPages, interact).
 	 * @return array|\WP_Error
 	 */
-	public static function start_remote_scan( $url, array $paths = array() ) {
+	public static function start_remote_scan( $url, array $paths = array(), array $options = array() ) {
 		$api = self::api_base();
 		$key = self::api_key();
 		if ( ! $api ) {
 			return new \WP_Error( 'ucpf_scanner_unconfigured', __( 'Scanner API URL is not configured.', 'universal-consent-privacy-framework' ), array( 'status' => 400 ) );
 		}
 
+		$depth = ! empty( $options['depth'] ) ? sanitize_key( (string) $options['depth'] ) : 'standard';
+		$mapped = self::depth_to_scanner_options( $depth );
+		$profile = ! empty( $options['profile'] ) ? sanitize_key( (string) $options['profile'] ) : $mapped['profile'];
+		if ( ! in_array( $profile, array( 'quick', 'standard', 'compliance' ), true ) ) {
+			$profile = $mapped['profile'];
+		}
+		$max_pages = isset( $options['maxPages'] ) ? absint( $options['maxPages'] ) : $mapped['maxPages'];
+		if ( $max_pages < 1 ) {
+			$max_pages = $mapped['maxPages'];
+		}
+		$max_pages = min( 100, $max_pages );
+
+		$paths = array_values( array_filter( array_map( 'strval', $paths ) ) );
+		$paths = array_slice( $paths, 0, $max_pages );
+
+		$scan_options = array(
+			'profile'  => $profile,
+			'maxPages' => $max_pages,
+		);
+		if ( ! empty( $options['interact'] ) ) {
+			$scan_options['interact'] = true;
+		}
+
 		$body = array(
-			'url'   => esc_url_raw( $url ),
-			'paths' => array_values( array_filter( array_map( 'strval', $paths ) ) ),
+			'url'     => esc_url_raw( $url ),
+			'paths'   => $paths,
+			'options' => $scan_options,
 		);
 
 		$response = wp_remote_post(
 			trailingslashit( $api ) . 'v1/scans',
 			array(
-				'timeout' => 30,
+				'timeout' => 20,
 				'headers' => self::api_headers( $key ),
 				'body'    => wp_json_encode( $body ),
 			)
@@ -672,6 +723,12 @@ class Privacy_Scan_Importer {
 		$data = json_decode( (string) wp_remote_retrieve_body( $response ), true );
 		if ( $code >= 400 || ! is_array( $data ) ) {
 			$msg = is_array( $data ) && ! empty( $data['error'] ) ? $data['error'] : __( 'Scanner API error.', 'universal-consent-privacy-framework' );
+			if ( is_array( $data ) && ! empty( $data['hint'] ) ) {
+				$msg .= ' ' . sanitize_text_field( (string) $data['hint'] );
+			}
+			if ( 429 === $code ) {
+				$msg = __( 'Scanner is busy or rate-limited. Stop the previous scan (or restart the scanner service), wait a few seconds, then try again.', 'universal-consent-privacy-framework' );
+			}
 			return new \WP_Error( 'ucpf_scanner_http', $msg, array( 'status' => $code ? $code : 502 ) );
 		}
 
@@ -695,8 +752,64 @@ class Privacy_Scan_Importer {
 		$response = wp_remote_get(
 			trailingslashit( $api ) . 'v1/scans/' . rawurlencode( $job_id ),
 			array(
+				// Keep short so WP/nginx fail fast instead of hanging the admin UI.
+				'timeout' => 12,
+				'headers' => self::api_headers( $key ),
+			)
+		);
+
+		if ( is_wp_error( $response ) ) {
+			$err = $response;
+			$code = $err->get_error_code();
+			if ( 'http_request_failed' === $code ) {
+				return new \WP_Error(
+					'ucpf_scanner_unreachable',
+					__( 'Scanner API did not respond in time. Check that the scanner service is running and reachable.', 'universal-consent-privacy-framework' ),
+					array( 'status' => 504 )
+				);
+			}
+			return $err;
+		}
+
+		$code = (int) wp_remote_retrieve_response_code( $response );
+		$data = json_decode( (string) wp_remote_retrieve_body( $response ), true );
+		if ( $code >= 400 || ! is_array( $data ) ) {
+			$msg = is_array( $data ) && ! empty( $data['error'] ) ? $data['error'] : __( 'Scanner API error.', 'universal-consent-privacy-framework' );
+			if ( 404 === $code ) {
+				$msg = __( 'Scan job not found (scanner may have restarted). Start a new scan.', 'universal-consent-privacy-framework' );
+			} elseif ( 502 === $code || 504 === $code ) {
+				$msg = __( 'Scanner gateway error. The scan service may be overloaded or down.', 'universal-consent-privacy-framework' );
+			}
+			return new \WP_Error( 'ucpf_scanner_http', $msg, array( 'status' => $code ? $code : 502 ) );
+		}
+
+		return $data;
+	}
+
+	/**
+	 * Cancel a remote Playwright scan job (closes Chromium; may return partial report).
+	 *
+	 * @param string $job_id Job id.
+	 * @return array|\WP_Error
+	 */
+	public static function cancel_remote_scan( $job_id ) {
+		$api = self::api_base();
+		$key = self::api_key();
+		if ( ! $api ) {
+			return new \WP_Error( 'ucpf_scanner_unconfigured', __( 'Scanner API URL is not configured.', 'universal-consent-privacy-framework' ), array( 'status' => 400 ) );
+		}
+
+		$job_id = sanitize_text_field( $job_id );
+		if ( '' === $job_id ) {
+			return new \WP_Error( 'ucpf_scanner_job', __( 'Missing scan job id.', 'universal-consent-privacy-framework' ), array( 'status' => 400 ) );
+		}
+
+		$response = wp_remote_post(
+			trailingslashit( $api ) . 'v1/scans/' . rawurlencode( $job_id ) . '/cancel',
+			array(
 				'timeout' => 30,
 				'headers' => self::api_headers( $key ),
+				'body'    => '{}',
 			)
 		);
 
@@ -707,7 +820,43 @@ class Privacy_Scan_Importer {
 		$code = (int) wp_remote_retrieve_response_code( $response );
 		$data = json_decode( (string) wp_remote_retrieve_body( $response ), true );
 		if ( $code >= 400 || ! is_array( $data ) ) {
-			$msg = is_array( $data ) && ! empty( $data['error'] ) ? $data['error'] : __( 'Scanner API error.', 'universal-consent-privacy-framework' );
+			$msg = is_array( $data ) && ! empty( $data['error'] ) ? $data['error'] : __( 'Could not cancel remote scan.', 'universal-consent-privacy-framework' );
+			return new \WP_Error( 'ucpf_scanner_http', $msg, array( 'status' => $code ? $code : 502 ) );
+		}
+
+		return $data;
+	}
+
+	/**
+	 * Cancel all remote scans and optionally reset concurrency slots.
+	 *
+	 * @param bool $reset_slots Reset stuck active-slot counter on scanner.
+	 * @return array|\WP_Error
+	 */
+	public static function cancel_all_remote_scans( $reset_slots = true ) {
+		$api = self::api_base();
+		$key = self::api_key();
+		if ( ! $api ) {
+			return new \WP_Error( 'ucpf_scanner_unconfigured', __( 'Scanner API URL is not configured.', 'universal-consent-privacy-framework' ), array( 'status' => 400 ) );
+		}
+
+		$response = wp_remote_post(
+			trailingslashit( $api ) . 'v1/scans/cancel-all',
+			array(
+				'timeout' => 20,
+				'headers' => self::api_headers( $key ),
+				'body'    => wp_json_encode( array( 'reset_slots' => (bool) $reset_slots ) ),
+			)
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		$code = (int) wp_remote_retrieve_response_code( $response );
+		$data = json_decode( (string) wp_remote_retrieve_body( $response ), true );
+		if ( $code >= 400 || ! is_array( $data ) ) {
+			$msg = is_array( $data ) && ! empty( $data['error'] ) ? $data['error'] : __( 'Could not cancel remote scans.', 'universal-consent-privacy-framework' );
 			return new \WP_Error( 'ucpf_scanner_http', $msg, array( 'status' => $code ? $code : 502 ) );
 		}
 

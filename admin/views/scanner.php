@@ -97,6 +97,17 @@ $woo_active = \UCPF\Cookie_Scanner::instance()->is_woo_active();
 		<?php endif; ?>
 	</p>
 	<div id="ucpf-scan-status" class="ucpf-wizard__status" hidden></div>
+	<div id="ucpf-scan-progress" class="ucpf-scan-progress" hidden>
+		<div class="ucpf-scan-progress__meta">
+			<span id="ucpf-scan-progress-pct">0%</span>
+			<span id="ucpf-scan-progress-step"></span>
+		</div>
+		<div class="ucpf-scan-progress__track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="ucpf-scan-progress-bar">
+			<span class="ucpf-scan-progress__fill" style="width:0%"></span>
+		</div>
+		<p id="ucpf-scan-progress-msg" class="ucpf-scan-progress__msg"></p>
+		<pre id="ucpf-scan-progress-log" class="ucpf-scan-progress__log" hidden></pre>
+	</div>
 	<div id="ucpf-pages-status" class="ucpf-wizard__status" hidden></div>
 
 	<?php if ( ! $has_scan ) : ?>
@@ -168,17 +179,17 @@ $woo_active = \UCPF\Cookie_Scanner::instance()->is_woo_active();
 			<table class="widefat striped">
 						<thead>
 							<tr>
-								<th><?php esc_html_e( 'Type', 'universal-consent-privacy-framework' ); ?></th>
-								<th><?php esc_html_e( 'Severity', 'universal-consent-privacy-framework' ); ?></th>
-								<th><?php esc_html_e( 'Description', 'universal-consent-privacy-framework' ); ?></th>
+								<th class="ucpf-cell-type"><?php esc_html_e( 'Type', 'universal-consent-privacy-framework' ); ?></th>
+								<th class="ucpf-cell-sev"><?php esc_html_e( 'Severity', 'universal-consent-privacy-framework' ); ?></th>
+								<th class="ucpf-cell-reason"><?php esc_html_e( 'Description', 'universal-consent-privacy-framework' ); ?></th>
 							</tr>
 						</thead>
 						<tbody>
 							<?php foreach ( $dark as $issue ) : ?>
 								<tr>
-									<td><code><?php echo esc_html( isset( $issue['type'] ) ? $issue['type'] : '' ); ?></code></td>
-									<td><?php echo esc_html( isset( $issue['severity'] ) ? $issue['severity'] : '' ); ?></td>
-									<td><?php echo esc_html( isset( $issue['description'] ) ? $issue['description'] : '' ); ?></td>
+									<td class="ucpf-cell-verdict"><code><?php echo esc_html( isset( $issue['type'] ) ? $issue['type'] : '' ); ?></code></td>
+									<td class="ucpf-cell-sev"><?php echo esc_html( isset( $issue['severity'] ) ? $issue['severity'] : '' ); ?></td>
+									<td class="ucpf-cell-reason"><?php echo esc_html( isset( $issue['description'] ) ? $issue['description'] : '' ); ?></td>
 								</tr>
 							<?php endforeach; ?>
 						</tbody>
@@ -193,7 +204,7 @@ $woo_active = \UCPF\Cookie_Scanner::instance()->is_woo_active();
 			$fs = $last_scan['findings_summary'];
 			$fs_pass = ! empty( $fs['pass'] );
 			?>
-			<div class="ucpf-card ucpf-findings-summary" style="margin:1rem 0;padding:1rem 1.25rem;border-left:4px solid <?php echo $fs_pass ? '#2e7d32' : '#c62828'; ?>;">
+			<div class="ucpf-card ucpf-findings-summary" style="margin:1rem 0;padding:1rem 1.25rem;border-left:4px solid <?php echo $fs_pass ? 'var(--ucpf-admin-ok, #0b5cad)' : 'var(--ucpf-admin-fail, #b91c1c)'; ?>;">
 				<h2 style="margin-top:0;"><?php esc_html_e( 'Consent differential (pass / fail)', 'universal-consent-privacy-framework' ); ?></h2>
 				<p class="description"><?php esc_html_e( 'Compares cookies and tracking-like requests across consent states. Technical finding only — not a legal determination.', 'universal-consent-privacy-framework' ); ?></p>
 				<p>
@@ -217,13 +228,13 @@ $woo_active = \UCPF\Cookie_Scanner::instance()->is_woo_active();
 		<?php if ( ! empty( $last_scan['findings'] ) && is_array( $last_scan['findings'] ) ) : ?>
 			<h2 class="ucpf-needs-review-title"><?php esc_html_e( 'Differential findings', 'universal-consent-privacy-framework' ); ?></h2>
 			<div class="ucpf-table-scroll">
-			<table class="widefat ucpf-unknown-table">
+			<table class="widefat ucpf-unknown-table ucpf-findings-table">
 				<thead><tr>
-					<th><?php esc_html_e( 'Verdict', 'universal-consent-privacy-framework' ); ?></th>
-					<th><?php esc_html_e( 'Type', 'universal-consent-privacy-framework' ); ?></th>
-					<th><?php esc_html_e( 'Name / host', 'universal-consent-privacy-framework' ); ?></th>
-					<th><?php esc_html_e( 'Severity', 'universal-consent-privacy-framework' ); ?></th>
-					<th><?php esc_html_e( 'Reason', 'universal-consent-privacy-framework' ); ?></th>
+					<th class="ucpf-cell-verdict"><?php esc_html_e( 'Verdict', 'universal-consent-privacy-framework' ); ?></th>
+					<th class="ucpf-cell-type"><?php esc_html_e( 'Type', 'universal-consent-privacy-framework' ); ?></th>
+					<th class="ucpf-cell-name"><?php esc_html_e( 'Name / host', 'universal-consent-privacy-framework' ); ?></th>
+					<th class="ucpf-cell-sev"><?php esc_html_e( 'Severity', 'universal-consent-privacy-framework' ); ?></th>
+					<th class="ucpf-cell-reason"><?php esc_html_e( 'Reason', 'universal-consent-privacy-framework' ); ?></th>
 				</tr></thead>
 				<tbody>
 				<?php
@@ -239,9 +250,9 @@ $woo_active = \UCPF\Cookie_Scanner::instance()->is_woo_active();
 					$is_fail = in_array( $fcode, $fail_codes, true );
 					?>
 					<tr class="<?php echo $is_fail ? 'ucpf-row--critical' : ''; ?>">
-						<td><code><?php echo esc_html( $fcode ); ?></code></td>
+						<td class="ucpf-cell-verdict"><code><?php echo esc_html( $fcode ); ?></code></td>
 						<td class="ucpf-cell-type"><?php echo esc_html( isset( $finding_row['type'] ) ? $finding_row['type'] : '' ); ?></td>
-						<td><code><?php echo esc_html( isset( $finding_row['name'] ) ? $finding_row['name'] : '' ); ?></code></td>
+						<td class="ucpf-cell-name"><code><?php echo esc_html( isset( $finding_row['name'] ) ? $finding_row['name'] : '' ); ?></code></td>
 						<td class="ucpf-cell-sev">
 							<?php if ( $is_fail ) : ?>
 								<span class="ucpf-badge ucpf-badge--alert"><?php echo esc_html( isset( $finding_row['severity'] ) ? $finding_row['severity'] : 'high' ); ?></span>
@@ -249,7 +260,7 @@ $woo_active = \UCPF\Cookie_Scanner::instance()->is_woo_active();
 								<span class="ucpf-badge"><?php echo esc_html( isset( $finding_row['severity'] ) ? $finding_row['severity'] : 'info' ); ?></span>
 							<?php endif; ?>
 						</td>
-						<td><?php echo esc_html( isset( $finding_row['reason'] ) ? $finding_row['reason'] : '' ); ?></td>
+						<td class="ucpf-cell-reason"><?php echo esc_html( isset( $finding_row['reason'] ) ? $finding_row['reason'] : '' ); ?></td>
 					</tr>
 				<?php endforeach; ?>
 				</tbody>
@@ -261,24 +272,24 @@ $woo_active = \UCPF\Cookie_Scanner::instance()->is_woo_active();
 			<h2 class="ucpf-needs-review-title"><?php esc_html_e( 'Consent leaks (high priority)', 'universal-consent-privacy-framework' ); ?></h2>
 			<p class="description"><?php esc_html_e( 'Consent-required cookies or hosts observed in both no_consent and reject_all. Technical finding only — not a legal determination.', 'universal-consent-privacy-framework' ); ?></p>
 			<div class="ucpf-table-scroll">
-			<table class="widefat ucpf-unknown-table">
+			<table class="widefat ucpf-unknown-table ucpf-findings-table">
 				<thead><tr>
-					<th><?php esc_html_e( 'Type', 'universal-consent-privacy-framework' ); ?></th>
-					<th><?php esc_html_e( 'Name / host', 'universal-consent-privacy-framework' ); ?></th>
+					<th class="ucpf-cell-type"><?php esc_html_e( 'Type', 'universal-consent-privacy-framework' ); ?></th>
+					<th class="ucpf-cell-name"><?php esc_html_e( 'Name / host', 'universal-consent-privacy-framework' ); ?></th>
 					<th><?php esc_html_e( 'Provider', 'universal-consent-privacy-framework' ); ?></th>
-					<th><?php esc_html_e( 'Category', 'universal-consent-privacy-framework' ); ?></th>
-					<th><?php esc_html_e( 'Severity', 'universal-consent-privacy-framework' ); ?></th>
-					<th><?php esc_html_e( 'Reason', 'universal-consent-privacy-framework' ); ?></th>
+					<th class="ucpf-cell-cat"><?php esc_html_e( 'Category', 'universal-consent-privacy-framework' ); ?></th>
+					<th class="ucpf-cell-sev"><?php esc_html_e( 'Severity', 'universal-consent-privacy-framework' ); ?></th>
+					<th class="ucpf-cell-reason"><?php esc_html_e( 'Reason', 'universal-consent-privacy-framework' ); ?></th>
 				</tr></thead>
 				<tbody>
 				<?php foreach ( $last_scan['consent_leaks'] as $leak ) : ?>
 					<tr class="ucpf-row--critical">
 						<td class="ucpf-cell-type"><?php echo esc_html( isset( $leak['type'] ) ? $leak['type'] : '' ); ?></td>
-						<td><code><?php echo esc_html( isset( $leak['name'] ) ? $leak['name'] : '' ); ?></code></td>
+						<td class="ucpf-cell-name"><code><?php echo esc_html( isset( $leak['name'] ) ? $leak['name'] : '' ); ?></code></td>
 						<td><?php echo esc_html( isset( $leak['provider'] ) ? $leak['provider'] : '' ); ?></td>
 						<td class="ucpf-cell-cat"><?php echo esc_html( isset( $leak['category'] ) ? $leak['category'] : '' ); ?></td>
 						<td class="ucpf-cell-sev"><span class="ucpf-badge ucpf-badge--alert"><?php echo esc_html( isset( $leak['severity'] ) ? $leak['severity'] : 'high' ); ?></span></td>
-						<td><?php echo esc_html( isset( $leak['reason'] ) ? $leak['reason'] : '' ); ?></td>
+						<td class="ucpf-cell-reason"><?php echo esc_html( isset( $leak['reason'] ) ? $leak['reason'] : '' ); ?></td>
 					</tr>
 				<?php endforeach; ?>
 				</tbody>
@@ -299,22 +310,22 @@ $woo_active = \UCPF\Cookie_Scanner::instance()->is_woo_active();
 				<p><?php esc_html_e( 'No unmatched hosts from the last scan (or no scan yet).', 'universal-consent-privacy-framework' ); ?></p>
 			<?php else : ?>
 				<div class="ucpf-table-scroll">
-			<table class="widefat striped ucpf-unknown-table" id="ucpf-catalog-suggestions">
+			<table class="widefat striped ucpf-unknown-table ucpf-catalog-suggestions-table" id="ucpf-catalog-suggestions">
 					<thead><tr>
-						<th><?php esc_html_e( 'Host', 'universal-consent-privacy-framework' ); ?></th>
-						<th><?php esc_html_e( 'Suggested category', 'universal-consent-privacy-framework' ); ?></th>
+						<th class="ucpf-cell-host"><?php esc_html_e( 'Host', 'universal-consent-privacy-framework' ); ?></th>
+						<th class="ucpf-cell-cat"><?php esc_html_e( 'Suggested category', 'universal-consent-privacy-framework' ); ?></th>
 						<th><?php esc_html_e( 'Sources', 'universal-consent-privacy-framework' ); ?></th>
-						<th><?php esc_html_e( 'Actions', 'universal-consent-privacy-framework' ); ?></th>
+						<th class="ucpf-cell-actions"><?php esc_html_e( 'Actions', 'universal-consent-privacy-framework' ); ?></th>
 					</tr></thead>
 					<tbody>
 					<?php foreach ( $catalog_suggestions as $sug ) : ?>
 						<tr data-host="<?php echo esc_attr( $sug['host'] ); ?>" data-category="<?php echo esc_attr( $sug['category'] ); ?>">
-							<td><code><?php echo esc_html( $sug['host'] ); ?></code>
+							<td class="ucpf-cell-host"><code><?php echo esc_html( $sug['host'] ); ?></code>
 								<?php if ( ! empty( $sug['applied'] ) ) : ?>
 									<span class="ucpf-badge"><?php esc_html_e( 'applied', 'universal-consent-privacy-framework' ); ?></span>
 								<?php endif; ?>
 							</td>
-							<td>
+							<td class="ucpf-cell-cat">
 								<select class="ucpf-sug-category">
 									<?php foreach ( array( 'analytics', 'marketing', 'preferences', 'functional' ) as $cat ) : ?>
 										<option value="<?php echo esc_attr( $cat ); ?>" <?php selected( $sug['category'], $cat ); ?>><?php echo esc_html( $cat ); ?></option>
@@ -322,7 +333,7 @@ $woo_active = \UCPF\Cookie_Scanner::instance()->is_woo_active();
 								</select>
 							</td>
 							<td><?php echo esc_html( implode( ', ', (array) $sug['sources'] ) ); ?></td>
-							<td>
+							<td class="ucpf-cell-actions">
 								<button type="button" class="button button-primary ucpf-sug-apply"><?php esc_html_e( 'Apply site override', 'universal-consent-privacy-framework' ); ?></button>
 								<button type="button" class="button ucpf-sug-copy" data-json="<?php echo esc_attr( $sug['json'] ); ?>"><?php esc_html_e( 'Copy JSON', 'universal-consent-privacy-framework' ); ?></button>
 							</td>
@@ -338,20 +349,20 @@ $woo_active = \UCPF\Cookie_Scanner::instance()->is_woo_active();
 				<div class="ucpf-table-scroll">
 			<table class="widefat striped">
 					<thead><tr>
-						<th><?php esc_html_e( 'Key', 'universal-consent-privacy-framework' ); ?></th>
+						<th class="ucpf-cell-host"><?php esc_html_e( 'Key', 'universal-consent-privacy-framework' ); ?></th>
 						<th><?php esc_html_e( 'Name', 'universal-consent-privacy-framework' ); ?></th>
-						<th><?php esc_html_e( 'Category', 'universal-consent-privacy-framework' ); ?></th>
-						<th><?php esc_html_e( 'Patterns', 'universal-consent-privacy-framework' ); ?></th>
-						<th><?php esc_html_e( 'Actions', 'universal-consent-privacy-framework' ); ?></th>
+						<th class="ucpf-cell-cat"><?php esc_html_e( 'Category', 'universal-consent-privacy-framework' ); ?></th>
+						<th class="ucpf-cell-name"><?php esc_html_e( 'Patterns', 'universal-consent-privacy-framework' ); ?></th>
+						<th class="ucpf-cell-actions"><?php esc_html_e( 'Actions', 'universal-consent-privacy-framework' ); ?></th>
 					</tr></thead>
 					<tbody>
 					<?php foreach ( $local_catalog as $svc ) : ?>
 						<tr data-key="<?php echo esc_attr( $svc['key'] ); ?>">
-							<td><code><?php echo esc_html( $svc['key'] ); ?></code></td>
+							<td class="ucpf-cell-host"><code><?php echo esc_html( $svc['key'] ); ?></code></td>
 							<td><?php echo esc_html( $svc['name'] ); ?></td>
-							<td><?php echo esc_html( $svc['category'] ); ?></td>
-							<td><code><?php echo esc_html( implode( ', ', (array) $svc['script_patterns'] ) ); ?></code></td>
-							<td><button type="button" class="button ucpf-sug-remove"><?php esc_html_e( 'Remove', 'universal-consent-privacy-framework' ); ?></button></td>
+							<td class="ucpf-cell-cat"><?php echo esc_html( $svc['category'] ); ?></td>
+							<td class="ucpf-cell-name"><code><?php echo esc_html( implode( ', ', (array) $svc['script_patterns'] ) ); ?></code></td>
+							<td class="ucpf-cell-actions"><button type="button" class="button ucpf-sug-remove"><?php esc_html_e( 'Remove', 'universal-consent-privacy-framework' ); ?></button></td>
 						</tr>
 					<?php endforeach; ?>
 					</tbody>
@@ -457,9 +468,9 @@ $woo_active = \UCPF\Cookie_Scanner::instance()->is_woo_active();
 			<table class="widefat striped">
 					<thead><tr>
 						<th><?php esc_html_e( 'Provider', 'universal-consent-privacy-framework' ); ?></th>
-						<th><?php esc_html_e( 'Category', 'universal-consent-privacy-framework' ); ?></th>
-						<th><?php esc_html_e( 'Importance', 'universal-consent-privacy-framework' ); ?></th>
-						<th><?php esc_html_e( 'URL / host', 'universal-consent-privacy-framework' ); ?></th>
+						<th class="ucpf-cell-cat"><?php esc_html_e( 'Category', 'universal-consent-privacy-framework' ); ?></th>
+						<th class="ucpf-cell-type"><?php esc_html_e( 'Importance', 'universal-consent-privacy-framework' ); ?></th>
+						<th class="ucpf-cell-name"><?php esc_html_e( 'URL / host', 'universal-consent-privacy-framework' ); ?></th>
 					</tr></thead>
 					<tbody>
 					<?php foreach ( array_slice( $signals[ $sig_key ], 0, 40 ) as $sig ) : ?>
@@ -467,7 +478,7 @@ $woo_active = \UCPF\Cookie_Scanner::instance()->is_woo_active();
 							<td><?php echo esc_html( isset( $sig['provider'] ) ? $sig['provider'] : '' ); ?></td>
 							<td class="ucpf-cell-cat"><?php echo esc_html( isset( $sig['category'] ) ? $sig['category'] : '' ); ?></td>
 							<td class="ucpf-cell-type"><?php echo esc_html( isset( $sig['importance'] ) ? $sig['importance'] : '' ); ?></td>
-							<td><code><?php echo esc_html( ! empty( $sig['url'] ) ? $sig['url'] : ( isset( $sig['host'] ) ? $sig['host'] : '' ) ); ?></code></td>
+							<td class="ucpf-cell-name"><code><?php echo esc_html( ! empty( $sig['url'] ) ? $sig['url'] : ( isset( $sig['host'] ) ? $sig['host'] : '' ) ); ?></code></td>
 						</tr>
 					<?php endforeach; ?>
 					</tbody>
@@ -482,19 +493,19 @@ $woo_active = \UCPF\Cookie_Scanner::instance()->is_woo_active();
 			<table class="widefat striped">
 				<thead><tr>
 					<th><?php esc_html_e( 'Service', 'universal-consent-privacy-framework' ); ?></th>
-					<th><?php esc_html_e( 'Pattern', 'universal-consent-privacy-framework' ); ?></th>
-					<th><?php esc_html_e( 'Confidence', 'universal-consent-privacy-framework' ); ?></th>
-					<th><?php esc_html_e( 'Context', 'universal-consent-privacy-framework' ); ?></th>
-					<th><?php esc_html_e( 'Page', 'universal-consent-privacy-framework' ); ?></th>
+					<th class="ucpf-cell-name"><?php esc_html_e( 'Pattern', 'universal-consent-privacy-framework' ); ?></th>
+					<th class="ucpf-cell-type"><?php esc_html_e( 'Confidence', 'universal-consent-privacy-framework' ); ?></th>
+					<th class="ucpf-cell-type"><?php esc_html_e( 'Context', 'universal-consent-privacy-framework' ); ?></th>
+					<th class="ucpf-cell-name"><?php esc_html_e( 'Page', 'universal-consent-privacy-framework' ); ?></th>
 				</tr></thead>
 				<tbody>
 				<?php foreach ( $last_scan['results'] as $row ) : ?>
 					<tr>
 						<td><?php echo esc_html( $row['service_name'] ); ?></td>
-						<td><code><?php echo esc_html( $row['pattern'] ); ?></code></td>
-						<td><?php echo esc_html( $row['confidence'] ); ?></td>
-						<td><?php echo esc_html( isset( $row['context'] ) ? $row['context'] : '' ); ?></td>
-						<td><?php echo esc_html( $row['page_url'] ); ?></td>
+						<td class="ucpf-cell-name"><code><?php echo esc_html( $row['pattern'] ); ?></code></td>
+						<td class="ucpf-cell-type"><?php echo esc_html( $row['confidence'] ); ?></td>
+						<td class="ucpf-cell-type"><?php echo esc_html( isset( $row['context'] ) ? $row['context'] : '' ); ?></td>
+						<td class="ucpf-cell-name"><?php echo esc_html( $row['page_url'] ); ?></td>
 					</tr>
 				<?php endforeach; ?>
 				</tbody>

@@ -9,7 +9,7 @@
       } catch (e) {
         var err = new Error(
           r.status === 504 || r.status === 502
-            ? 'Server timed out (HTTP ' + r.status + '). Try a quick scan without browser crawl.'
+            ? 'Server timed out or gateway error (HTTP ' + r.status + '). The scanner may be down or overloaded.'
             : 'Server returned non-JSON (HTTP ' + r.status + '). The site may be overloaded — wait and retry.'
         );
         err.status = r.status;
@@ -17,7 +17,10 @@
         throw err;
       }
       if (!r.ok) {
-        var msg = (data && data.message) ? data.message : ('Request failed (HTTP ' + r.status + ')');
+        var msg = (data && (data.message || data.error)) ? (data.message || data.error) : ('Request failed (HTTP ' + r.status + ')');
+        if (data && data.hint) {
+          msg += ' — ' + data.hint;
+        }
         var err2 = new Error(msg);
         err2.status = r.status;
         err2.data = data;
@@ -52,6 +55,54 @@
     return fetch(ucpfAdmin.restUrl + path, opts).then(parseJsonResponse);
   }
 
+  /**
+   * Combine user cancel + a hard timeout so polls cannot hang forever.
+   */
+  function withTimeoutSignal(parentSignal, ms) {
+    if (typeof AbortController === 'undefined') {
+      return { signal: parentSignal || null, clear: function () {} };
+    }
+    var ctrl = new AbortController();
+    var timer = window.setTimeout(function () {
+      try {
+        ctrl.abort();
+      } catch (e) { /* ignore */ }
+    }, ms);
+    function onParentAbort() {
+      try {
+        ctrl.abort();
+      } catch (e2) { /* ignore */ }
+    }
+    if (parentSignal) {
+      if (parentSignal.aborted) {
+        onParentAbort();
+      } else {
+        parentSignal.addEventListener('abort', onParentAbort, { once: true });
+      }
+    }
+    return {
+      signal: ctrl.signal,
+      clear: function () {
+        window.clearTimeout(timer);
+        if (parentSignal) {
+          parentSignal.removeEventListener('abort', onParentAbort);
+        }
+      },
+    };
+  }
+
+  function isTransientScanError(err) {
+    if (!err) {
+      return false;
+    }
+    var s = err.status || 0;
+    if (s === 502 || s === 503 || s === 504 || s === 429) {
+      return true;
+    }
+    var msg = String(err.message || '');
+    return /timed out|gateway|overloaded|did not respond|AbortError/i.test(msg) || err.name === 'AbortError';
+  }
+
   function setStatus(selector, message, isError) {
     var $el = $(selector);
     if (!$el.length) {
@@ -59,6 +110,90 @@
     }
     $el.prop('hidden', false).text(message);
     $el.toggleClass('is-error', !!isError);
+  }
+
+  function ensureScanProgressBox($status) {
+    var $box = $('#ucpf-scan-progress');
+    if ($box.length) {
+      return $box;
+    }
+    var $anchor = $status && $status.length ? $status : $('#ucpf-scan-status');
+    if (!$anchor.length) {
+      return $();
+    }
+    $anchor.after(
+      '<div id="ucpf-scan-progress" class="ucpf-scan-progress" hidden>' +
+        '<div class="ucpf-scan-progress__meta">' +
+          '<span id="ucpf-scan-progress-pct">0%</span>' +
+          '<span id="ucpf-scan-progress-step"></span>' +
+        '</div>' +
+        '<div class="ucpf-scan-progress__track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="ucpf-scan-progress-bar">' +
+          '<span class="ucpf-scan-progress__fill" style="width:0%"></span>' +
+        '</div>' +
+        '<p id="ucpf-scan-progress-msg" class="ucpf-scan-progress__msg"></p>' +
+        '<pre id="ucpf-scan-progress-log" class="ucpf-scan-progress__log" hidden></pre>' +
+      '</div>'
+    );
+    return $('#ucpf-scan-progress');
+  }
+
+  function hideScanProgress() {
+    var $box = $('#ucpf-scan-progress');
+    if ($box.length) {
+      $box.prop('hidden', true);
+    }
+  }
+
+  function showScanProgress(progress, attempt, $status) {
+    var $box = ensureScanProgressBox($status);
+    if (!$box.length) {
+      return;
+    }
+    var p = progress && typeof progress === 'object' ? progress : {};
+    var pct = typeof p.percent === 'number' ? Math.max(0, Math.min(100, Math.round(p.percent))) : 0;
+    var stepLabel = '';
+    if (p.step != null && p.total) {
+      stepLabel = 'Step ' + p.step + '/' + p.total;
+      if (p.session_index && p.sessions_total) {
+        stepLabel += ' · session ' + p.session_index + '/' + p.sessions_total;
+      }
+      if (p.page_index && p.pages_total) {
+        stepLabel += ' · page ' + p.page_index + '/' + p.pages_total;
+      }
+    } else if (p.sessions_total && p.pages_total) {
+      stepLabel = p.sessions_total + ' sessions × ' + p.pages_total + ' pages';
+    }
+    if (attempt != null) {
+      stepLabel = (stepLabel ? stepLabel + ' · ' : '') + 'poll ' + (attempt + 1);
+    }
+
+    $box.prop('hidden', false);
+    $('#ucpf-scan-progress-pct').text(pct + '%');
+    $('#ucpf-scan-progress-step').text(stepLabel);
+    $('#ucpf-scan-progress-msg').text(p.message || 'Working…');
+    var $bar = $('#ucpf-scan-progress-bar');
+    $bar.attr('aria-valuenow', String(pct));
+    $bar.find('.ucpf-scan-progress__fill').css('width', pct + '%');
+
+    var $log = $('#ucpf-scan-progress-log');
+    if (p.log && p.log.length) {
+      $log.prop('hidden', false).text(p.log.slice(-12).join('\n'));
+      if ($log[0]) {
+        $log[0].scrollTop = $log[0].scrollHeight;
+      }
+    }
+  }
+
+  function setScanBusy(busy) {
+    $('#ucpf-run-scan, #ucpf-wizard-run-scan, #ucpf-live-capture, #ucpf-wizard-live-capture, #ucpf-scan-add-url, #ucpf-deep-scan, #ucpf-import-scan-json')
+      .prop('disabled', !!busy);
+    $('#ucpf-stop-scan').prop('hidden', !busy).prop('disabled', !busy);
+    if (!busy) {
+      scanRuntime.cancelled = false;
+      scanRuntime.abortController = null;
+      scanRuntime.crawlAbort = null;
+      scanRuntime.deepPollTimer = null;
+    }
   }
 
   function currentCookieNames() {
@@ -92,23 +227,13 @@
     }
   }
 
-  function setScanBusy(busy) {
-    $('#ucpf-run-scan, #ucpf-wizard-run-scan, #ucpf-live-capture, #ucpf-wizard-live-capture, #ucpf-scan-add-url, #ucpf-deep-scan, #ucpf-import-scan-json')
-      .prop('disabled', !!busy);
-    $('#ucpf-stop-scan').prop('hidden', !busy).prop('disabled', !busy);
-    if (!busy) {
-      scanRuntime.cancelled = false;
-      scanRuntime.abortController = null;
-      scanRuntime.crawlAbort = null;
-      scanRuntime.deepPollTimer = null;
-    }
-  }
-
   var scanRuntime = {
     cancelled: false,
     abortController: null,
     crawlAbort: null,
     deepPollTimer: null,
+    deepFailStreak: 0,
+    deepJobId: null,
   };
 
   var scanPickerState = {
@@ -131,7 +256,32 @@
   }
 
   function applyScanUrlPayload(payload) {
+    var prevSelected = scanPickerState.selected || {};
     scanPickerState.available = (payload && payload.available) ? payload.available : ((payload && payload.urls) || []);
+    // Client-side dedupe by normalized URL (query variants of / used to flood the list).
+    (function () {
+      var seen = {};
+      var uniq = [];
+      (scanPickerState.available || []).forEach(function (item) {
+        var url = normalizeSiteUrl(item && item.url ? item.url : item);
+        if (!url || seen[url]) {
+          return;
+        }
+        seen[url] = true;
+        var copy = item && typeof item === 'object' ? Object.assign({}, item) : { url: url };
+        copy.url = url;
+        try {
+          copy.path = new URL(url).pathname || '/';
+          if (!copy.path) {
+            copy.path = '/';
+          }
+        } catch (e) {
+          copy.path = '/';
+        }
+        uniq.push(copy);
+      });
+      scanPickerState.available = uniq;
+    })();
     scanPickerState.chips = (payload && payload.chips) ? payload.chips : [];
     scanPickerState.maxCrawl = (payload && payload.max_crawl) ? payload.max_crawl : scanPickerState.maxCrawl;
     scanPickerState.maxServer = (payload && payload.max_server) ? payload.max_server : scanPickerState.maxServer;
@@ -139,13 +289,34 @@
     if (payload && payload.home_url) {
       scanPickerState.homeUrl = payload.home_url;
     }
+
     scanPickerState.selected = {};
-    ((payload && payload.urls) || []).forEach(function (item) {
-      var url = normalizeSiteUrl(item.url || item);
-      if (url) {
-        scanPickerState.selected[url] = item.label || url;
+    var depth = scanPickerState.depth || 'standard';
+    var available = scanPickerState.available || [];
+
+    if (depth === 'quick') {
+      // Small list — select all discovered pages.
+      available.forEach(function (item) {
+        if (item && item.url) {
+          scanPickerState.selected[item.url] = item.label || item.url;
+        }
+      });
+    } else {
+      // Standard/deep: keep prior picks that still exist, otherwise homepage only
+      // so the user can choose pages instead of auto-scanning ~40.
+      available.forEach(function (item) {
+        if (item && item.url && prevSelected[item.url]) {
+          scanPickerState.selected[item.url] = prevSelected[item.url] || item.label || item.url;
+        }
+      });
+      if (!Object.keys(scanPickerState.selected).length) {
+        var home = normalizeSiteUrl(scanPickerState.homeUrl || (available[0] && available[0].url) || '');
+        if (home) {
+          scanPickerState.selected[home] = 'Homepage';
+        }
       }
-    });
+    }
+
     if (!Object.keys(scanPickerState.selected).length && scanPickerState.homeUrl) {
       scanPickerState.selected[normalizeSiteUrl(scanPickerState.homeUrl)] = 'Homepage';
     }
@@ -200,17 +371,36 @@
       var u = new URL(value, scanPickerState.homeUrl || window.location.origin);
       var homeHost = '';
       try {
-        homeHost = new URL(scanPickerState.homeUrl || window.location.origin).host;
+        homeHost = new URL(scanPickerState.homeUrl || window.location.origin).hostname;
       } catch (e2) {
-        homeHost = window.location.host;
+        homeHost = window.location.hostname;
       }
-      if (u.host !== homeHost) {
+      // Compare hostname only (ignore www. mismatch when one side has it).
+      var a = String(u.hostname || '').replace(/^www\./i, '').toLowerCase();
+      var b = String(homeHost || '').replace(/^www\./i, '').toLowerCase();
+      if (a && b && a !== b) {
         return '';
       }
-      var path = u.pathname.replace(/\/$/, '');
+      var path = u.pathname || '/';
+      if (path !== '/' && path.slice(-1) === '/') {
+        path = path.slice(0, -1);
+      }
+      // Keep a trailing slash only for homepage so path parsing stays unambiguous.
+      if (path === '/' || path === '') {
+        return u.origin + '/';
+      }
       return u.origin + path;
     } catch (e) {
       return '';
+    }
+  }
+
+  function pathFromSiteUrl(url) {
+    try {
+      var path = new URL(url, scanPickerState.homeUrl || window.location.origin).pathname || '/';
+      return path || '/';
+    } catch (e) {
+      return '/';
     }
   }
 
@@ -223,6 +413,7 @@
       }
       out.push({
         url: url,
+        path: pathFromSiteUrl(url),
         context: 'guest',
         label: scanPickerState.selected[url],
       });
@@ -261,19 +452,28 @@
       $pages.append($('<p class="description"></p>').text('No published pages found.'));
       return;
     }
+    var seen = {};
     list.forEach(function (item) {
       var url = normalizeSiteUrl(item.url);
-      if (!url) {
+      if (!url || seen[url]) {
         return;
       }
+      seen[url] = true;
+      var label = item.label || url;
+      try {
+        var path = new URL(url).pathname || '/';
+        if (!label || label === '/' || label === url) {
+          label = (path === '/' || path === '') ? 'Homepage' : path;
+        }
+      } catch (e) { /* keep label */ }
       var id = 'ucpf-scan-page-' + url.replace(/[^a-z0-9]+/gi, '-');
       var $label = $('<label></label>');
       var $cb = $('<input type="checkbox" class="ucpf-scan-page-cb" />')
         .attr('id', id)
         .attr('data-url', url)
-        .attr('data-label', item.label || url)
+        .attr('data-label', label)
         .prop('checked', !!scanPickerState.selected[url]);
-      $label.append($cb).append(document.createTextNode(' ' + (item.label || url)));
+      $label.append($cb).append(document.createTextNode(' ' + label));
       $pages.append($label);
     });
   }
@@ -509,13 +709,66 @@
       window.clearTimeout(scanRuntime.deepPollTimer);
       scanRuntime.deepPollTimer = null;
     }
-    setStatus($status || '#ucpf-scan-status', 'Stopping scan…');
-    return restPost('scan/cancel', {}).then(function (data) {
+    setStatus($status || '#ucpf-scan-status', 'Stopping scan — closing Chromium on scanner…');
+    showScanProgress({
+      percent: 0,
+      phase: 'cancelling',
+      message: 'Stop requested — cancelling remote Playwright job…',
+      log: [],
+    }, 0, $($status || '#ucpf-scan-status'));
+
+    var body = {};
+    if (scanRuntime.deepJobId) {
+      body.job_id = scanRuntime.deepJobId;
+    } else {
+      body.cancel_all = true;
+    }
+
+    return restPost('scan/cancel', body).then(function (data) {
       setScanBusy(false);
-      setStatus($status || '#ucpf-scan-status', (data && data.message) ? data.message : 'Scan stopped.');
+      var msg = (data && data.message) ? data.message : 'Scan stopped.';
+      if (data && data.imported && data.inventory) {
+        msg += ' Cookies: ' + (data.inventory.cookies || 0) +
+          ', unclassified: ' + (data.inventory.unknown_cookies || 0) +
+          ', signals: ' + (data.inventory.results || 0) + '. Reloading…';
+        setStatus($status || '#ucpf-scan-status', msg);
+        window.setTimeout(function () { window.location.reload(); }, 1100);
+        return;
+      }
+      if (data && data.remote_error) {
+        msg += ' (' + data.remote_error + ')';
+      }
+      hideScanProgress();
+      setStatus($status || '#ucpf-scan-status', msg, !!(data && data.remote_error));
+      scanRuntime.deepJobId = null;
     }).catch(function () {
       setScanBusy(false);
-      setStatus($status || '#ucpf-scan-status', 'Scan stopped locally. Refresh if the page still looks busy.');
+      hideScanProgress();
+      setStatus($status || '#ucpf-scan-status', 'Scan stopped locally. If Chromium is still running on the scanner host, restart npm or POST /v1/scans/cancel-all.', true);
+      scanRuntime.deepJobId = null;
+    });
+  }
+
+  function cancelRemoteAndImport($status, jobId, reason) {
+    jobId = jobId || scanRuntime.deepJobId;
+    if (!jobId) {
+      return Promise.resolve();
+    }
+    setStatus($status, (reason || 'Stopping remote scan') + ' — requesting Chromium cancel…');
+    return restPost('scan/cancel', { job_id: jobId }).then(function (data) {
+      if (data && data.imported && data.inventory) {
+        var msg = (data.message || 'Partial results imported.') +
+          ' Cookies: ' + (data.inventory.cookies || 0) +
+          ', unclassified: ' + (data.inventory.unknown_cookies || 0) +
+          ', signals: ' + (data.inventory.results || 0) + '. Reloading…';
+        setStatus($status, msg);
+        window.setTimeout(function () { window.location.reload(); }, 1100);
+        return data;
+      }
+      setStatus($status, (data && data.message) ? data.message : (reason || 'Remote scan cancelled.'), true);
+      return data;
+    }).catch(function (err) {
+      setStatus($status, (err && err.message) ? err.message : 'Could not cancel remote scan.', true);
     });
   }
 
@@ -632,6 +885,7 @@
     attempt = attempt || 0;
     if (scanRuntime.cancelled) {
       setScanBusy(false);
+      hideScanProgress();
       setStatus($status, 'Scan stopped.');
       return;
     }
@@ -640,61 +894,145 @@
       setScanBusy(false);
       setStatus(
         $status,
-        'Deep scan timed out in WordPress after ~15 minutes. The scanner may still finish on the server — wait for Chromium to exit, then run Deep scan again or import JSON. Job: ' +
-          jobId,
+        'WordPress poll timed out after ~15 minutes. Cancelling remote Chromium and importing whatever finished…',
         true
       );
+      cancelRemoteAndImport($status, jobId, 'Poll timed out').finally(function () {
+        scanRuntime.deepJobId = null;
+      });
       return;
     }
-    var signal = scanRuntime.abortController ? scanRuntime.abortController.signal : null;
-    restGet('scan/deep/' + encodeURIComponent(jobId) + '?import=1', signal).then(function (job) {
+    var parentSignal = scanRuntime.abortController ? scanRuntime.abortController.signal : null;
+    // Hard ceiling per poll so a stuck PHP/proxy cannot spin the UI forever.
+    var timed = withTimeoutSignal(parentSignal, 18000);
+    restGet('scan/deep/' + encodeURIComponent(jobId) + '?import=1', timed.signal).then(function (job) {
+      timed.clear();
+      scanRuntime.deepFailStreak = 0;
       if (scanRuntime.cancelled) {
         setScanBusy(false);
+        hideScanProgress();
         setStatus($status, 'Scan stopped.');
         return;
       }
       if (!job) {
         throw new Error('Empty scanner response');
       }
+      if (job.progress) {
+        showScanProgress(job.progress, attempt, $status);
+      }
       if (job.status === 'failed') {
         throw new Error(job.error || 'Deep scan failed');
       }
-      if (job.status === 'completed') {
+      if (job.status === 'completed' || job.status === 'cancelled') {
         var inv = job.inventory || {};
-        var msg = 'Deep scan imported. Cookies: ' + (inv.cookies || 0) +
+        var msg = (job.status === 'cancelled' || job.partial)
+          ? 'Partial scan imported (stopped/cancelled).'
+          : 'Deep scan imported.';
+        msg += ' Cookies: ' + (inv.cookies || 0) +
           ', unclassified: ' + (inv.unknown_cookies || 0) +
           ', signals: ' + (inv.results || 0);
         if (job.import_error) {
           msg += ' (import warning: ' + job.import_error + ')';
         }
+        showScanProgress(
+          Object.assign({}, job.progress || {}, {
+            percent: 100,
+            phase: 'done',
+            message: job.status === 'cancelled' ? 'Cancelled — importing partial results…' : 'Importing results into WordPress…',
+          }),
+          attempt,
+          $status
+        );
+        setScanBusy(false);
+        scanRuntime.deepJobId = null;
         setStatus($status, msg);
         window.setTimeout(function () { window.location.reload(); }, 1000);
         return;
       }
-      setStatus($status, 'Deep scan ' + (job.status || 'running') + '… (' + (attempt + 1) + ')');
+      if (job.status === 'cancelling') {
+        setStatus($status, 'Remote scan cancelling — waiting for Chromium to close…');
+        showScanProgress(job.progress || { phase: 'cancelling', message: 'Cancelling…' }, attempt, $status);
+        scanRuntime.deepPollTimer = window.setTimeout(function () {
+          pollDeepScan(jobId, $status, attempt + 1);
+        }, 2000);
+        return;
+      }
+      var head = 'Deep scan ' + (job.status || 'running');
+      if (job.progress && typeof job.progress.percent === 'number') {
+        head += ' — ' + Math.round(job.progress.percent) + '%';
+      }
+      if (job.progress && job.progress.step != null && job.progress.total) {
+        head += ' · ' + job.progress.step + '/' + job.progress.total;
+      }
+      if (job.progress && job.progress.message) {
+        head += '\n' + job.progress.message;
+      }
+      setStatus($status, head);
       scanRuntime.deepPollTimer = window.setTimeout(function () {
         pollDeepScan(jobId, $status, attempt + 1);
       }, 4000);
     }).catch(function (err) {
-      setScanBusy(false);
-      if (scanRuntime.cancelled || (err && err.name === 'AbortError')) {
+      timed.clear();
+      if (scanRuntime.cancelled || (err && err.name === 'AbortError' && parentSignal && parentSignal.aborted)) {
+        setScanBusy(false);
+        hideScanProgress();
         setStatus($status, 'Scan stopped.');
         return;
       }
+      // Timeout or gateway flake: retry a few times, then stop with a clear error.
+      if (isTransientScanError(err) && !(parentSignal && parentSignal.aborted)) {
+        scanRuntime.deepFailStreak = (scanRuntime.deepFailStreak || 0) + 1;
+        if (scanRuntime.deepFailStreak <= 3) {
+          setStatus(
+            $status,
+            'Scanner briefly unreachable (HTTP ' + (err.status || 'timeout') + '). Retrying… (' +
+              scanRuntime.deepFailStreak +
+              '/3) · poll ' +
+              (attempt + 1) +
+              ')',
+            true
+          );
+          scanRuntime.deepPollTimer = window.setTimeout(function () {
+            pollDeepScan(jobId, $status, attempt + 1);
+          }, 5000);
+          return;
+        }
+        setScanBusy(false);
+        setStatus(
+          $status,
+          'Scan stopped: scanner kept failing (502/timeout). Check scanner.7mountains.dev health and that npm start is running. Job: ' +
+            jobId,
+          true
+        );
+        return;
+      }
+      setScanBusy(false);
       setStatus($status, (err && err.message) ? err.message : 'Deep scan poll failed.', true);
     });
   }
 
   function runDeepScan($status) {
     scanRuntime.cancelled = false;
+    scanRuntime.deepFailStreak = 0;
+    scanRuntime.deepJobId = null;
     scanRuntime.abortController = (typeof AbortController !== 'undefined') ? new AbortController() : null;
     var signal = scanRuntime.abortController ? scanRuntime.abortController.signal : null;
     setScanBusy(true);
-    setStatus($status, 'Starting deep privacy scan (Playwright)…');
+    var depth = currentScanDepth();
+    var profileHint = depth === 'quick' ? 'quick (2 sessions)' : (depth === 'deep' ? 'compliance (full)' : 'standard');
+    setStatus($status, 'Starting Playwright scan (' + profileHint + ')…');
+    showScanProgress({
+      percent: 0,
+      step: 0,
+      total: 0,
+      phase: 'starting',
+      message: 'Starting Playwright scan (' + profileHint + ')…',
+      log: [],
+    }, 0, $status);
 
     var urlsPromise = scanPickerState.ready
       ? Promise.resolve(selectedUrlDefs())
-      : restGet('scan/urls', signal).then(function (urlPayload) {
+      : restGet('scan/urls?depth=' + encodeURIComponent(depth), signal).then(function (urlPayload) {
           return (urlPayload && urlPayload.urls) ? urlPayload.urls : [];
         });
 
@@ -702,27 +1040,67 @@
       if (scanRuntime.cancelled) {
         throw new Error('Scan stopped.');
       }
-      return restPost('scan/deep', {
-        url: (ucpfAdmin && ucpfAdmin.homeUrl) ? ucpfAdmin.homeUrl : window.location.origin,
-        urls: urls,
-        options: {
-          depth: currentScanDepth(),
-        },
-      }, signal);
+      if (!urls || !urls.length) {
+        throw new Error('No pages selected. Check at least one page in the list, then start again.');
+      }
+      return startDeepScanJob(urls, depth, signal, 0);
     }).then(function (job) {
       if (!job || !job.id) {
         throw new Error('Scanner did not return a job id. Check Advanced → Scanner API URL/key.');
       }
-      setStatus($status, 'Deep scan queued (' + job.id + '). Waiting for Playwright…');
+      scanRuntime.deepJobId = job.id;
+      setStatus($status, 'Scan queued (' + job.id + ', ' + profileHint + '). Waiting for Playwright…');
+      showScanProgress(
+        Object.assign({}, job.progress || {}, {
+          message: (job.progress && job.progress.message) || ('Queued · job ' + job.id),
+        }),
+        0,
+        $status
+      );
       pollDeepScan(job.id, $status, 0);
     }).catch(function (err) {
       console.error(err);
       setScanBusy(false);
       if (scanRuntime.cancelled || (err && err.name === 'AbortError') || (err && /stopped/i.test(err.message || ''))) {
+        hideScanProgress();
         setStatus($status, 'Scan stopped.');
         return;
       }
       setStatus($status, (err && err.message) ? err.message : 'Deep scan failed.', true);
+    });
+  }
+
+  function startDeepScanJob(urls, depth, signal, retry) {
+    return restPost('scan/deep', {
+      url: (ucpfAdmin && ucpfAdmin.homeUrl) ? ucpfAdmin.homeUrl : window.location.origin,
+      urls: urls,
+      options: {
+        depth: depth,
+        maxPages: urls.length,
+      },
+    }, signal).catch(function (err) {
+      var msg = (err && err.message) ? String(err.message) : '';
+      var status = err && err.status;
+      // Stuck Chromium from a previous run blocks new jobs — clear slots once and retry.
+      if (retry < 1 && (status === 429 || /concurrent|rate limit/i.test(msg))) {
+        setStatus('#ucpf-scan-status', 'Scanner busy — cancelling stuck jobs, then retrying…', true);
+        return restPost('scan/cancel', { cancel_all: true }).then(function () {
+          return new Promise(function (resolve) {
+            window.setTimeout(resolve, 1500);
+          });
+        }).then(function () {
+          return startDeepScanJob(urls, depth, signal, retry + 1);
+        });
+      }
+      if (status === 429 || /concurrent/i.test(msg)) {
+        throw new Error(
+          'Scanner is busy (another Chromium job is still running). Press Stop scan, wait a few seconds, or restart npm on the scanner host — then try again.'
+        );
+      }
+      if (/rate limit/i.test(msg)) {
+        throw new Error('Scanner rate limit hit. Wait ~30s and try again (polls no longer count against the limit after you update the scanner).');
+      }
+      throw err;
     });
   }
 
@@ -1029,6 +1407,113 @@
     }
   });
 
+  var lastThemePack = null;
+
+  function themePackStatus(msg, isError) {
+    setStatus('#ucpf-theme-pack-status', msg, isError);
+  }
+
+  function fillThemePackTextarea(pack) {
+    lastThemePack = pack;
+    $('#ucpf-theme-pack-json').val(JSON.stringify(pack, null, 2));
+    $('#ucpf-theme-copy, #ucpf-theme-download').prop('hidden', false);
+  }
+
+  $('#ucpf-theme-export').on('click', function () {
+    var name = ($('#ucpf-theme-pack-name').val() || '').trim();
+    var path = 'theme/export' + (name ? ('?name=' + encodeURIComponent(name)) : '');
+    themePackStatus('Exporting theme…');
+    restGet(path).then(function (data) {
+      fillThemePackTextarea(data);
+      themePackStatus('Theme pack ready — copy or download below.');
+    }).catch(function (err) {
+      themePackStatus((err && err.message) ? err.message : 'Export failed.', true);
+    });
+  });
+
+  $('#ucpf-theme-copy').on('click', function () {
+    var text = $('#ucpf-theme-pack-json').val() || '';
+    if (!text) {
+      themePackStatus('Nothing to copy — export first.', true);
+      return;
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        themePackStatus('Copied to clipboard.');
+      }).catch(function () {
+        themePackStatus('Could not copy — select the JSON and copy manually.', true);
+      });
+    } else {
+      themePackStatus('Clipboard unavailable — select the JSON and copy manually.', true);
+    }
+  });
+
+  $('#ucpf-theme-download').on('click', function () {
+    var pack = lastThemePack;
+    if (!pack) {
+      try {
+        pack = JSON.parse($('#ucpf-theme-pack-json').val() || '{}');
+      } catch (e) {
+        themePackStatus('Invalid JSON in the textarea.', true);
+        return;
+      }
+    }
+    var slug = (pack && pack.name) ? String(pack.name).replace(/[^\w\-]+/g, '-').replace(/^-|-$/g, '').toLowerCase() : 'theme';
+    if (!slug) {
+      slug = 'theme';
+    }
+    var blob = new Blob([JSON.stringify(pack, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'ucpf-theme-' + slug + '.json';
+    a.click();
+    themePackStatus('Download started.');
+  });
+
+  $('#ucpf-theme-pack-file').on('change', function () {
+    var file = this.files && this.files[0];
+    if (!file) {
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var pack = JSON.parse(String(reader.result || ''));
+        fillThemePackTextarea(pack);
+        themePackStatus('Loaded ' + (file.name || 'file') + '. Click Import theme to apply.');
+      } catch (e) {
+        themePackStatus('That file is not valid JSON.', true);
+      }
+    };
+    reader.onerror = function () {
+      themePackStatus('Could not read that file.', true);
+    };
+    reader.readAsText(file);
+  });
+
+  $('#ucpf-theme-import').on('click', function () {
+    var raw = $('#ucpf-theme-pack-json').val();
+    var pack;
+    try {
+      pack = JSON.parse(raw);
+    } catch (e) {
+      themePackStatus('Invalid JSON — paste a UCPF theme pack or choose a .json file.', true);
+      return;
+    }
+    if (!pack || typeof pack !== 'object') {
+      themePackStatus('Theme pack must be a JSON object.', true);
+      return;
+    }
+    themePackStatus('Importing theme…');
+    restPost('theme/import', pack).then(function (res) {
+      var msg = (res && res.message) ? res.message : 'Theme imported.';
+      themePackStatus(msg);
+      window.setTimeout(function () { window.location.reload(); }, 700);
+    }).catch(function (err) {
+      themePackStatus((err && err.message) ? err.message : 'Import failed.', true);
+    });
+  });
+
   function updateBannerPreview() {
     var banner = document.getElementById('ucpf-banner-preview-el');
     var root = document.querySelector('#ucpf-banner-preview #ucpf-root');
@@ -1078,11 +1563,29 @@
       }
       var wrap = document.createElement('div');
       wrap.className = 'ucpf-table-scroll';
+      wrap.setAttribute('role', 'region');
+      wrap.setAttribute('tabindex', '0');
+      wrap.setAttribute('aria-label', 'Scrollable data table');
       if (table.parentNode) {
         table.parentNode.insertBefore(wrap, table);
         wrap.appendChild(table);
       }
     });
+    // Ensure existing wrappers are keyboard-reachable.
+    Array.prototype.forEach.call(
+      (scope.querySelectorAll ? scope.querySelectorAll('.ucpf-table-scroll') : []),
+      function (wrap) {
+        if (!wrap.getAttribute('role')) {
+          wrap.setAttribute('role', 'region');
+        }
+        if (!wrap.hasAttribute('tabindex')) {
+          wrap.setAttribute('tabindex', '0');
+        }
+        if (!wrap.getAttribute('aria-label')) {
+          wrap.setAttribute('aria-label', 'Scrollable data table');
+        }
+      }
+    );
   }
   wrapWideTables();
   if (window.MutationObserver) {

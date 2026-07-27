@@ -49,6 +49,9 @@ import { compareReports } from './drift.js';
  * @param {'quick'|'standard'|'compliance'} [input.options.profile]
  * @param {string} [input.options.recipeFile]
  * @param {object} [input.options.baseline]
+ * @param {(p: object) => void} [input.options.onProgress]
+ * @param {() => boolean} [input.options.shouldCancel]
+ * @param {(browser: import('playwright').Browser) => void} [input.options.onBrowser]
  */
 export async function runPrivacyScan(input) {
   const baseCheck = await assertSafePublicUrl(input.url);
@@ -56,7 +59,14 @@ export async function runPrivacyScan(input) {
     throw new Error(baseCheck.error);
   }
 
-  const options = input.options && typeof input.options === 'object' ? input.options : {};
+  const options = input.options && typeof input.options === 'object' ? { ...input.options } : {};
+  const onProgress = typeof options.onProgress === 'function' ? options.onProgress : () => {};
+  const shouldCancel = typeof options.shouldCancel === 'function' ? options.shouldCancel : () => false;
+  const onBrowser = typeof options.onBrowser === 'function' ? options.onBrowser : () => {};
+  delete options.onProgress;
+  delete options.shouldCancel;
+  delete options.onBrowser;
+
   const interact = !!options.interact;
   const screenshots = !!options.screenshots;
   const profileLevel =
@@ -83,9 +93,82 @@ export async function runPrivacyScan(input) {
     }
   }
 
+  const swExtra = profileLevel !== 'quick' ? 1 : 0;
+  const reportExtra = 1;
+  const totalUnits = sessionProfiles.length * pageUrls.length + swExtra + reportExtra;
+  let completedUnits = 0;
+  /** @type {string[]} */
+  const progressLog = [];
+  let cancelled = false;
+
+  /**
+   * @param {object} partial
+   */
+  function emitProgress(partial) {
+    const step = Math.min(completedUnits, totalUnits);
+    let percent =
+      totalUnits > 0 ? Math.max(0, Math.min(99, Math.round((step / totalUnits) * 100))) : 0;
+    if (partial.phase === 'done' || partial.percent === 100) {
+      percent = 100;
+    } else if (partial.percent != null && Number.isFinite(Number(partial.percent))) {
+      percent = Math.max(0, Math.min(100, Math.round(Number(partial.percent))));
+    }
+    const payload = {
+      ...partial,
+      percent,
+      step: partial.phase === 'done' ? totalUnits : step,
+      total: totalUnits,
+      profile: profileLevel,
+      sessions_total: sessionProfiles.length,
+      pages_total: pageUrls.length,
+      log: progressLog.slice(-24),
+    };
+    try {
+      onProgress(payload);
+    } catch {
+      /* progress sink must never fail the scan */
+    }
+  }
+
+  /**
+   * @param {string} msg
+   */
+  function logProgress(msg) {
+    const ts = new Date().toISOString().slice(11, 19);
+    progressLog.push(`${ts} ${msg}`);
+    if (progressLog.length > 40) {
+      progressLog.shift();
+    }
+  }
+
+  function checkCancel() {
+    if (shouldCancel()) {
+      cancelled = true;
+      return true;
+    }
+    return false;
+  }
+
+  if (checkCancel()) {
+    const err = new Error('Scan cancelled before start');
+    err.name = 'ScanCancelledError';
+    throw err;
+  }
+
+  logProgress(`Starting ${profileLevel} scan · ${sessionProfiles.length} session(s) · ${pageUrls.length} page(s)`);
+  emitProgress({
+    phase: 'launch',
+    message: `Launching Chromium (${profileLevel}: ${sessionProfiles.length} sessions × ${pageUrls.length} pages)…`,
+  });
+
   const browser = await chromium.launch({
     headless: config.headless,
   });
+  try {
+    onBrowser(browser);
+  } catch {
+    /* ignore */
+  }
 
   /** @type {Record<string, object>} */
   const sessions = {};
@@ -93,7 +176,21 @@ export async function runPrivacyScan(input) {
   let acceptStorageState = null;
 
   try {
-    for (const profile of sessionProfiles) {
+    for (let si = 0; si < sessionProfiles.length; si += 1) {
+      if (checkCancel()) {
+        logProgress('Cancel requested — stopping before next session');
+        break;
+      }
+      const profile = sessionProfiles[si];
+      logProgress(`Session ${si + 1}/${sessionProfiles.length}: ${profile.label}`);
+      emitProgress({
+        phase: 'session',
+        session: profile.id,
+        session_label: profile.label,
+        session_index: si + 1,
+        message: `Session ${si + 1}/${sessionProfiles.length}: ${profile.label}`,
+      });
+
       const sessOpts = {
         profile,
         pageUrls,
@@ -102,6 +199,37 @@ export async function runPrivacyScan(input) {
         screenshots,
         recipeActions,
         storageState: null,
+        shouldCancel: () => shouldCancel(),
+        onPageStart: (pageIndex, url) => {
+          let path = url;
+          try {
+            path = new URL(url).pathname || '/';
+          } catch {
+            /* keep url */
+          }
+          const msg = `${profile.label} · page ${pageIndex + 1}/${pageUrls.length} · ${path}`;
+          logProgress(msg);
+          emitProgress({
+            phase: 'session',
+            session: profile.id,
+            session_label: profile.label,
+            session_index: si + 1,
+            page_index: pageIndex + 1,
+            page_path: path,
+            page_url: url,
+            message: msg,
+          });
+        },
+        onPageDone: () => {
+          completedUnits += 1;
+          emitProgress({
+            phase: 'session',
+            session: profile.id,
+            session_label: profile.label,
+            session_index: si + 1,
+            message: `${profile.label} · completed ${completedUnits}/${totalUnits} units`,
+          });
+        },
       };
       if (profile.returning && acceptStorageState) {
         sessOpts.storageState = acceptStorageState;
@@ -110,36 +238,112 @@ export async function runPrivacyScan(input) {
         sessOpts.storageState = acceptStorageState;
       }
 
-      sessions[profile.id] = await runSession(browser, sessOpts);
+      try {
+        sessions[profile.id] = await runSession(browser, sessOpts);
+      } catch (err) {
+        const msg = String((err && err.message) || err || '');
+        if (
+          shouldCancel() ||
+          (err && err.name === 'ScanCancelledError') ||
+          /Target closed|has been closed|Browser closed|Connection closed/i.test(msg)
+        ) {
+          cancelled = true;
+          logProgress('Session interrupted by cancel');
+          break;
+        }
+        throw err;
+      }
 
       if (profile.id === 'accept_all' && sessions.accept_all && sessions.accept_all._storageState) {
         acceptStorageState = sessions.accept_all._storageState;
         delete sessions.accept_all._storageState;
       }
+
+      if (checkCancel()) {
+        logProgress('Cancel requested — stopping after session');
+        break;
+      }
     }
 
     // Optional SW dual-pass on homepage (standard+)
-    if (profileLevel !== 'quick' && pageUrls[0]) {
+    if (!cancelled && !checkCancel() && profileLevel !== 'quick' && pageUrls[0]) {
+      logProgress('Service-worker bypass pass (homepage)');
+      emitProgress({
+        phase: 'sw_bypass',
+        message: 'Service-worker bypass pass on homepage…',
+      });
       const bypassCtx = await browser.newContext({
         userAgent:
           process.env.UCPF_SCANNER_UA ||
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
       });
       try {
-        sessions._sw_bypass = await serviceWorkerBypassPass(
-          bypassCtx,
-          pageUrls[0],
-          config.navigationTimeoutMs
-        );
+        if (!checkCancel()) {
+          sessions._sw_bypass = await serviceWorkerBypassPass(
+            bypassCtx,
+            pageUrls[0],
+            config.navigationTimeoutMs
+          );
+        }
       } finally {
-        await bypassCtx.close();
+        await bypassCtx.close().catch(() => {});
       }
+      completedUnits += 1;
+      emitProgress({
+        phase: 'sw_bypass',
+        message: 'Service-worker bypass pass done',
+      });
     }
   } finally {
-    await browser.close();
+    try {
+      onBrowser(null);
+    } catch {
+      /* ignore */
+    }
+    await browser.close().catch(() => {});
   }
 
-  return buildReport({
+  const sessionKeys = Object.keys(sessions).filter((k) => !k.startsWith('_'));
+  if (cancelled || checkCancel()) {
+    if (!sessionKeys.length) {
+      const err = new Error('Scan cancelled');
+      err.name = 'ScanCancelledError';
+      throw err;
+    }
+    logProgress(`Building partial report (${sessionKeys.length} session(s))…`);
+    emitProgress({
+      phase: 'report',
+      message: `Cancelled — building partial report from ${sessionKeys.length} session(s)…`,
+    });
+    const report = buildReport({
+      site_url: base.origin + '/',
+      site_host: base.hostname,
+      pageUrls,
+      page_tags: selected.tagged,
+      sessions,
+      options: { interact, screenshots, profile: profileLevel, partial: true, cancelled: true },
+      baseline: options.baseline || null,
+    });
+    report.partial = true;
+    report.cancelled = true;
+    report.partial_sessions = sessionKeys;
+    completedUnits = totalUnits;
+    logProgress('Partial report ready');
+    emitProgress({
+      phase: 'done',
+      percent: 100,
+      message: `Cancelled — partial results (${sessionKeys.length} session(s))`,
+    });
+    return report;
+  }
+
+  logProgress('Building privacy report…');
+  emitProgress({
+    phase: 'report',
+    message: 'Building privacy report…',
+  });
+
+  const report = buildReport({
     site_url: base.origin + '/',
     site_host: base.hostname,
     pageUrls,
@@ -148,6 +352,16 @@ export async function runPrivacyScan(input) {
     options: { interact, screenshots, profile: profileLevel },
     baseline: options.baseline || null,
   });
+
+  completedUnits += 1;
+  logProgress('Scan complete');
+  emitProgress({
+    phase: 'done',
+    percent: 100,
+    message: 'Scan complete — ready to import',
+  });
+
+  return report;
 }
 
 /**
@@ -178,7 +392,7 @@ function normalizePaths(paths, max) {
 
 /**
  * @param {import('playwright').Browser} browser
- * @param {{ profile: import('./profiles.js').SessionProfile, pageUrls: string[], baseHost: string, interact: boolean, screenshots?: boolean, recipeActions?: object[], storageState?: object|null }} opts
+ * @param {{ profile: import('./profiles.js').SessionProfile, pageUrls: string[], baseHost: string, interact: boolean, screenshots?: boolean, recipeActions?: object[], storageState?: object|null, shouldCancel?: () => boolean, onPageStart?: (pageIndex: number, url: string) => void, onPageDone?: (pageIndex: number, url: string) => void }} opts
  */
 async function runSession(browser, opts) {
   const profile = opts.profile;
@@ -310,10 +524,35 @@ async function runSession(browser, opts) {
     let pageIndex = 0;
     for (const url of opts.pageUrls) {
       if (Date.now() > sessionDeadline) break;
+      if (typeof opts.shouldCancel === 'function' && opts.shouldCancel()) {
+        break;
+      }
       const safe = await assertSafePublicUrl(url);
       if (!safe.ok) continue;
 
-      await page.goto(safe.url, { waitUntil: 'domcontentloaded', timeout: config.navigationTimeoutMs });
+      if (typeof opts.onPageStart === 'function') {
+        try {
+          opts.onPageStart(pageIndex, safe.url);
+        } catch {
+          /* ignore */
+        }
+      }
+
+      try {
+        await page.goto(safe.url, { waitUntil: 'domcontentloaded', timeout: config.navigationTimeoutMs });
+      } catch (err) {
+        if (typeof opts.shouldCancel === 'function' && opts.shouldCancel()) {
+          break;
+        }
+        // Browser closed mid-nav (cancel) — stop session with what we have.
+        if (err && /Target closed|has been closed|Browser closed/i.test(String(err.message || err))) {
+          break;
+        }
+        throw err;
+      }
+      if (typeof opts.shouldCancel === 'function' && opts.shouldCancel()) {
+        break;
+      }
       await page.waitForTimeout(Math.min(1500, config.settleMs));
 
       const before = await snapshotCookies(context, cookieEvents);
@@ -419,6 +658,13 @@ async function runSession(browser, opts) {
           /* ignore */
         }
       });
+      if (typeof opts.onPageDone === 'function') {
+        try {
+          opts.onPageDone(pageIndex, safe.url);
+        } catch {
+          /* ignore */
+        }
+      }
       pageIndex += 1;
       const gap = Number(process.env.UCPF_SCANNER_PAGE_GAP_MS || config.pageGapMs || 1500);
       if (gap > 0 && pageIndex < opts.pageUrls.length) {

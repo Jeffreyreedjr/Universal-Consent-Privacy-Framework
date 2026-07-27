@@ -354,10 +354,16 @@ class Cookie_Scanner {
 
 		foreach ( $loc_urls as $loc ) {
 			$path = wp_parse_url( $loc, PHP_URL_PATH );
+			$parts = wp_parse_url( $loc );
+			$clean = $loc;
+			if ( is_array( $parts ) && ! empty( $parts['scheme'] ) && ! empty( $parts['host'] ) ) {
+				$path_part = isset( $parts['path'] ) ? $parts['path'] : '/';
+				$clean     = $parts['scheme'] . '://' . $parts['host'] . ( $path_part ? $path_part : '/' );
+			}
 			$out[] = array(
-				'url'      => $loc,
+				'url'      => $clean,
 				'context'  => 'guest',
-				'label'    => $path ? $path : $loc,
+				'label'    => $path ? $path : $clean,
 				'source'   => 'sitemap',
 				'priority' => $this->path_priority_score( $path ? $path : '' ),
 			);
@@ -469,10 +475,17 @@ class Cookie_Scanner {
 				continue;
 			}
 			$path = wp_parse_url( $href, PHP_URL_PATH );
+			// Strip query/fragment so ?utm=… homepage links do not flood the picker.
+			$clean = $href;
+			$parts = wp_parse_url( $href );
+			if ( is_array( $parts ) && ! empty( $parts['scheme'] ) && ! empty( $parts['host'] ) ) {
+				$path_part = isset( $parts['path'] ) ? $parts['path'] : '/';
+				$clean     = $parts['scheme'] . '://' . $parts['host'] . ( $path_part ? $path_part : '/' );
+			}
 			$out[] = array(
-				'url'      => $href,
+				'url'      => $clean,
 				'context'  => 'guest',
-				'label'    => $path ? $path : $href,
+				'label'    => $path ? $path : $clean,
 				'source'   => 'homepage_link',
 				'priority' => $this->path_priority_score( $path ? $path : '' ),
 			);
@@ -612,8 +625,8 @@ class Cookie_Scanner {
 				if ( ! $permalink ) {
 					continue;
 				}
-				$key = untrailingslashit( esc_url_raw( $permalink ) );
-				if ( isset( $seen[ $key ] ) ) {
+				$key = $this->canonicalize_scan_url( $permalink );
+				if ( ! $key || isset( $seen[ $key ] ) ) {
 					continue;
 				}
 				$seen[ $key ] = true;
@@ -634,6 +647,97 @@ class Cookie_Scanner {
 	}
 
 	/**
+	 * Canonical same-site URL for picker dedupe (host + path only; no query/fragment).
+	 *
+	 * @param string $url Raw URL or path.
+	 * @return string Empty if invalid / off-site.
+	 */
+	public function canonicalize_scan_url( $url ) {
+		$url = trim( (string) $url );
+		if ( '' === $url ) {
+			return '';
+		}
+		if ( 0 === strpos( $url, '/' ) ) {
+			$url = home_url( $url );
+		}
+		$url = esc_url_raw( $url );
+		if ( ! $url ) {
+			return '';
+		}
+
+		$parts = wp_parse_url( $url );
+		if ( ! is_array( $parts ) || empty( $parts['host'] ) ) {
+			return '';
+		}
+
+		$home_host = wp_parse_url( home_url( '/' ), PHP_URL_HOST );
+		if ( $home_host && strtolower( (string) $parts['host'] ) !== strtolower( (string) $home_host ) ) {
+			return '';
+		}
+
+		$scheme = ! empty( $parts['scheme'] ) ? strtolower( (string) $parts['scheme'] ) : 'https';
+		if ( 'http' !== $scheme && 'https' !== $scheme ) {
+			return '';
+		}
+		$host = strtolower( (string) $parts['host'] );
+		$path = isset( $parts['path'] ) ? (string) $parts['path'] : '/';
+		if ( '' === $path ) {
+			$path = '/';
+		}
+		// Collapse /index.php homepage variants.
+		if ( preg_match( '#^/index\.php/?$#i', $path ) ) {
+			$path = '/';
+		}
+		$path = untrailingslashit( $path );
+		// Homepage becomes scheme://host (no trailing slash).
+		return $scheme . '://' . $host . $path;
+	}
+
+	/**
+	 * Prefer human titles over bare paths when merging duplicate URL rows.
+	 *
+	 * @param string $candidate New label.
+	 * @param string $current   Existing label.
+	 * @return bool
+	 */
+	private function is_better_scan_label( $candidate, $current ) {
+		$candidate = trim( (string) $candidate );
+		$current   = trim( (string) $current );
+		if ( '' === $candidate ) {
+			return false;
+		}
+		if ( '' === $current || '/' === $current ) {
+			return true;
+		}
+		$bare = ( '/' === $candidate || 0 === strpos( $candidate, '/' ) || 0 === stripos( $candidate, 'http' ) );
+		$cur_bare = ( '/' === $current || 0 === strpos( $current, '/' ) || 0 === stripos( $current, 'http' ) );
+		if ( $cur_bare && ! $bare ) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Human label for a canonical scan URL.
+	 *
+	 * @param string $canonical Canonical URL.
+	 * @param string $fallback  Existing label.
+	 * @return string
+	 */
+	private function label_for_scan_url( $canonical, $fallback = '' ) {
+		$fallback = trim( (string) $fallback );
+		$path     = wp_parse_url( $canonical, PHP_URL_PATH );
+		$path     = ( null === $path || '' === $path ) ? '/' : $path;
+		if ( '/' === $path || '' === $path ) {
+			return __( 'Homepage', 'universal-consent-privacy-framework' );
+		}
+		if ( '' === $fallback || '/' === $fallback || $fallback === $canonical || $fallback === $path ) {
+			return $path;
+		}
+		return $fallback;
+	}
+
+	/**
 	 * Dedupe URL definition arrays and apply scanner filter.
 	 *
 	 * @param array $urls  URL defs.
@@ -647,12 +751,22 @@ class Cookie_Scanner {
 			if ( empty( $item['url'] ) ) {
 				continue;
 			}
-			$key = untrailingslashit( esc_url_raw( $item['url'] ) );
-			if ( ! $key || isset( $seen[ $key ] ) ) {
+			$key = $this->canonicalize_scan_url( $item['url'] );
+			if ( ! $key ) {
 				continue;
 			}
-			$seen[ $key ] = true;
+			$label = $this->label_for_scan_url( $key, isset( $item['label'] ) ? (string) $item['label'] : '' );
+			if ( isset( $seen[ $key ] ) ) {
+				$idx = $seen[ $key ];
+				if ( $this->is_better_scan_label( $label, isset( $out[ $idx ]['label'] ) ? (string) $out[ $idx ]['label'] : '' ) ) {
+					$out[ $idx ]['label'] = $label;
+				}
+				// Keep the earliest (usually highest-priority) entry.
+				continue;
+			}
+			$seen[ $key ] = count( $out );
 			$item['url']  = $key;
+			$item['label'] = $label;
 			$out[]        = $item;
 			if ( count( $out ) >= $limit ) {
 				break;
@@ -845,15 +959,15 @@ class Cookie_Scanner {
 			if ( $home && $host && strtolower( (string) $host ) !== strtolower( (string) $home ) ) {
 				continue;
 			}
-			$key = untrailingslashit( $url );
-			if ( isset( $seen[ $key ] ) ) {
+			$key = $this->canonicalize_scan_url( $url );
+			if ( ! $key || isset( $seen[ $key ] ) ) {
 				continue;
 			}
 			$seen[ $key ] = true;
 			$out[]        = array(
 				'url'     => $key,
 				'context' => 'guest',
-				'label'   => ! empty( $def['label'] ) ? sanitize_text_field( $def['label'] ) : $key,
+				'label'   => $this->label_for_scan_url( $key, ! empty( $def['label'] ) ? (string) $def['label'] : '' ),
 			);
 			if ( count( $out ) >= $limit ) {
 				break;

@@ -43,12 +43,12 @@
 
 #ucpf-root a:hover,
 #ucpf-root a:focus-visible {
-  color: #ffffff !important;
+  color: var(--ucpf-cream, #ffffff) !important;
   text-decoration-thickness: 2px !important;
 }
 
 #ucpf-root a:focus-visible {
-  outline: 3px solid var(--ucpf-focus-ring, #ffd100) !important;
+  outline: 3px solid var(--ucpf-focus-ring, #b45309) !important;
   outline-offset: 2px !important;
 }
 
@@ -295,13 +295,13 @@
 
 #ucpf-root .ucpf-btn--outline:focus-visible,
 .ucpf-btn--outline:focus-visible {
-  outline: 3px solid var(--ucpf-focus-ring, #ffd100) !important;
+  outline: 3px solid var(--ucpf-focus-ring, #b45309) !important;
   outline-offset: 3px !important;
   background: var(--ucpf-cream) !important;
   color: var(--ucpf-surface) !important;
 }
 
-/* Accept / Save — on-accent text on brand accent (hover darkens / keeps contrast) */
+/* Accept / Save — on-accent text on brand accent (hover/active darken / keep contrast) */
 #ucpf-root .ucpf-btn--fill,
 .ucpf-btn--fill {
   border-color: var(--ucpf-accent) !important;
@@ -311,19 +311,25 @@
 }
 
 #ucpf-root .ucpf-btn--fill:hover,
-#ucpf-root .ucpf-btn--fill:active,
-.ucpf-btn--fill:hover,
-.ucpf-btn--fill:active {
+.ucpf-btn--fill:hover {
   background: var(--ucpf-accent-hover) !important;
+  border-color: var(--ucpf-cream) !important;
+  color: var(--ucpf-on-accent, #ffffff) !important;
+}
+
+#ucpf-root .ucpf-btn--fill:active,
+.ucpf-btn--fill:active {
+  background: var(--ucpf-accent-active) !important;
   border-color: var(--ucpf-cream) !important;
   color: var(--ucpf-on-accent, #ffffff) !important;
 }
 
 #ucpf-root .ucpf-btn--fill:focus-visible,
 .ucpf-btn--fill:focus-visible {
-  outline: 3px solid var(--ucpf-focus-ring, #ffd100) !important;
+  outline: 3px solid var(--ucpf-focus-ring, #b45309) !important;
   outline-offset: 3px !important;
   border-color: var(--ucpf-cream) !important;
+  background: var(--ucpf-accent-hover) !important;
   color: var(--ucpf-on-accent, #ffffff) !important;
 }
 
@@ -346,7 +352,7 @@
 
 #ucpf-root .ucpf-btn--ghost:focus-visible,
 .ucpf-btn--ghost:focus-visible {
-  outline: 3px solid var(--ucpf-focus-ring, #ffd100) !important;
+  outline: 3px solid var(--ucpf-focus-ring, #b45309) !important;
   outline-offset: 3px !important;
 }
 
@@ -395,7 +401,7 @@
 }
 
 .ucpf-prefs__dialog:focus-visible {
-  outline: 3px solid var(--ucpf-focus-ring, #ffd100);
+  outline: 3px solid var(--ucpf-focus-ring, #b45309);
   outline-offset: 2px;
 }
 
@@ -427,7 +433,7 @@
 
 #ucpf-root .ucpf-policy-link,
 .ucpf-policy-link {
-  color: var(--ucpf-accent, #c4a574) !important;
+  color: var(--ucpf-accent, #0b5cad) !important;
   font-weight: 600 !important;
   text-decoration: underline !important;
   text-underline-offset: 0.15em !important;
@@ -475,9 +481,9 @@
   height: 1.875rem;
   min-width: 3.25rem;
   min-height: 1.875rem;
-  border: 2px solid #bdbdbd;
+  border: 2px solid var(--ucpf-border, rgba(255, 255, 255, 0.35));
   border-radius: var(--ucpf-radius-pill);
-  background: #2a2a2a;
+  background: color-mix(in srgb, var(--ucpf-surface, #111111) 85%, var(--ucpf-cream, #ffffff));
   flex-shrink: 0;
   padding: 0;
   cursor: pointer;
@@ -485,7 +491,7 @@
 
 .ucpf-toggle[aria-checked="true"] {
   background: var(--ucpf-accent);
-  border-color: #7dcea0;
+  border-color: var(--ucpf-accent-2, var(--ucpf-accent));
 }
 
 .ucpf-toggle__thumb {
@@ -495,7 +501,7 @@
   width: 1.375rem;
   height: 1.375rem;
   border-radius: 50%;
-  background: #ffffff;
+  background: var(--ucpf-on-accent, #ffffff);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
   transition: transform 0.2s ease;
   pointer-events: none;
@@ -506,11 +512,11 @@
 }
 
 .ucpf-toggle:hover:not(.ucpf-toggle--locked) {
-  border-color: #ffffff;
+  border-color: var(--ucpf-cream, #ffffff);
 }
 
 .ucpf-toggle:focus-visible {
-  outline: 3px solid var(--ucpf-focus-ring, #ffd100);
+  outline: 3px solid var(--ucpf-focus-ring, #b45309);
   outline-offset: 3px;
 }
 
@@ -518,11 +524,11 @@
   opacity: 1;
   cursor: not-allowed;
   background: var(--ucpf-accent);
-  border-color: #7dcea0;
+  border-color: var(--ucpf-accent-2, var(--ucpf-accent));
 }
 
 .ucpf-toggle--locked .ucpf-toggle__thumb {
-  background: #ffffff;
+  background: var(--ucpf-on-accent, #ffffff);
 }
 
 .ucpf-prefs__footer {
@@ -591,7 +597,7 @@
 
 #ucpf-root .ucpf-fab:focus-visible,
 .ucpf-fab:focus-visible {
-  outline: 3px solid var(--ucpf-focus-ring, #ffd100) !important;
+  outline: 3px solid var(--ucpf-focus-ring, #b45309) !important;
   outline-offset: 3px !important;
   background: var(--ucpf-cream) !important;
   color: var(--ucpf-surface) !important;
@@ -609,10 +615,10 @@
   right: max(1rem, env(safe-area-inset-right)) !important;
   bottom: max(1rem, env(safe-area-inset-bottom)) !important;
   z-index: 2147482998 !important;
-  border: 2px solid var(--ucpf-cream, #f5f0e8) !important;
+  border: 2px solid var(--ucpf-cream, #ffffff) !important;
   border-radius: var(--ucpf-radius-pill, 999px) !important;
-  background: var(--ucpf-surface, #111) !important;
-  color: var(--ucpf-cream, #f5f0e8) !important;
+  background: var(--ucpf-surface, #111111) !important;
+  color: var(--ucpf-cream, #ffffff) !important;
   padding: 0.65rem 1rem !important;
   min-height: 2.5rem !important;
   font-family: var(--ucpf-font-sans, system-ui, sans-serif) !important;
@@ -632,9 +638,9 @@
 #ucpf-root .ucpf-privacy-choices-fab:focus-visible,
 .ucpf-privacy-choices-fab:hover,
 .ucpf-privacy-choices-fab:focus-visible {
-  background: var(--ucpf-accent, #135629) !important;
-  color: #fff !important;
-  outline: 3px solid var(--ucpf-focus-ring, #ffd100) !important;
+  background: var(--ucpf-accent, #0b5cad) !important;
+  color: var(--ucpf-on-accent, #ffffff) !important;
+  outline: 3px solid var(--ucpf-focus-ring, #b45309) !important;
   outline-offset: 2px !important;
 }
 

@@ -62,7 +62,8 @@ export const config = {
   /** Delay between pages (ms) — helps avoid Defender / CF lockouts. */
   pageGapMs: Number(process.env.UCPF_SCANNER_PAGE_GAP_MS || 1500),
   rateLimitWindowMs: Number(process.env.UCPF_SCANNER_RATE_WINDOW_MS || 60000),
-  rateLimitMax: Number(process.env.UCPF_SCANNER_RATE_MAX || 10),
+  // WP polls ~every 4s; default of 10/min blocks the next scan. Allow headroom for polls + starts.
+  rateLimitMax: Number(process.env.UCPF_SCANNER_RATE_MAX || 180),
   /** Auto-delete completed job reports after this many ms. */
   reportTtlMs: Number(process.env.UCPF_SCANNER_REPORT_TTL_MS || 3600000),
   headless: process.env.UCPF_SCANNER_HEADED !== '1',

@@ -28,29 +28,37 @@
   src: url("../../assets/fonts/plus-jakarta-sans-latin-700-normal.woff2") format("woff2");
 }
 
+/**
+ * Admin UI tokens — cool blue system tuned for WCAG 2.1 AA:
+ * - Body text ≥ 4.5:1 on surfaces
+ * - Primary buttons: white on accent ≥ 4.5:1
+ * - Focus ring ≥ 3:1 against adjacent UI
+ */
 .ucpf-admin,
 .ucpf-shell,
 #ucpf-admin-root {
   --ucpf-font: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --ucpf-admin-bg: #f4f5f4;
+  --ucpf-admin-bg: #f0f5fa;
   --ucpf-admin-surface: #ffffff;
-  --ucpf-admin-surface-2: #0f1411;
-  --ucpf-admin-ink: #121814;
-  --ucpf-admin-muted: #4a554e;
-  --ucpf-admin-border: #d5dbd7;
-  --ucpf-admin-accent: #135629;
-  --ucpf-admin-accent-hover: #1a7a38;
-  --ucpf-admin-accent-active: #0e4420;
+  --ucpf-admin-surface-2: #0b1220;
+  --ucpf-admin-surface-muted: #eef4fb;
+  --ucpf-admin-ink: #0f172a;
+  --ucpf-admin-muted: #334155;
+  --ucpf-admin-border: #cbd5e1;
+  --ucpf-admin-accent: #0b5cad;
+  --ucpf-admin-accent-hover: #094a8c;
+  --ucpf-admin-accent-active: #073a6e;
   --ucpf-admin-on-accent: #ffffff;
-  --ucpf-admin-focus: #c9a227;
-  --ucpf-admin-warn: #8a6200;
-  --ucpf-admin-warn-bg: #fff6e5;
-  --ucpf-admin-fail: #b32d2e;
-  --ucpf-admin-fail-bg: #fdf0f0;
-  --ucpf-admin-ok-bg: #e8f5ec;
+  --ucpf-admin-focus: #b45309;
+  --ucpf-admin-warn: #92400e;
+  --ucpf-admin-warn-bg: #fffbeb;
+  --ucpf-admin-fail: #b91c1c;
+  --ucpf-admin-fail-bg: #fef2f2;
+  --ucpf-admin-ok: #0b5cad;
+  --ucpf-admin-ok-bg: #eff6ff;
   --ucpf-admin-radius: 12px;
   --ucpf-admin-radius-sm: 8px;
-  --ucpf-admin-shadow: 0 8px 28px rgba(15, 20, 17, 0.08);
+  --ucpf-admin-shadow: 0 8px 28px rgba(15, 23, 42, 0.08);
   --ucpf-admin-space: 8px;
   font-family: var(--ucpf-font);
   color: var(--ucpf-admin-ink);

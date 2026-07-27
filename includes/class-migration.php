@@ -49,5 +49,12 @@ class Migration {
 		if ( $theme && ! in_array( (string) $theme, $known, true ) ) {
 			Settings::update( array( 'banner_theme' => 'classic' ) );
 		}
+
+		// Bump previous default retention (180) → 360 and extend existing log expiry.
+		$log_days = (int) Settings::get( 'log_retention_days', 360 );
+		if ( 180 === $log_days ) {
+			Settings::update( array( 'log_retention_days' => 360 ) );
+			Audit_Log::instance()->recompute_expires( 360 );
+		}
 	}
 }

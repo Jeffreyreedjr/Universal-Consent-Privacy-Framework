@@ -283,7 +283,10 @@ class Admin {
 				$clean['remote_registry_url'] = esc_url_raw( $input['remote_registry_url'] );
 			}
 			if ( isset( $input['log_retention_days'] ) ) {
-				$clean['log_retention_days'] = max( 1, (int) $input['log_retention_days'] );
+				$days = max( 1, min( 3650, (int) $input['log_retention_days'] ) );
+				$clean['log_retention_days'] = $days;
+				// Backfill expires_at so longer retention applies to existing light log rows.
+				Audit_Log::instance()->recompute_expires( $days );
 			}
 			if ( isset( $input['scanner_api_url'] ) ) {
 				$clean['scanner_api_url'] = esc_url_raw( $input['scanner_api_url'] );
@@ -849,9 +852,22 @@ class Admin {
 	 * Consent logs.
 	 */
 	public function render_logs() {
-		$this->render( 'logs', array(
-			'logs' => Audit_Log::instance()->get_logs(),
-		) );
+		// Prefer WP admin `paged`; also accept `page` for REST-style bookmarks.
+		$page = 1;
+		if ( isset( $_GET['paged'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only list nav.
+			$page = max( 1, (int) wp_unslash( $_GET['paged'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		} elseif ( isset( $_GET['page_num'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$page = max( 1, (int) wp_unslash( $_GET['page_num'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		}
+
+		$logs = Audit_Log::instance()->get_logs( $page, 50 );
+		$this->render(
+			'logs',
+			array(
+				'logs'            => $logs,
+				'retention_days'  => max( 1, (int) Settings::get( 'log_retention_days', 360 ) ),
+			)
+		);
 	}
 
 	/**

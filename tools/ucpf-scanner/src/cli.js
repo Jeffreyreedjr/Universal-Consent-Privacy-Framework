@@ -167,6 +167,14 @@ async function main() {
       profile: args.profile,
       recipeFile: args.recipeFile,
       baseline,
+      onProgress: (p) => {
+        if (p && p.message) {
+          const pct = typeof p.percent === 'number' ? `${p.percent}%` : '';
+          const step =
+            p.step != null && p.total != null ? ` ${p.step}/${p.total}` : '';
+          console.error(`[scan ${pct}${step}] ${p.message}`);
+        }
+      },
     },
   });
   const json = JSON.stringify(report, null, 2);

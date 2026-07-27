@@ -230,6 +230,18 @@ class Rest_Api {
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_logs' ),
 				'permission_callback' => array( $this, 'admin_permission' ),
+				'args'                => array(
+					'page'     => array(
+						'type'              => 'integer',
+						'default'           => 1,
+						'sanitize_callback' => 'absint',
+					),
+					'per_page' => array(
+						'type'              => 'integer',
+						'default'           => 50,
+						'sanitize_callback' => 'absint',
+					),
+				),
 			)
 		);
 
@@ -319,6 +331,33 @@ class Rest_Api {
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_registry_export' ),
+				'permission_callback' => array( $this, 'admin_permission' ),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/theme/export',
+			array(
+				'methods'             => \WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_theme_export' ),
+				'permission_callback' => array( $this, 'admin_permission' ),
+				'args'                => array(
+					'name' => array(
+						'type'              => 'string',
+						'required'          => false,
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/theme/import',
+			array(
+				'methods'             => \WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'post_theme_import' ),
 				'permission_callback' => array( $this, 'admin_permission' ),
 			)
 		);
@@ -584,8 +623,66 @@ class Rest_Api {
 	 *
 	 * @return \WP_REST_Response
 	 */
-	public function post_scan_cancel() {
-		return rest_ensure_response( Cookie_Scanner::instance()->cancel_scan() );
+	/**
+	 * POST cancel in-progress scan (guest crawl lock + remote Playwright job).
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function post_scan_cancel( $request ) {
+		$body   = $request->get_json_params();
+		$body   = is_array( $body ) ? $body : array();
+		$job_id = ! empty( $body['job_id'] ) ? sanitize_text_field( (string) $body['job_id'] ) : '';
+		if ( ! $job_id && ! empty( $body['id'] ) ) {
+			$job_id = sanitize_text_field( (string) $body['id'] );
+		}
+
+		$local = Cookie_Scanner::instance()->cancel_scan();
+		$out   = is_array( $local ) ? $local : array( 'success' => true );
+
+		if ( $job_id ) {
+			$remote = Privacy_Scan_Importer::cancel_remote_scan( $job_id );
+			if ( is_wp_error( $remote ) ) {
+				$out['remote_error'] = $remote->get_error_message();
+				$out['message']      = __( 'Local scan stopped. Remote scanner cancel failed — Chromium may still be running until you restart the scanner or call cancel-all.', 'universal-consent-privacy-framework' );
+			} else {
+				$out['remote'] = $remote;
+				if ( ! empty( $remote['report'] ) ) {
+					$previous = Cookie_Scanner::instance()->get_last_scan();
+					$imported = Privacy_Scan_Importer::import_report( $remote['report'] );
+					if ( ! is_wp_error( $imported ) ) {
+						$out['imported']  = true;
+						$out['partial']   = ! empty( $remote['partial'] ) || ! empty( $remote['report']['partial'] );
+						$out['inventory'] = array(
+							'cookies'         => isset( $imported['cookies'] ) ? count( $imported['cookies'] ) : 0,
+							'unknown_cookies' => isset( $imported['unknown_cookies'] ) ? count( $imported['unknown_cookies'] ) : 0,
+							'results'         => isset( $imported['results'] ) ? count( $imported['results'] ) : 0,
+						);
+						if ( Settings::get( 'scheduled_scan_auto_apply', true ) ) {
+							$out['safe_apply'] = Privacy_Scan_Importer::apply_safe_updates( $imported, is_array( $previous ) ? $previous : array() );
+						}
+						$out['message'] = ! empty( $out['partial'] )
+							? __( 'Scan stopped. Partial Playwright results were imported.', 'universal-consent-privacy-framework' )
+							: __( 'Scan stopped. Results were imported.', 'universal-consent-privacy-framework' );
+					} else {
+						$out['import_error'] = $imported->get_error_message();
+						$out['message']      = __( 'Scan stopped on the scanner, but importing the partial report failed.', 'universal-consent-privacy-framework' );
+					}
+				} else {
+					$out['message'] = __( 'Scan stopped. Chromium closed; no partial report was ready yet.', 'universal-consent-privacy-framework' );
+				}
+			}
+		} elseif ( ! empty( $body['cancel_all'] ) ) {
+			$remote = Privacy_Scan_Importer::cancel_all_remote_scans( true );
+			if ( ! is_wp_error( $remote ) ) {
+				$out['remote']  = $remote;
+				$out['message'] = __( 'All remote scanner jobs cancel requested; concurrency slots reset.', 'universal-consent-privacy-framework' );
+			} else {
+				$out['remote_error'] = $remote->get_error_message();
+			}
+		}
+
+		return rest_ensure_response( $out );
 	}
 
 	/**
@@ -635,22 +732,51 @@ class Rest_Api {
 		$paths = array();
 		if ( ! empty( $body['urls'] ) && is_array( $body['urls'] ) ) {
 			foreach ( $body['urls'] as $item ) {
+				// Prefer explicit path from the admin picker (homepage often has no path in normalized URL).
+				if ( is_array( $item ) && ! empty( $item['path'] ) && is_string( $item['path'] ) ) {
+					$path = '/' . ltrim( $item['path'], '/' );
+					if ( '/' === $path || '' === ltrim( $item['path'], '/' ) ) {
+						$paths[] = '/';
+					} else {
+						$paths[] = $path;
+					}
+					continue;
+				}
 				$u = is_array( $item ) && ! empty( $item['url'] ) ? $item['url'] : (string) $item;
 				$parsed = wp_parse_url( $u );
-				if ( ! empty( $parsed['path'] ) ) {
+				if ( ! is_array( $parsed ) ) {
+					continue;
+				}
+				if ( ! empty( $parsed['path'] ) && '/' !== $parsed['path'] ) {
 					$paths[] = $parsed['path'];
 				} elseif ( is_string( $u ) && 0 === strpos( $u, '/' ) ) {
 					$paths[] = $u;
+				} elseif ( ! empty( $parsed['host'] ) ) {
+					// Origin-only URL from JS normalize (https://example.com) → homepage.
+					$paths[] = '/';
 				}
 			}
 		} elseif ( ! empty( $body['paths'] ) && is_array( $body['paths'] ) ) {
 			$paths = $body['paths'];
 		}
+		$paths = array_values( array_unique( array_filter( array_map( 'strval', $paths ) ) ) );
 		if ( ! $paths ) {
 			$paths = array( '/' );
 		}
 
-		$result = Privacy_Scan_Importer::start_remote_scan( $url, $paths );
+		$options = array();
+		if ( ! empty( $body['options'] ) && is_array( $body['options'] ) ) {
+			$options = $body['options'];
+		}
+		if ( empty( $options['depth'] ) && ! empty( $body['depth'] ) ) {
+			$options['depth'] = $body['depth'];
+		}
+		// Honor the admin's exact page selection size (don't pad/cap below their picks).
+		if ( empty( $options['maxPages'] ) ) {
+			$options['maxPages'] = max( 1, count( $paths ) );
+		}
+
+		$result = Privacy_Scan_Importer::start_remote_scan( $url, $paths, $options );
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
@@ -671,11 +797,14 @@ class Rest_Api {
 		}
 
 		$auto_import = $request->get_param( 'import' );
-		if ( ! empty( $job['report'] ) && ( null === $auto_import || $auto_import || '1' === $auto_import ) && 'completed' === ( $job['status'] ?? '' ) ) {
+		$status      = isset( $job['status'] ) ? (string) $job['status'] : '';
+		$importable  = in_array( $status, array( 'completed', 'cancelled' ), true );
+		if ( ! empty( $job['report'] ) && ( null === $auto_import || $auto_import || '1' === $auto_import ) && $importable ) {
 			$previous = Cookie_Scanner::instance()->get_last_scan();
 			$imported = Privacy_Scan_Importer::import_report( $job['report'] );
 			if ( ! is_wp_error( $imported ) ) {
 				$job['imported'] = true;
+				$job['partial']  = ! empty( $job['report']['partial'] ) || 'cancelled' === $status;
 				$job['inventory'] = array(
 					'cookies'         => isset( $imported['cookies'] ) ? count( $imported['cookies'] ) : 0,
 					'unknown_cookies' => isset( $imported['unknown_cookies'] ) ? count( $imported['unknown_cookies'] ) : 0,
@@ -953,8 +1082,12 @@ class Rest_Api {
 	 * @return \WP_REST_Response
 	 */
 	public function get_logs( $request ) {
-		$page = max( 1, (int) $request->get_param( 'page' ) );
-		return rest_ensure_response( Audit_Log::instance()->get_logs( $page ) );
+		$page     = max( 1, (int) $request->get_param( 'page' ) );
+		$per_page = max( 1, min( 200, (int) $request->get_param( 'per_page' ) ) );
+		if ( $per_page < 1 ) {
+			$per_page = 50;
+		}
+		return rest_ensure_response( Audit_Log::instance()->get_logs( $page, $per_page ) );
 	}
 
 	/**
@@ -1132,6 +1265,37 @@ class Rest_Api {
 	 */
 	public function get_registry_export() {
 		return rest_ensure_response( Script_Registry::instance()->export_services() );
+	}
+
+	/**
+	 * GET banner theme pack (JSON).
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response
+	 */
+	public function get_theme_export( $request ) {
+		$name = $request instanceof \WP_REST_Request ? sanitize_text_field( (string) $request->get_param( 'name' ) ) : '';
+		return rest_ensure_response( Theme_Manager::instance()->export_pack( $name ) );
+	}
+
+	/**
+	 * POST import banner theme pack.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function post_theme_import( $request ) {
+		$body = $request->get_json_params();
+		if ( ! is_array( $body ) ) {
+			return new \WP_Error( 'ucpf_invalid', __( 'Invalid JSON body.', 'universal-consent-privacy-framework' ), array( 'status' => 400 ) );
+		}
+		// Allow { pack: {...} } or raw pack.
+		$pack = isset( $body['pack'] ) && is_array( $body['pack'] ) ? $body['pack'] : $body;
+		$result = Theme_Manager::instance()->import_pack( $pack );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		return rest_ensure_response( $result );
 	}
 
 	/**

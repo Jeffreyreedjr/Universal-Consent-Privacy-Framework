@@ -59,7 +59,8 @@ class Audit_Log {
 		}
 
 		$retention = (int) Settings::get( 'log_retention_days' );
-		$expires   = $retention > 0 ? gmdate( 'Y-m-d H:i:s', time() + ( $retention * DAY_IN_SECONDS ) ) : null;
+		$retention = max( 1, min( 3650, $retention ) );
+		$expires   = gmdate( 'Y-m-d H:i:s', time() + ( $retention * DAY_IN_SECONDS ) );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 		$wpdb->insert(
@@ -86,36 +87,84 @@ class Audit_Log {
 	/**
 	 * Get paginated logs.
 	 *
-	 * @param int $page Page number.
-	 * @return array
+	 * @param int $page     Page number (1-based).
+	 * @param int $per_page Rows per page (1–200).
+	 * @return array{items:array,page:int,per_page:int,total:int,pages:int}
 	 */
-	public function get_logs( $page = 1 ) {
+	public function get_logs( $page = 1, $per_page = 50 ) {
 		global $wpdb;
+
+		$page     = max( 1, (int) $page );
+		$per_page = max( 1, min( 200, (int) $per_page ) );
+
+		$empty = array(
+			'items'    => array(),
+			'page'     => $page,
+			'per_page' => $per_page,
+			'total'    => 0,
+			'pages'    => 0,
+		);
 
 		$table = esc_sql( ucpf_table( 'consent_logs' ) );
 		if ( '' === $table ) {
-			return array(
-				'items' => array(),
-				'page'  => $page,
-			);
+			return $empty;
 		}
-		$limit  = 50;
-		$offset = ( $page - 1 ) * $limit;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- admin log count.
+		$total = (int) $wpdb->get_var(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table from esc_sql( ucpf_table() ) whitelist.
+			"SELECT COUNT(*) FROM `{$table}`"
+		);
+
+		$pages  = $total > 0 ? (int) ceil( $total / $per_page ) : 0;
+		$page   = $pages > 0 ? min( $page, $pages ) : 1;
+		$offset = ( $page - 1 ) * $per_page;
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- admin log read; not front-end cached content.
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table from esc_sql( ucpf_table() ) whitelist.
 				"SELECT * FROM `{$table}` ORDER BY created_at DESC LIMIT %d OFFSET %d",
-				$limit,
+				$per_page,
 				$offset
 			),
 			ARRAY_A
 		);
 
 		return array(
-			'items' => $rows ? $rows : array(),
-			'page'  => $page,
+			'items'    => $rows ? $rows : array(),
+			'page'     => $page,
+			'per_page' => $per_page,
+			'total'    => $total,
+			'pages'    => $pages,
+		);
+	}
+
+	/**
+	 * Recompute expires_at from created_at using current (or given) retention days.
+	 * Extends or shortens the retention window for existing light consent log rows.
+	 *
+	 * @param int|null $days Retention days; null reads settings.
+	 * @return int Rows updated.
+	 */
+	public function recompute_expires( $days = null ) {
+		global $wpdb;
+
+		$days = null === $days ? (int) Settings::get( 'log_retention_days' ) : (int) $days;
+		$days = max( 1, min( 3650, $days ) );
+
+		$table = esc_sql( ucpf_table( 'consent_logs' ) );
+		if ( '' === $table ) {
+			return 0;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- retention backfill.
+		return (int) $wpdb->query(
+			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table from esc_sql( ucpf_table() ) whitelist.
+				"UPDATE `{$table}` SET expires_at = DATE_ADD(created_at, INTERVAL %d DAY) WHERE created_at IS NOT NULL",
+				$days
+			)
 		);
 	}
 

@@ -93,11 +93,11 @@ $logo_url    = isset( $settings['logo_url'] ) ? (string) $settings['logo_url'] :
 			</tr>
 			<tr>
 				<th scope="row"><label for="ucpf-accent-color"><?php esc_html_e( 'Accent color', 'universal-consent-privacy-framework' ); ?></label></th>
-				<td><input type="text" id="ucpf-accent-color" name="<?php echo esc_attr( $option_key ); ?>[accent_color]" value="<?php echo esc_attr( $accent ); ?>" placeholder="#135629" /></td>
+				<td><input type="text" id="ucpf-accent-color" name="<?php echo esc_attr( $option_key ); ?>[accent_color]" value="<?php echo esc_attr( $accent ); ?>" placeholder="#0b5cad" /></td>
 			</tr>
 			<tr>
 				<th scope="row"><label for="ucpf-accent-2-color"><?php esc_html_e( 'Accent 2', 'universal-consent-privacy-framework' ); ?></label></th>
-				<td><input type="text" id="ucpf-accent-2-color" name="<?php echo esc_attr( $option_key ); ?>[accent_2_color]" value="<?php echo esc_attr( $accent_2 ); ?>" placeholder="#1a7a38" /></td>
+				<td><input type="text" id="ucpf-accent-2-color" name="<?php echo esc_attr( $option_key ); ?>[accent_2_color]" value="<?php echo esc_attr( $accent_2 ); ?>" placeholder="#094a8c" /></td>
 			</tr>
 			<tr>
 				<th scope="row"><label for="ucpf-surface-color"><?php esc_html_e( 'Surface color', 'universal-consent-privacy-framework' ); ?></label></th>
@@ -110,4 +110,29 @@ $logo_url    = isset( $settings['logo_url'] ) ? (string) $settings['logo_url'] :
 		</table>
 		<?php submit_button(); ?>
 	</form>
+
+	<div class="ucpf-card ucpf-theme-pack" style="margin-top:1.5rem;padding:1.15rem 1.25rem;">
+		<h2 style="margin-top:0;"><?php esc_html_e( 'Import / export theme', 'universal-consent-privacy-framework' ); ?></h2>
+		<p class="description">
+			<?php esc_html_e( 'Share banner appearance (preset, layout, colors, custom CSS, button toggles, logo URL) as a JSON pack. Does not export privacy, scanner, or legal settings.', 'universal-consent-privacy-framework' ); ?>
+		</p>
+		<p>
+			<label for="ucpf-theme-pack-name"><strong><?php esc_html_e( 'Pack name (optional)', 'universal-consent-privacy-framework' ); ?></strong></label><br />
+			<input type="text" class="regular-text" id="ucpf-theme-pack-name" placeholder="<?php echo esc_attr__( 'My agency blue', 'universal-consent-privacy-framework' ); ?>" />
+		</p>
+		<p>
+			<button type="button" class="button button-primary" id="ucpf-theme-export"><?php esc_html_e( 'Export theme JSON', 'universal-consent-privacy-framework' ); ?></button>
+			<button type="button" class="button" id="ucpf-theme-copy" hidden><?php esc_html_e( 'Copy to clipboard', 'universal-consent-privacy-framework' ); ?></button>
+			<button type="button" class="button" id="ucpf-theme-download" hidden><?php esc_html_e( 'Download .json', 'universal-consent-privacy-framework' ); ?></button>
+		</p>
+		<label for="ucpf-theme-pack-json"><strong><?php esc_html_e( 'Theme pack JSON', 'universal-consent-privacy-framework' ); ?></strong></label>
+		<textarea id="ucpf-theme-pack-json" class="large-text code" rows="10" placeholder="{ &quot;schema&quot;: &quot;ucpf-theme/1.0&quot;, … }"></textarea>
+		<p>
+			<input type="file" id="ucpf-theme-pack-file" accept="application/json,.json" />
+		</p>
+		<p>
+			<button type="button" class="button button-primary" id="ucpf-theme-import"><?php esc_html_e( 'Import theme', 'universal-consent-privacy-framework' ); ?></button>
+		</p>
+		<p id="ucpf-theme-pack-status" class="ucpf-wizard__status" hidden></p>
+	</div>
 </div>

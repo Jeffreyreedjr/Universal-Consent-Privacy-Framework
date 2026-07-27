@@ -18,7 +18,7 @@ $ob         = ! empty( $settings['output_buffer_blocking'] );
 $remote_on  = ! empty( $settings['remote_registry_enabled'] );
 $remote_url = isset( $settings['remote_registry_url'] ) ? (string) $settings['remote_registry_url'] : '';
 $log_on     = ! empty( $settings['consent_logging'] );
-$log_days   = isset( $settings['log_retention_days'] ) ? (int) $settings['log_retention_days'] : 180;
+$log_days   = isset( $settings['log_retention_days'] ) ? (int) $settings['log_retention_days'] : 360;
 $uninstall  = ! empty( $settings['delete_data_on_uninstall'] );
 $scanner_url = isset( $settings['scanner_api_url'] ) ? (string) $settings['scanner_api_url'] : '';
 $scanner_key = isset( $settings['scanner_api_key'] ) ? (string) $settings['scanner_api_key'] : '';
@@ -245,8 +245,9 @@ if ( '' === $sched_email ) {
 					<p class="description"><?php esc_html_e( 'Stores consent UUID, action, categories, and timestamps only — not IP addresses.', 'universal-consent-privacy-framework' ); ?></p>
 					<label>
 						<?php esc_html_e( 'Retention days', 'universal-consent-privacy-framework' ); ?>
-						<input type="number" name="<?php echo esc_attr( $option_key ); ?>[log_retention_days]" value="<?php echo esc_attr( (string) max( 1, $log_days ) ); ?>" min="1" />
+						<input type="number" name="<?php echo esc_attr( $option_key ); ?>[log_retention_days]" value="<?php echo esc_attr( (string) max( 1, min( 3650, $log_days ) ) ); ?>" min="1" max="3650" />
 					</label>
+					<p class="description"><?php esc_html_e( 'Default 360 days. Consent logs are light (no IP). Changing this updates expiry on existing rows.', 'universal-consent-privacy-framework' ); ?></p>
 				</td>
 			</tr>
 			<tr>
