@@ -29,19 +29,26 @@ $woo_active = \UCPF\Cookie_Scanner::instance()->is_woo_active();
 		<h2 class="ucpf-scanner-picker__title"><?php esc_html_e( 'Pages to scan (as visitor)', 'universal-consent-privacy-framework' ); ?></h2>
 		<p class="description"><?php esc_html_e( 'Pick real front-end pages (forms, landing pages). Marketing cookies appear after scripts run during the guest crawl.', 'universal-consent-privacy-framework' ); ?></p>
 		<p class="ucpf-scan-depth">
-			<label for="ucpf-scan-depth"><strong><?php esc_html_e( 'Discovery depth', 'universal-consent-privacy-framework' ); ?></strong></label>
+			<label for="ucpf-scan-depth"><strong><?php esc_html_e( 'Scan intensity', 'universal-consent-privacy-framework' ); ?></strong></label>
 			<select id="ucpf-scan-depth">
-				<option value="quick"><?php esc_html_e( 'Quick — ~10 pages (home + priority)', 'universal-consent-privacy-framework' ); ?></option>
-				<option value="standard" selected><?php esc_html_e( 'Standard — ~40 pages (sitemap + links)', 'universal-consent-privacy-framework' ); ?></option>
-				<option value="deep"><?php esc_html_e( 'Deep — up to 100 pages (max discovery)', 'universal-consent-privacy-framework' ); ?></option>
+				<option value="quick"><?php esc_html_e( 'Quick — 2 consent sessions (faster)', 'universal-consent-privacy-framework' ); ?></option>
+				<option value="standard" selected><?php esc_html_e( 'Standard — core + GPC / DNS sessions', 'universal-consent-privacy-framework' ); ?></option>
+				<option value="deep"><?php esc_html_e( 'Deep — full compliance sessions (slowest)', 'universal-consent-privacy-framework' ); ?></option>
 			</select>
 			<button type="button" class="button" id="ucpf-scan-rediscover"><?php esc_html_e( 'Rediscover pages', 'universal-consent-privacy-framework' ); ?></button>
 		</p>
+		<p class="description"><?php esc_html_e( 'Intensity controls how many browser consent personas run — not which pages appear below. The page list always shows your full catalog (pages, posts, WooCommerce, products).', 'universal-consent-privacy-framework' ); ?></p>
 		<p id="ucpf-scan-selection-hint" class="description ucpf-scan-selection-hint" hidden></p>
 
 		<div class="ucpf-scanner-chips" id="ucpf-scanner-chips" aria-label="<?php esc_attr_e( 'Quick page picks', 'universal-consent-privacy-framework' ); ?>">
 			<span class="spinner is-active" style="float:none;margin:0;"></span>
 		</div>
+
+		<p class="ucpf-scanner-toolbar">
+			<input type="search" id="ucpf-scan-page-filter" class="regular-text" placeholder="<?php esc_attr_e( 'Filter pages…', 'universal-consent-privacy-framework' ); ?>" />
+			<button type="button" class="button" id="ucpf-scan-select-visible"><?php esc_html_e( 'Select visible', 'universal-consent-privacy-framework' ); ?></button>
+			<button type="button" class="button" id="ucpf-scan-clear"><?php esc_html_e( 'Clear selection', 'universal-consent-privacy-framework' ); ?></button>
+		</p>
 
 		<div class="ucpf-scanner-pages" id="ucpf-scanner-pages">
 			<p class="description"><?php esc_html_e( 'Loading pages…', 'universal-consent-privacy-framework' ); ?></p>

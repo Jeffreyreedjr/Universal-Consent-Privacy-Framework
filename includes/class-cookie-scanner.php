@@ -25,15 +25,15 @@ class Cookie_Scanner {
 	const MAX_SERVER_URLS = 40;
 
 	/**
-	 * Max pages offered in the scanner picker UI.
+	 * Max pages offered in the scanner picker UI (full catalog — not depth-gated).
 	 */
-	const MAX_PICKER_URLS = 100;
+	const MAX_PICKER_URLS = 200;
 
 	/**
 	 * Max URLs loaded in the guest browser crawl (iframe harvest).
-	 * Must stay ≥ MAX_SERVER_URLS so checked pages are not silently dropped.
+	 * Aligned with Playwright deep maxPages so selected pages are not silently dropped.
 	 */
-	const MAX_BROWSER_URLS = 40;
+	const MAX_BROWSER_URLS = 80;
 
 	/**
 	 * Depth preset limits (FAZ-inspired).
@@ -220,23 +220,26 @@ class Cookie_Scanner {
 	}
 
 	/**
-	 * Discover same-origin paths from sitemap + homepage links + WP content.
-	 * Prioritizes contact/form/checkout/shop URLs.
+	 * Discover same-origin paths from sitemap + homepage links + WP / Woo content.
+	 * Always returns the full picker catalog (up to MAX_PICKER_URLS). Depth only
+	 * affects Playwright session profile + crawl caps, not which URLs are listed.
 	 *
-	 * @param string $depth quick|standard|deep.
-	 * @return array URL defs with url, label, context, source.
+	 * @param string $depth Ignored for catalog size (kept for call-site BC).
+	 * @return array URL defs with url, label, context, source, group.
 	 */
 	public function discover_site_paths( $depth = 'standard' ) {
-		$limit = $this->depth_limit( $depth );
+		unset( $depth ); // Catalog is not depth-gated.
+		$limit = self::MAX_PICKER_URLS;
 		$urls  = array();
 
 		$urls[] = array(
-			'url'     => home_url( '/' ),
-			'context' => 'guest',
-			'label'   => __( 'Homepage', 'universal-consent-privacy-framework' ),
-			'source'  => 'home',
-			'chip'    => 'home',
-			'priority'=> 0,
+			'url'      => home_url( '/' ),
+			'context'  => 'guest',
+			'label'    => __( 'Homepage', 'universal-consent-privacy-framework' ),
+			'source'   => 'home',
+			'chip'     => 'home',
+			'group'    => 'home',
+			'priority' => 0,
 		);
 
 		if ( $this->is_woo_active() ) {
@@ -257,7 +260,63 @@ class Cookie_Scanner {
 							'label'    => $label,
 							'source'   => 'woocommerce',
 							'chip'     => $id,
+							'group'    => 'woocommerce',
 							'priority' => 1,
+						);
+					}
+				}
+			}
+
+			$products = get_posts(
+				array(
+					'post_type'              => 'product',
+					'post_status'            => 'publish',
+					'posts_per_page'         => min( 80, $limit ),
+					'orderby'                => 'modified',
+					'order'                  => 'DESC',
+					'no_found_rows'          => true,
+					'update_post_meta_cache' => false,
+					'update_post_term_cache' => false,
+				)
+			);
+			foreach ( $products as $product ) {
+				$permalink = get_permalink( $product );
+				if ( ! $permalink ) {
+					continue;
+				}
+				$urls[] = array(
+					'url'       => $permalink,
+					'context'   => 'guest',
+					'label'     => $product->post_title ? $product->post_title : $permalink,
+					'source'    => 'woocommerce_product',
+					'post_type' => 'product',
+					'id'        => (int) $product->ID,
+					'group'     => 'products',
+					'priority'  => 3,
+				);
+			}
+
+			if ( taxonomy_exists( 'product_cat' ) ) {
+				$terms = get_terms(
+					array(
+						'taxonomy'   => 'product_cat',
+						'hide_empty' => true,
+						'number'     => 40,
+					)
+				);
+				if ( ! is_wp_error( $terms ) ) {
+					foreach ( $terms as $term ) {
+						$link = get_term_link( $term );
+						if ( is_wp_error( $link ) || ! $link ) {
+							continue;
+						}
+						$urls[] = array(
+							'url'      => $link,
+							'context'  => 'guest',
+							'label'    => $term->name,
+							'source'   => 'product_cat',
+							'group'    => 'product_categories',
+							'priority' => 3,
 						);
 					}
 				}
@@ -267,15 +326,18 @@ class Cookie_Scanner {
 		foreach ( $this->find_priority_content_urls( $limit ) as $item ) {
 			$item['source']   = isset( $item['source'] ) ? $item['source'] : 'priority';
 			$item['priority'] = 2;
+			$item['group']    = isset( $item['group'] ) ? $item['group'] : 'pages';
 			$urls[]           = $item;
 		}
 
 		foreach ( $this->discover_paths_from_sitemap( $limit ) as $item ) {
-			$urls[] = $item;
+			$item['group'] = isset( $item['group'] ) ? $item['group'] : $this->infer_url_group( $item );
+			$urls[]        = $item;
 		}
 
 		foreach ( $this->discover_paths_from_homepage_links( $limit ) as $item ) {
-			$urls[] = $item;
+			$item['group'] = isset( $item['group'] ) ? $item['group'] : $this->infer_url_group( $item );
+			$urls[]        = $item;
 		}
 
 		$posts = get_posts(
@@ -302,7 +364,29 @@ class Cookie_Scanner {
 				'source'    => 'wp_content',
 				'post_type' => $page->post_type,
 				'id'        => (int) $page->ID,
+				'group'     => ( 'post' === $page->post_type ) ? 'posts' : 'pages',
 				'priority'  => 5,
+			);
+		}
+
+		$blog_cats = get_categories(
+			array(
+				'hide_empty' => true,
+				'number'     => 30,
+			)
+		);
+		foreach ( $blog_cats as $cat ) {
+			$link = get_category_link( $cat->term_id );
+			if ( ! $link ) {
+				continue;
+			}
+			$urls[] = array(
+				'url'      => $link,
+				'context'  => 'guest',
+				'label'    => $cat->name,
+				'source'   => 'category',
+				'group'    => 'categories',
+				'priority' => 6,
 			);
 		}
 
@@ -318,7 +402,67 @@ class Cookie_Scanner {
 			}
 		);
 
-		return $this->dedupe_url_defs( $urls, $limit );
+		$deduped = $this->dedupe_url_defs( $urls, $limit );
+		foreach ( $deduped as &$row ) {
+			if ( empty( $row['group'] ) ) {
+				$row['group'] = $this->infer_url_group( $row );
+			}
+		}
+		unset( $row );
+
+		return $deduped;
+	}
+
+	/**
+	 * Infer picker group from a URL def.
+	 *
+	 * @param array $item URL def.
+	 * @return string
+	 */
+	private function infer_url_group( array $item ) {
+		if ( ! empty( $item['group'] ) ) {
+			return sanitize_key( (string) $item['group'] );
+		}
+		$source = isset( $item['source'] ) ? (string) $item['source'] : '';
+		if ( 'home' === $source ) {
+			return 'home';
+		}
+		if ( 'woocommerce' === $source ) {
+			return 'woocommerce';
+		}
+		if ( 'woocommerce_product' === $source || 'product' === ( $item['post_type'] ?? '' ) ) {
+			return 'products';
+		}
+		if ( 'product_cat' === $source ) {
+			return 'product_categories';
+		}
+		if ( 'post' === ( $item['post_type'] ?? '' ) ) {
+			return 'posts';
+		}
+		if ( 'page' === ( $item['post_type'] ?? '' ) || 'wp_content' === $source || 'priority' === $source ) {
+			return 'pages';
+		}
+		if ( 'category' === $source ) {
+			return 'categories';
+		}
+		$path = '';
+		if ( ! empty( $item['url'] ) ) {
+			$path = (string) wp_parse_url( $item['url'], PHP_URL_PATH );
+		}
+		$path = strtolower( $path );
+		if ( preg_match( '#/(product|products)/#', $path ) ) {
+			return 'products';
+		}
+		if ( preg_match( '#/(product-category|shop)/#', $path ) ) {
+			return 'product_categories';
+		}
+		if ( preg_match( '#/(cart|checkout|my-account)/?#', $path ) ) {
+			return 'woocommerce';
+		}
+		if ( preg_match( '#/(category|tag)/#', $path ) ) {
+			return 'categories';
+		}
+		return 'other';
 	}
 
 	/**

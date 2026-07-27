@@ -240,12 +240,26 @@
     selected: {},
     available: [],
     chips: [],
-    maxCrawl: (ucpfAdmin && ucpfAdmin.maxCrawl) ? ucpfAdmin.maxCrawl : 40,
+    groups: {},
+    filter: '',
+    maxCrawl: (ucpfAdmin && ucpfAdmin.maxCrawl) ? ucpfAdmin.maxCrawl : 80,
     maxServer: (ucpfAdmin && ucpfAdmin.maxServer) ? ucpfAdmin.maxServer : 40,
     homeUrl: (ucpfAdmin && ucpfAdmin.homeUrl) ? ucpfAdmin.homeUrl : '',
     depth: 'standard',
+    presets: { quick: 10, standard: 40, deep: 80 },
     ready: false,
   };
+
+  var SCAN_GROUP_ORDER = [
+    'home',
+    'woocommerce',
+    'products',
+    'product_categories',
+    'pages',
+    'posts',
+    'categories',
+    'other',
+  ];
 
   function currentScanDepth() {
     var v = ($('#ucpf-scan-depth').val() || scanPickerState.depth || 'standard');
@@ -255,8 +269,33 @@
     return v;
   }
 
-  function applyScanUrlPayload(payload) {
+  function defaultScanSelection(available) {
+    var selected = {};
+    (available || []).forEach(function (item) {
+      if (!item || !item.url) {
+        return;
+      }
+      var url = normalizeSiteUrl(item.url);
+      if (!url) {
+        return;
+      }
+      var group = item.group || '';
+      var chip = item.chip || '';
+      var source = item.source || '';
+      if (group === 'home' || chip === 'home' || source === 'home') {
+        selected[url] = item.label || 'Homepage';
+      }
+      if (group === 'woocommerce' || source === 'woocommerce') {
+        selected[url] = item.label || url;
+      }
+    });
+    return selected;
+  }
+
+  function applyScanUrlPayload(payload, opts) {
+    opts = opts || {};
     var prevSelected = scanPickerState.selected || {};
+    var hadSelection = Object.keys(prevSelected).length > 0;
     scanPickerState.available = (payload && payload.available) ? payload.available : ((payload && payload.urls) || []);
     // Client-side dedupe by normalized URL (query variants of / used to flood the list).
     (function () {
@@ -270,6 +309,9 @@
         seen[url] = true;
         var copy = item && typeof item === 'object' ? Object.assign({}, item) : { url: url };
         copy.url = url;
+        if (!copy.group) {
+          copy.group = 'other';
+        }
         try {
           copy.path = new URL(url).pathname || '/';
           if (!copy.path) {
@@ -283,38 +325,34 @@
       scanPickerState.available = uniq;
     })();
     scanPickerState.chips = (payload && payload.chips) ? payload.chips : [];
+    scanPickerState.groups = (payload && payload.groups) ? payload.groups : scanPickerState.groups;
     scanPickerState.maxCrawl = (payload && payload.max_crawl) ? payload.max_crawl : scanPickerState.maxCrawl;
     scanPickerState.maxServer = (payload && payload.max_server) ? payload.max_server : scanPickerState.maxServer;
     scanPickerState.depth = (payload && payload.depth) ? payload.depth : scanPickerState.depth;
+    if (payload && payload.presets) {
+      scanPickerState.presets = payload.presets;
+    }
     if (payload && payload.home_url) {
       scanPickerState.homeUrl = payload.home_url;
     }
 
-    scanPickerState.selected = {};
-    var depth = scanPickerState.depth || 'standard';
-    var available = scanPickerState.available || [];
-
-    if (depth === 'quick') {
-      // Small list — select all discovered pages.
-      available.forEach(function (item) {
-        if (item && item.url) {
-          scanPickerState.selected[item.url] = item.label || item.url;
-        }
-      });
+    if (opts.resetSelection || !hadSelection) {
+      scanPickerState.selected = defaultScanSelection(scanPickerState.available);
     } else {
-      // Standard/deep: keep prior picks that still exist, otherwise homepage only
-      // so the user can choose pages instead of auto-scanning ~40.
-      available.forEach(function (item) {
+      // Keep prior picks that still exist; do not wipe when rediscovering.
+      var next = {};
+      (scanPickerState.available || []).forEach(function (item) {
         if (item && item.url && prevSelected[item.url]) {
-          scanPickerState.selected[item.url] = prevSelected[item.url] || item.label || item.url;
+          next[item.url] = prevSelected[item.url] || item.label || item.url;
         }
       });
-      if (!Object.keys(scanPickerState.selected).length) {
-        var home = normalizeSiteUrl(scanPickerState.homeUrl || (available[0] && available[0].url) || '');
-        if (home) {
-          scanPickerState.selected[home] = 'Homepage';
+      // Also keep custom URLs the user added that may not be in catalog.
+      Object.keys(prevSelected).forEach(function (url) {
+        if (prevSelected[url] && !next[url]) {
+          next[url] = prevSelected[url];
         }
-      }
+      });
+      scanPickerState.selected = Object.keys(next).length ? next : defaultScanSelection(scanPickerState.available);
     }
 
     if (!Object.keys(scanPickerState.selected).length && scanPickerState.homeUrl) {
@@ -326,14 +364,24 @@
     updateSelectionHint();
   }
 
-  function loadScanUrls(depth) {
+  function loadScanUrls(depth, opts) {
     depth = depth || currentScanDepth();
     scanPickerState.depth = depth;
     $('#ucpf-scanner-pages').html('<p class="description">Discovering pages…</p>');
+    // Depth is sent only for crawl-cap metadata; catalog is always full on the server.
     return restGet('scan/urls?depth=' + encodeURIComponent(depth)).then(function (payload) {
-      applyScanUrlPayload(payload);
+      applyScanUrlPayload(payload, opts || {});
       return payload;
     });
+  }
+
+  function applyDepthCapsOnly() {
+    var depth = currentScanDepth();
+    scanPickerState.depth = depth;
+    var presets = scanPickerState.presets || {};
+    var suggested = presets[depth] || 40;
+    // Intensity does not reload the page list — only updates the hint.
+    updateSelectionHint(suggested);
   }
 
   function selectedCount() {
@@ -342,16 +390,20 @@
     }).length;
   }
 
-  function updateSelectionHint() {
+  function updateSelectionHint(suggested) {
     var $hint = $('#ucpf-scan-selection-hint');
     if (!$hint.length) {
       return;
     }
     var n = selectedCount();
-    var max = Math.min(scanPickerState.maxCrawl || 30, scanPickerState.maxServer || 30);
-    var msg = n + ' page(s) selected (max ' + max + ' will be scanned).';
+    var max = scanPickerState.maxCrawl || 80;
+    var depth = scanPickerState.depth || 'standard';
+    var msg = n + ' page(s) selected · up to ' + max + ' scanned · intensity: ' + depth;
+    if (suggested) {
+      msg += ' (typical pick ~' + suggested + ')';
+    }
     if (n > max) {
-      msg += ' Extra checks beyond ' + max + ' are ignored — uncheck some pages.';
+      msg += ' — extras beyond ' + max + ' are ignored.';
       $hint.addClass('ucpf-hint--warn');
     } else {
       $hint.removeClass('ucpf-hint--warn');
@@ -406,7 +458,7 @@
 
   function selectedUrlDefs() {
     var out = [];
-    var max = Math.min(scanPickerState.maxCrawl || 30, scanPickerState.maxServer || 30);
+    var max = scanPickerState.maxCrawl || 80;
     Object.keys(scanPickerState.selected).forEach(function (url) {
       if (!scanPickerState.selected[url]) {
         return;
@@ -441,6 +493,18 @@
     });
   }
 
+  function pageMatchesFilter(item, label, path) {
+    var q = (scanPickerState.filter || '').trim().toLowerCase();
+    if (!q) {
+      return true;
+    }
+    return (
+      String(label || '').toLowerCase().indexOf(q) !== -1 ||
+      String(path || '').toLowerCase().indexOf(q) !== -1 ||
+      String(item.url || '').toLowerCase().indexOf(q) !== -1
+    );
+  }
+
   function renderScanPages() {
     var $pages = $('#ucpf-scanner-pages');
     if (!$pages.length) {
@@ -452,6 +516,13 @@
       $pages.append($('<p class="description"></p>').text('No published pages found.'));
       return;
     }
+
+    var groupLabels = scanPickerState.groups || {};
+    var buckets = {};
+    SCAN_GROUP_ORDER.forEach(function (g) {
+      buckets[g] = [];
+    });
+
     var seen = {};
     list.forEach(function (item) {
       var url = normalizeSiteUrl(item.url);
@@ -460,22 +531,90 @@
       }
       seen[url] = true;
       var label = item.label || url;
+      var path = item.path || '/';
       try {
-        var path = new URL(url).pathname || '/';
+        path = new URL(url).pathname || path;
         if (!label || label === '/' || label === url) {
           label = (path === '/' || path === '') ? 'Homepage' : path;
         }
       } catch (e) { /* keep label */ }
-      var id = 'ucpf-scan-page-' + url.replace(/[^a-z0-9]+/gi, '-');
-      var $label = $('<label></label>');
-      var $cb = $('<input type="checkbox" class="ucpf-scan-page-cb" />')
-        .attr('id', id)
-        .attr('data-url', url)
-        .attr('data-label', label)
-        .prop('checked', !!scanPickerState.selected[url]);
-      $label.append($cb).append(document.createTextNode(' ' + label));
-      $pages.append($label);
+      if (!pageMatchesFilter(item, label, path)) {
+        return;
+      }
+      var group = item.group || 'other';
+      if (!buckets[group]) {
+        buckets[group] = [];
+      }
+      buckets[group].push({ url: url, label: label, path: path, item: item });
     });
+
+    var any = false;
+    SCAN_GROUP_ORDER.forEach(function (groupId) {
+      var rows = buckets[groupId] || [];
+      if (!rows.length) {
+        return;
+      }
+      any = true;
+      var title = groupLabels[groupId] || groupId;
+      var $group = $('<div class="ucpf-scanner-group"></div>').attr('data-group', groupId);
+      var $head = $('<div class="ucpf-scanner-group__head"></div>');
+      $head.append($('<strong class="ucpf-scanner-group__title"></strong>').text(title + ' (' + rows.length + ')'));
+      var $sel = $('<button type="button" class="button-link ucpf-scanner-group__select"></button>')
+        .text('Select group')
+        .attr('data-group', groupId);
+      $head.append($sel);
+      $group.append($head);
+
+      rows.forEach(function (row) {
+        var id = 'ucpf-scan-page-' + row.url.replace(/[^a-z0-9]+/gi, '-');
+        var $label = $('<label class="ucpf-scanner-page"></label>');
+        var $cb = $('<input type="checkbox" class="ucpf-scan-page-cb" />')
+          .attr('id', id)
+          .attr('data-url', row.url)
+          .attr('data-label', row.label)
+          .attr('data-group', groupId)
+          .prop('checked', !!scanPickerState.selected[row.url]);
+        var meta = row.path && row.path !== row.label ? ' — ' + row.path : '';
+        $label.append($cb).append(document.createTextNode(' ' + row.label + meta));
+        $group.append($label);
+      });
+      $pages.append($group);
+    });
+
+    // Custom / leftover selected URLs not in catalog.
+    var extras = [];
+    Object.keys(scanPickerState.selected).forEach(function (url) {
+      if (!seen[url] && scanPickerState.selected[url]) {
+        extras.push(url);
+      }
+    });
+    if (extras.length) {
+      any = true;
+      var $custom = $('<div class="ucpf-scanner-group"></div>').attr('data-group', 'custom');
+      $custom.append($('<div class="ucpf-scanner-group__head"></div>').append(
+        $('<strong class="ucpf-scanner-group__title"></strong>').text('Custom URLs (' + extras.length + ')')
+      ));
+      extras.forEach(function (url) {
+        var label = scanPickerState.selected[url] || url;
+        if (!pageMatchesFilter({ url: url }, label, pathFromSiteUrl(url))) {
+          return;
+        }
+        var id = 'ucpf-scan-page-' + url.replace(/[^a-z0-9]+/gi, '-');
+        var $label = $('<label class="ucpf-scanner-page"></label>');
+        var $cb = $('<input type="checkbox" class="ucpf-scan-page-cb" />')
+          .attr('id', id)
+          .attr('data-url', url)
+          .attr('data-label', label)
+          .prop('checked', true);
+        $label.append($cb).append(document.createTextNode(' ' + label));
+        $custom.append($label);
+      });
+      $pages.append($custom);
+    }
+
+    if (!any) {
+      $pages.append($('<p class="description"></p>').text('No pages match this filter.'));
+    }
   }
 
   function toggleSelectedUrl(url, label, on) {
@@ -497,25 +636,68 @@
     if (!$('#ucpf-scanner-picker').length) {
       return;
     }
-    loadScanUrls(currentScanDepth()).catch(function () {
+    loadScanUrls(currentScanDepth(), { resetSelection: true }).catch(function () {
       $('#ucpf-scanner-pages').html('<p class="description">Could not load page list.</p>');
       $('#ucpf-scanner-chips').empty();
     });
   }
 
   $(document).on('change', '#ucpf-scan-depth', function () {
-    loadScanUrls(currentScanDepth()).catch(function () {
-      setStatus('#ucpf-scan-status', 'Could not rediscover pages for this depth.', true);
-    });
+    applyDepthCapsOnly();
   });
 
   $('#ucpf-scan-rediscover').on('click', function () {
-    loadScanUrls(currentScanDepth()).then(function (payload) {
+    loadScanUrls(currentScanDepth(), { resetSelection: false }).then(function (payload) {
       var n = payload && payload.count ? payload.count : 0;
-      setStatus('#ucpf-scan-status', 'Discovered ' + n + ' page(s) via sitemap + homepage links + WP content.');
+      setStatus('#ucpf-scan-status', 'Discovered ' + n + ' page(s) (full catalog). Selection preserved where possible.');
     }).catch(function () {
       setStatus('#ucpf-scan-status', 'Page discovery failed.', true);
     });
+  });
+
+  $(document).on('input', '#ucpf-scan-page-filter', function () {
+    scanPickerState.filter = $(this).val() || '';
+    renderScanPages();
+  });
+
+  $('#ucpf-scan-select-visible').on('click', function () {
+    $('#ucpf-scanner-pages .ucpf-scan-page-cb').each(function () {
+      var url = $(this).attr('data-url');
+      var label = $(this).attr('data-label') || url;
+      if (url) {
+        scanPickerState.selected[normalizeSiteUrl(url)] = label;
+      }
+    });
+    renderScanChips();
+    renderScanPages();
+    updateSelectionHint();
+  });
+
+  $('#ucpf-scan-clear').on('click', function () {
+    scanPickerState.selected = {};
+    var home = normalizeSiteUrl(scanPickerState.homeUrl);
+    if (home) {
+      scanPickerState.selected[home] = 'Homepage';
+    }
+    renderScanChips();
+    renderScanPages();
+    updateSelectionHint();
+  });
+
+  $(document).on('click', '.ucpf-scanner-group__select', function () {
+    var group = $(this).attr('data-group');
+    (scanPickerState.available || []).forEach(function (item) {
+      if (!item || item.group !== group) {
+        return;
+      }
+      var url = normalizeSiteUrl(item.url);
+      if (url) {
+        scanPickerState.selected[url] = item.label || url;
+      }
+    });
+    renderScanChips();
+    renderScanPages();
+    updateSelectionHint();
   });
 
   $(document).on('click', '.ucpf-scanner-chip', function () {
@@ -552,10 +734,10 @@
         return typeof item === 'string' ? item : item.url;
       }).filter(Boolean);
 
-      var max = Math.min(scanPickerState.maxCrawl || 40, scanPickerState.maxServer || 40);
-      // Deep discovery may select more pages than the default crawl cap — allow up to maxCrawl.
+      var max = scanPickerState.maxCrawl || 80;
+      // Allow selected pages up to the browser crawl cap (intensity no longer shrinks the list).
       if (scanPickerState.depth === 'deep') {
-        max = Math.max(max, scanPickerState.maxCrawl || 40);
+        max = Math.max(max, scanPickerState.maxCrawl || 80);
       }
       list = list.slice(0, max);
       var collected = {};

@@ -577,24 +577,37 @@ class Rest_Api {
 			$depth = 'standard';
 		}
 		$limit = $scanner->depth_limit( $depth );
-		$urls  = $scanner->discover_site_paths( $depth );
+		// Full catalog always — depth only gates how many selected URLs may be crawled.
+		$urls  = $scanner->discover_site_paths( 'deep' );
 		return rest_ensure_response(
 			array(
-				'urls'       => $urls,
-				'available'  => $urls,
-				'chips'      => $scanner->get_scan_chips(),
-				'woo_active' => $scanner->is_woo_active(),
-				'home_url'   => untrailingslashit( home_url( '/' ) ),
-				'max_crawl'  => min( Cookie_Scanner::MAX_BROWSER_URLS, $limit ),
-				'max_server' => min( Cookie_Scanner::MAX_SERVER_URLS, $limit ),
-				'depth'      => $depth,
-				'depth_limit'=> $limit,
-				'presets'    => array(
+				'urls'        => $urls,
+				'available'   => $urls,
+				'chips'       => $scanner->get_scan_chips(),
+				'woo_active'  => $scanner->is_woo_active(),
+				'home_url'    => untrailingslashit( home_url( '/' ) ),
+				'max_crawl'   => Cookie_Scanner::MAX_BROWSER_URLS,
+				'max_server'  => min( Cookie_Scanner::MAX_SERVER_URLS, max( $limit, Cookie_Scanner::DEPTH_STANDARD ) ),
+				'max_browser' => Cookie_Scanner::MAX_BROWSER_URLS,
+				'max_picker'  => Cookie_Scanner::MAX_PICKER_URLS,
+				'depth'       => $depth,
+				'depth_limit' => $limit,
+				'presets'     => array(
 					'quick'    => Cookie_Scanner::DEPTH_QUICK,
 					'standard' => Cookie_Scanner::DEPTH_STANDARD,
-					'deep'     => min( Cookie_Scanner::DEPTH_DEEP, Cookie_Scanner::MAX_PICKER_URLS ),
+					'deep'     => min( Cookie_Scanner::DEPTH_DEEP, Cookie_Scanner::MAX_BROWSER_URLS ),
 				),
-				'count'      => count( $urls ),
+				'groups'      => array(
+					'home'               => __( 'Home', 'universal-consent-privacy-framework' ),
+					'woocommerce'        => __( 'WooCommerce', 'universal-consent-privacy-framework' ),
+					'products'           => __( 'Products', 'universal-consent-privacy-framework' ),
+					'product_categories' => __( 'Product categories', 'universal-consent-privacy-framework' ),
+					'pages'              => __( 'Pages', 'universal-consent-privacy-framework' ),
+					'posts'              => __( 'Posts', 'universal-consent-privacy-framework' ),
+					'categories'         => __( 'Blog categories', 'universal-consent-privacy-framework' ),
+					'other'              => __( 'Other / discovered', 'universal-consent-privacy-framework' ),
+				),
+				'count'       => count( $urls ),
 			)
 		);
 	}

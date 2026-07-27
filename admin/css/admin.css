@@ -405,7 +405,7 @@
 }
 
 .ucpf-scanner-pages {
-  max-height: 14rem;
+  max-height: 28rem;
   overflow: auto;
   border: 1px solid var(--ucpf-admin-border);
   border-radius: var(--ucpf-admin-radius-sm);
@@ -414,9 +414,50 @@
   background: var(--ucpf-admin-surface);
 }
 
-.ucpf-scanner-pages label {
+.ucpf-scanner-pages label,
+.ucpf-scanner-page {
   display: block;
   margin: 0.2rem 0;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.ucpf-scanner-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0.65rem 0 0.35rem;
+}
+
+.ucpf-scanner-group {
+  margin: 0.75rem 0 0.35rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--ucpf-admin-border);
+}
+
+.ucpf-scanner-group:last-child {
+  border-bottom: 0;
+}
+
+.ucpf-scanner-group__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 0.35rem;
+}
+
+.ucpf-scanner-group__title {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ucpf-admin-muted);
+}
+
+.ucpf-scanner-group__select {
+  font-size: 12px;
 }
 
 .ucpf-scanner-custom__row {
@@ -1262,7 +1303,7 @@
 }
 
 .ucpf-scanner-pages {
-  max-height: 16rem;
+  max-height: 28rem;
   width: 100%;
   box-sizing: border-box;
 }
