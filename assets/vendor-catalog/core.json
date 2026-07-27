@@ -86,13 +86,22 @@
       "description": "Stores your cookie consent choices so the site can respect them.",
       "privacy_url": "",
       "script_patterns": [],
-      "cookie_patterns": ["ucpf_consent"],
+      "cookie_patterns": ["ucpf_consent", "ucpf_dns"],
       "cookies": [
         {
           "name": "ucpf_consent",
           "pattern": "ucpf_consent",
           "purpose": "Stores consent preferences and policy version.",
           "retention": "Configurable (default 180 days)",
+          "category": "necessary",
+          "treatment": "necessary",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "ucpf_dns",
+          "pattern": "ucpf_dns",
+          "purpose": "Stores Do Not Sell / Share or GPC-style opt-out choice.",
+          "retention": "Configurable",
           "category": "necessary",
           "treatment": "necessary",
           "contexts": ["guest", "logged_in"]
@@ -131,9 +140,9 @@
       "provider": "Cloudflare",
       "category": "necessary",
       "treatment": "necessary",
-      "description": "Security and performance cookies set by Cloudflare when the site uses Cloudflare.",
+      "description": "Security and performance cookies set by Cloudflare when the site uses Cloudflare (bot management / clearance). Web Analytics is a separate service.",
       "privacy_url": "https://www.cloudflare.com/privacypolicy/",
-      "script_patterns": ["cdnjs.cloudflare.com", "cloudflareinsights.com", "static.cloudflareinsights.com"],
+      "script_patterns": ["cdn-cgi/challenge-platform", "challenges.cloudflare.com"],
       "cookie_patterns": ["__cf_bm", "cf_clearance", "__cfruid", "_cfuvid"],
       "cookies": [
         {
@@ -153,10 +162,33 @@
           "category": "necessary",
           "treatment": "necessary",
           "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "_cfuvid",
+          "pattern": "_cfuvid",
+          "purpose": "Distinguishes users who share an IP for Cloudflare rate limiting / WAF.",
+          "retention": "Session",
+          "category": "necessary",
+          "treatment": "necessary",
+          "contexts": ["guest", "logged_in"]
         }
       ],
       "iframe_patterns": [],
       "default_blocking": false
+    },
+    {
+      "key": "cloudflare_web_analytics",
+      "name": "Cloudflare Web Analytics",
+      "provider": "Cloudflare",
+      "category": "analytics",
+      "treatment": "consent",
+      "description": "Optional Cloudflare Web Analytics beacon (static.cloudflareinsights.com).",
+      "privacy_url": "https://www.cloudflare.com/privacypolicy/",
+      "script_patterns": ["static.cloudflareinsights.com", "cloudflareinsights.com"],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
     },
     {
       "key": "defender",

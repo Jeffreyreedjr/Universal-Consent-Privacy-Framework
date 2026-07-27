@@ -1704,15 +1704,22 @@
     }
 
     var layout = $('#ucpf-banner-layout').val() || 'bar';
+    var position = $('#ucpf-banner-position').val() || 'left';
     var theme = $('#ucpf-banner-theme').val() || 'classic';
     var layouts = ['bar', 'modal', 'corner'];
+    var positions = ['left', 'center', 'right'];
 
     layouts.forEach(function (name) {
       banner.classList.remove('ucpf-banner--' + name);
     });
+    positions.forEach(function (name) {
+      banner.classList.remove('ucpf-banner--pos-' + name);
+    });
     banner.classList.add('ucpf-banner--' + layout);
+    banner.classList.add('ucpf-banner--pos-' + position);
     banner.classList.add('ucpf-banner--visible');
     banner.setAttribute('data-ucpf-layout', layout);
+    banner.setAttribute('data-ucpf-position', position);
 
     var overlay = banner.querySelector('.ucpf-modal__overlay');
     if (overlay) {
@@ -1730,7 +1737,7 @@
     }
   }
 
-  $('#ucpf-banner-layout, #ucpf-banner-theme').on('change', updateBannerPreview);
+  $('#ucpf-banner-layout, #ucpf-banner-position, #ucpf-banner-theme').on('change', updateBannerPreview);
   updateBannerPreview();
 
   // Wrap wide admin tables so overflow scrolls inside the table, not the page.

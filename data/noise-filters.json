@@ -39,15 +39,26 @@
     { "pattern": "cf_clearance", "reason": "Necessary Cloudflare clearance" },
     { "pattern": "__cf_bm", "reason": "Cloudflare bot management (necessary/security)" },
     { "pattern": "ucpf_consent", "reason": "Consent record itself" },
+    { "pattern": "ucpf_dns", "reason": "UCPF DNS / GPC opt-out record" },
     { "pattern": "wp_consent_*", "reason": "WP Consent API category cookies" },
     { "pattern": "wordpress_test_cookie", "reason": "Login probe" }
   ],
   "leak_ignore_hosts": [
-    { "host": "challenges.cloudflare.com", "reason": "CF Turnstile / challenge platform" }
+    { "host": "challenges.cloudflare.com", "reason": "CF Turnstile / challenge platform" },
+    { "host": "cdnjs.cloudflare.com", "reason": "Generic library CDN, not a tracker by itself" },
+    { "host": "fonts.googleapis.com", "reason": "Google Fonts CSS — treat via fonts policy, not marketing leak" },
+    { "host": "fonts.gstatic.com", "reason": "Google Fonts files — treat via fonts policy, not marketing leak" },
+    { "host": "example.invalid", "reason": "Scanner host-rewrite artifact" },
+    { "host": "about:blank", "reason": "Blank placeholder frame, not a tracker" }
   ],
   "leak_ignore_url_substrings": [
     "/cdn-cgi/challenge-platform/",
-    "challenges.cloudflare.com/turnstile"
+    "challenges.cloudflare.com/turnstile",
+    "cdnjs.cloudflare.com",
+    "fonts.googleapis.com",
+    "fonts.gstatic.com",
+    "example.invalid",
+    "about:blank"
   ],
   "storage_omit": [
     { "key": "wpEmojiSettingsSupports", "reason": "WP emoji capability probe" }

@@ -213,6 +213,7 @@ class Plugin {
 			'policyVersion'   => Settings::get( 'policy_version' ),
 			'cookieLifetime'  => (int) apply_filters( 'ucpf_consent_cookie_lifetime', Settings::get( 'cookie_lifetime_days' ) ) * DAY_IN_SECONDS,
 			'bannerLayout'    => in_array( Settings::get( 'banner_layout' ), array( 'bar', 'modal', 'corner' ), true ) ? Settings::get( 'banner_layout' ) : 'bar',
+			'bannerPosition'  => in_array( Settings::get( 'banner_position' ), array( 'left', 'center', 'right' ), true ) ? Settings::get( 'banner_position' ) : 'left',
 			'showRejectAll'   => (bool) Settings::get( 'show_reject_all' ),
 			'showAcceptAll'   => (bool) Settings::get( 'show_accept_all' ),
 			'showCustomize'   => (bool) Settings::get( 'show_customize' ),

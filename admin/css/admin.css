@@ -721,14 +721,28 @@
 }
 
 .ucpf-admin__preview .ucpf-banner--bar {
-  inset: auto 0 0 0 !important;
+  inset: auto auto 0.75rem 0.75rem !important;
   top: auto !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  left: 0 !important;
-  width: auto !important;
-  max-width: none !important;
-  padding: 0.75rem !important;
+  right: auto !important;
+  bottom: 0.75rem !important;
+  left: 0.75rem !important;
+  width: min(22rem, calc(100% - 1.5rem)) !important;
+  max-width: min(22rem, calc(100% - 1.5rem)) !important;
+  padding: 0 !important;
+  transform: none !important;
+}
+
+.ucpf-admin__preview .ucpf-banner--bar.ucpf-banner--pos-right {
+  left: auto !important;
+  right: 0.75rem !important;
+}
+
+.ucpf-admin__preview .ucpf-banner--bar.ucpf-banner--pos-center {
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+  width: min(26rem, calc(100% - 1.5rem)) !important;
+  max-width: min(26rem, calc(100% - 1.5rem)) !important;
 }
 
 .ucpf-admin__preview .ucpf-banner--modal {
@@ -737,13 +751,40 @@
   align-items: center !important;
   justify-content: center !important;
   padding: 1rem !important;
+  transform: none !important;
+  width: auto !important;
+  max-width: none !important;
 }
 
 .ucpf-admin__preview .ucpf-banner--corner {
-  inset: auto 1rem 1rem auto !important;
-  width: min(22rem, calc(100% - 2rem)) !important;
-  max-width: min(22rem, calc(100% - 2rem)) !important;
+  inset: auto 0.75rem 0.75rem auto !important;
+  top: auto !important;
+  right: 0.75rem !important;
+  bottom: 0.75rem !important;
+  left: auto !important;
+  width: min(18rem, calc(100% - 1.5rem)) !important;
+  max-width: min(18rem, calc(100% - 1.5rem)) !important;
   padding: 0 !important;
+  transform: none !important;
+}
+
+.ucpf-admin__preview .ucpf-banner--corner.ucpf-banner--pos-left,
+.ucpf-admin__preview .ucpf-banner--bar.ucpf-banner--pos-left {
+  left: 0.75rem !important;
+  right: auto !important;
+  transform: none !important;
+}
+
+.ucpf-admin__preview .ucpf-banner--corner.ucpf-banner--pos-center {
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+}
+
+.ucpf-admin__preview .ucpf-banner--corner.ucpf-banner--pos-right {
+  left: auto !important;
+  right: 0.75rem !important;
+  transform: none !important;
 }
 
 .ucpf-admin__preview .ucpf-banner--modal .ucpf-modal__overlay {

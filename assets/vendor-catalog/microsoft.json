@@ -192,9 +192,28 @@
       "treatment": "consent",
       "description": "Scheduling embeds.",
       "privacy_url": "https://calendly.com/privacy",
-      "script_patterns": ["assets.calendly.com"],
-      "cookie_patterns": [],
-      "cookies": [],
+      "script_patterns": ["assets.calendly.com", "calendly.com"],
+      "cookie_patterns": ["_calendly_session", "cal_anonymous_id"],
+      "cookies": [
+        {
+          "name": "_calendly_session",
+          "pattern": "_calendly_session",
+          "purpose": "Calendly scheduling session state.",
+          "retention": "Session",
+          "category": "preferences",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "cal_anonymous_id",
+          "pattern": "cal_anonymous_id",
+          "purpose": "Anonymous visitor id for Calendly embeds.",
+          "retention": "months",
+          "category": "preferences",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
       "iframe_patterns": ["calendly.com"],
       "default_blocking": true
     }

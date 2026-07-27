@@ -15,19 +15,24 @@ $layout = \UCPF\Settings::get( 'banner_layout' );
 if ( ! in_array( $layout, array( 'bar', 'modal', 'corner' ), true ) ) {
 	$layout = 'bar';
 }
+$position = \UCPF\Settings::get( 'banner_position' );
+if ( ! in_array( $position, array( 'left', 'center', 'right' ), true ) ) {
+	$position = 'left';
+}
 $theme = \UCPF\Theme_Manager::instance()->resolve_preset( \UCPF\Settings::get( 'banner_theme' ) );
 ?>
 <div class="ucpf-admin__preview" id="ucpf-banner-preview">
 	<p class="description" style="position:absolute;top:0.5rem;left:0.75rem;z-index:2;margin:0;color:#ccc;">
-		<?php esc_html_e( 'Preview updates when you change layout or theme (save to apply on the site).', 'universal-consent-privacy-framework' ); ?>
+		<?php esc_html_e( 'Preview updates when you change layout, position, or theme (save to apply on the site).', 'universal-consent-privacy-framework' ); ?>
 	</p>
 	<div id="ucpf-root" class="ucpf-theme-<?php echo esc_attr( $theme ); ?>">
 		<div
-			class="ucpf-banner ucpf-banner--<?php echo esc_attr( $layout ); ?> ucpf-banner--visible"
+			class="ucpf-banner ucpf-banner--<?php echo esc_attr( $layout ); ?> ucpf-banner--pos-<?php echo esc_attr( $position ); ?> ucpf-banner--visible"
 			id="ucpf-banner-preview-el"
 			role="img"
 			aria-label="<?php esc_attr_e( 'Cookie banner preview', 'universal-consent-privacy-framework' ); ?>"
 			data-ucpf-layout="<?php echo esc_attr( $layout ); ?>"
+			data-ucpf-position="<?php echo esc_attr( $position ); ?>"
 		>
 			<div class="ucpf-modal__overlay" <?php echo 'modal' === $layout ? '' : 'hidden'; ?>></div>
 			<div class="ucpf-banner__panel" tabindex="-1">

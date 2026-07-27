@@ -15,7 +15,7 @@
   --ucpf-legal-focus: #b45309;
 }
 
-/* Soften theme chrome around the document; do not zero out padding. */
+/* Soften theme content chrome around the document; keep site header/footer/nav intact. */
 .ucpf-legal-page .site-main,
 .ucpf-legal-page main#content,
 .ucpf-legal-page .page-content,
@@ -24,16 +24,22 @@
   box-shadow: none !important;
 }
 
-.ucpf-legal-page .page-header,
-.ucpf-legal-page .entry-header {
+/* Hide duplicate page title blocks only — not Theme Builder / site navbar. */
+.ucpf-legal-page .entry-header:not(.elementor-location-header):not(header),
+.ucpf-legal-page article > .page-header,
+.ucpf-legal-page .entry-content > .page-header {
   display: none !important;
 }
 
-.ucpf-legal-page .elementor,
-.ucpf-legal-page .elementor-section,
-.ucpf-legal-page .elementor-container,
-.ucpf-legal-page .elementor-widget-wrap,
-.ucpf-legal-page .elementor-widget-container {
+/*
+ * Scope Elementor resets to the legal document card only.
+ * Never target page-wide .elementor — that breaks Theme Builder header/footer.
+ */
+.ucpf-legal-shell .elementor,
+.ucpf-legal-shell .elementor-section,
+.ucpf-legal-shell .elementor-container,
+.ucpf-legal-shell .elementor-widget-wrap,
+.ucpf-legal-shell .elementor-widget-container {
   background: transparent !important;
   max-width: none !important;
   box-shadow: none !important;

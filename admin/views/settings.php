@@ -28,6 +28,10 @@ $current_layout = isset( $settings['banner_layout'] ) ? sanitize_key( (string) $
 if ( ! in_array( $current_layout, array( 'bar', 'modal', 'corner' ), true ) ) {
 	$current_layout = 'bar';
 }
+$current_position = isset( $settings['banner_position'] ) ? sanitize_key( (string) $settings['banner_position'] ) : 'left';
+if ( ! in_array( $current_position, array( 'left', 'center', 'right' ), true ) ) {
+	$current_position = 'left';
+}
 $accent      = isset( $settings['accent_color'] ) ? (string) $settings['accent_color'] : '';
 $accent_2    = isset( $settings['accent_2_color'] ) ? (string) $settings['accent_2_color'] : '';
 $surface     = isset( $settings['surface_color'] ) ? (string) $settings['surface_color'] : '';
@@ -80,6 +84,17 @@ $logo_url    = isset( $settings['logo_url'] ) ? (string) $settings['logo_url'] :
 						<option value="corner" <?php selected( $current_layout, 'corner' ); ?>><?php esc_html_e( 'Corner card', 'universal-consent-privacy-framework' ); ?></option>
 					</select>
 					<p class="description"><?php esc_html_e( 'Save, then hard-refresh the front end (Ctrl+F5). Clear any page cache if the layout still looks unchanged.', 'universal-consent-privacy-framework' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="ucpf-banner-position"><?php esc_html_e( 'Banner position', 'universal-consent-privacy-framework' ); ?></label></th>
+				<td>
+					<select name="<?php echo esc_attr( $option_key ); ?>[banner_position]" id="ucpf-banner-position">
+						<option value="left" <?php selected( $current_position, 'left' ); ?>><?php esc_html_e( 'Left', 'universal-consent-privacy-framework' ); ?></option>
+						<option value="center" <?php selected( $current_position, 'center' ); ?>><?php esc_html_e( 'Center', 'universal-consent-privacy-framework' ); ?></option>
+						<option value="right" <?php selected( $current_position, 'right' ); ?>><?php esc_html_e( 'Right', 'universal-consent-privacy-framework' ); ?></option>
+					</select>
+					<p class="description"><?php esc_html_e( 'Horizontal placement for bar and corner layouts. Prefer Left when an accessibility widget sits bottom-right. Modal stays centered.', 'universal-consent-privacy-framework' ); ?></p>
 				</td>
 			</tr>
 			<tr>

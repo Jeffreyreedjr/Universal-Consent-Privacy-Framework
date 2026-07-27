@@ -160,6 +160,7 @@ class Theme_Manager {
 		return array(
 			'banner_theme',
 			'banner_layout',
+			'banner_position',
 			'accent_color',
 			'accent_2_color',
 			'surface_color',
@@ -257,6 +258,11 @@ class Theme_Manager {
 		if ( isset( $theme['banner_layout'] ) ) {
 			$layout = sanitize_key( (string) $theme['banner_layout'] );
 			$clean['banner_layout'] = in_array( $layout, array( 'bar', 'modal', 'corner' ), true ) ? $layout : 'bar';
+		}
+
+		if ( isset( $theme['banner_position'] ) ) {
+			$pos = sanitize_key( (string) $theme['banner_position'] );
+			$clean['banner_position'] = in_array( $pos, array( 'left', 'center', 'right' ), true ) ? $pos : 'left';
 		}
 
 		foreach ( array( 'accent_color', 'accent_2_color', 'surface_color' ) as $color_key ) {

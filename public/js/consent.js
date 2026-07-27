@@ -37,6 +37,34 @@
     }
   }
 
+  function readConsentBackup() {
+    try {
+      var raw = window.localStorage && localStorage.getItem('ucpf_consent_backup');
+      if (!raw) {
+        raw = window.sessionStorage && sessionStorage.getItem('ucpf_consent_backup');
+      }
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function writeConsentBackup(data) {
+    try {
+      var raw = JSON.stringify(data);
+      if (window.localStorage) localStorage.setItem('ucpf_consent_backup', raw);
+      if (window.sessionStorage) sessionStorage.setItem('ucpf_consent_backup', raw);
+    } catch (e) { /* private mode */ }
+  }
+
+  function clearConsentBackup() {
+    try {
+      if (window.localStorage) localStorage.removeItem('ucpf_consent_backup');
+      if (window.sessionStorage) sessionStorage.removeItem('ucpf_consent_backup');
+    } catch (e) { /* ignore */ }
+  }
+
   function defaultRejected() {
     var cats = {};
     Object.keys(config.categories || {}).forEach(function (slug) {
@@ -47,7 +75,19 @@
 
   function defaultAccepted() {
     var cats = {};
-    Object.keys(config.categories || {}).forEach(function (slug) {
+    var keys = Object.keys(config.categories || {});
+    if (!keys.length) {
+      // Fallback if config not hydrated yet — match banner shim.
+      return {
+        necessary: true,
+        preferences: true,
+        analytics: true,
+        marketing: true,
+        functional: true,
+        security: true,
+      };
+    }
+    keys.forEach(function (slug) {
       cats[slug] = true;
     });
     return cats;
@@ -55,9 +95,11 @@
 
   function shouldReprompt(cookie) {
     if (!cookie) return true;
-    if (cookie.expires && cookie.expires < Math.floor(Date.now() / 1000)) return true;
-    if (cookie.policy_version && config.policyVersion && cookie.policy_version !== config.policyVersion) return true;
-    if (cookie.version && config.consentVersion && cookie.version !== config.consentVersion) return true;
+    if (!cookie.state || cookie.state === 'unknown') return true;
+    var exp = Number(cookie.expires || 0);
+    if (exp && exp < Math.floor(Date.now() / 1000)) return true;
+    if (cookie.policy_version && config.policyVersion && String(cookie.policy_version) !== String(config.policyVersion)) return true;
+    if (cookie.version && config.consentVersion && String(cookie.version) !== String(config.consentVersion)) return true;
     return false;
   }
 
@@ -69,13 +111,17 @@
       state.uuid = '';
       return;
     }
-    var cookie = parseCookie();
+    var cookie = parseCookie() || readConsentBackup();
     if (!cookie || shouldReprompt(cookie)) {
       state.state = 'unknown';
       state.categories = defaultRejected();
       state.services = {};
       state.uuid = '';
       return;
+    }
+    // Cookie missing but backup valid — rehydrate the cookie so Path=/ persists again.
+    if (!parseCookie() && cookie.state && cookie.state !== 'unknown') {
+      writeLocalCookie(cookie);
     }
     state.uuid = cookie.uuid || '';
     state.state = cookie.state || 'custom';
@@ -226,7 +272,10 @@
   }
 
   function writeLocalCookie(payload) {
-    var maxAge = config.cookieLifetime || 180 * 86400;
+    var maxAge = parseInt(config.cookieLifetime, 10);
+    if (!maxAge || maxAge < 86400) {
+      maxAge = 180 * 86400;
+    }
     var expires = Math.floor(Date.now() / 1000) + maxAge;
     var data = {
       uuid: payload.uuid || state.uuid || (window.crypto && crypto.randomUUID ? crypto.randomUUID() : String(Date.now())),
@@ -239,17 +288,25 @@
       expires: expires,
     };
     var secure = location.protocol === 'https:' ? '; Secure' : '';
-    document.cookie = COOKIE_NAME + '=' + encodeURIComponent(JSON.stringify(data)) + '; Path=/; Max-Age=' + maxAge + '; SameSite=Lax' + secure;
+    var encoded = encodeURIComponent(JSON.stringify(data));
+    // Path=/ so consent survives navigation across the whole site.
+    document.cookie = COOKIE_NAME + '=' + encoded + '; Path=/; Max-Age=' + maxAge + '; SameSite=Lax' + secure;
     state.uuid = data.uuid;
     state.state = data.state;
     state.categories = data.categories;
     state.services = data.services || {};
+    writeConsentBackup(data);
+    // Verify browser accepted the cookie; retry once if needed.
+    var readBack = parseCookie();
+    if (!readBack || readBack.state !== data.state) {
+      document.cookie = COOKIE_NAME + '=' + encoded + '; Path=/; Max-Age=' + maxAge + '; SameSite=Lax' + secure;
+    }
+    markConsentDone();
     return data;
   }
 
   function applyConsent(payload, action) {
-    // Persist immediately so Accept All always closes the UI even if REST fails.
-    markConsentDone();
+    // Persist immediately so Accept All / Save always stick even if REST fails.
     clearReshowTimers();
     var local = writeLocalCookie(payload);
     syncWpConsent(local.categories, local.services);
@@ -262,13 +319,14 @@
         window.UCPFLoader.unloadService();
       }
     }
+    prefsDirty = false;
     hideBanner();
     hidePrefs();
     showFab();
     if (window.UCPFLoader) window.UCPFLoader.applyConsent(state);
 
     return apiRequest('consent', Object.assign({ action: action, uuid: local.uuid }, payload)).then(function (response) {
-      if (response && response.consent) {
+      if (response && response.consent && response.consent.categories) {
         writeLocalCookie(response.consent);
         syncWpConsent(state.categories, state.services);
       }
@@ -279,6 +337,8 @@
   }
 
   var bannerEl, prefsEl, fabEl, prefsReturnFocus;
+  /** True when prefs toggles changed but Save Preferences has not been pressed. */
+  var prefsDirty = false;
 
   function qs(sel, ctx) {
     return (ctx || document).querySelector(sel);
@@ -310,13 +370,22 @@
     if (['bar', 'modal', 'corner'].indexOf(layout) === -1) {
       layout = 'bar';
     }
+    var position = String(config.bannerPosition || bannerEl.getAttribute('data-ucpf-position') || 'left');
+    if (['left', 'center', 'right'].indexOf(position) === -1) {
+      position = 'left';
+    }
 
     // Force layout class from settings (theme CSS alone is not enough if markup is stale/cached).
     ['bar', 'modal', 'corner'].forEach(function (name) {
       bannerEl.classList.remove('ucpf-banner--' + name);
     });
+    ['left', 'center', 'right'].forEach(function (name) {
+      bannerEl.classList.remove('ucpf-banner--pos-' + name);
+    });
     bannerEl.classList.add('ucpf-banner--' + layout);
+    bannerEl.classList.add('ucpf-banner--pos-' + position);
     bannerEl.setAttribute('data-ucpf-layout', layout);
+    bannerEl.setAttribute('data-ucpf-position', position);
     if (bannerEl.parentElement && bannerEl.parentElement.id === 'ucpf-root') {
       bannerEl.parentElement.setAttribute('data-ucpf-layout', layout);
     }
@@ -355,9 +424,11 @@
   function showPrefs() {
     if (!prefsEl) return;
     prefsReturnFocus = document.activeElement;
+    prefsDirty = false;
     renderPrefs();
     prefsEl.hidden = false;
     prefsEl.removeAttribute('hidden');
+    setPrefsHint('');
     var dialog = prefsEl.querySelector('.ucpf-prefs__dialog');
     var focusable = getFocusable(dialog);
     window.setTimeout(function () {
@@ -373,6 +444,8 @@
     if (!prefsEl) return;
     prefsEl.hidden = true;
     prefsEl.setAttribute('hidden', 'hidden');
+    setPrefsHint('');
+    prefsDirty = false;
     if (prefsReturnFocus && typeof prefsReturnFocus.focus === 'function') {
       window.setTimeout(function () {
         try {
@@ -380,6 +453,34 @@
         } catch (err) { /* ignore */ }
         prefsReturnFocus = null;
       }, 0);
+    }
+  }
+
+  function setPrefsHint(message) {
+    if (!prefsEl) return;
+    var hint = prefsEl.querySelector('.ucpf-prefs__hint');
+    if (!hint) {
+      var dialog = prefsEl.querySelector('.ucpf-prefs__dialog');
+      if (!dialog) return;
+      hint = document.createElement('p');
+      hint.className = 'ucpf-prefs__hint';
+      hint.setAttribute('role', 'status');
+      hint.setAttribute('aria-live', 'polite');
+      var footer = dialog.querySelector('.ucpf-prefs__footer');
+      if (footer) {
+        dialog.insertBefore(hint, footer);
+      } else {
+        dialog.appendChild(hint);
+      }
+    }
+    if (message) {
+      hint.textContent = message;
+      hint.hidden = false;
+      hint.removeAttribute('hidden');
+    } else {
+      hint.textContent = '';
+      hint.hidden = true;
+      hint.setAttribute('hidden', 'hidden');
     }
   }
 
@@ -429,6 +530,8 @@
         var next = toggle.getAttribute('aria-checked') !== 'true';
         toggle.setAttribute('aria-checked', next ? 'true' : 'false');
         state.categories[slug] = next;
+        prefsDirty = true;
+        setPrefsHint('Changes not saved yet. Press Save Preferences to apply.');
       }
       toggle.addEventListener('click', flip);
       toggle.addEventListener('keydown', function (e) {
@@ -465,6 +568,7 @@
       if (action) {
         var type = action.getAttribute('data-ucpf-action');
         if (type === 'accept_all') {
+          // Always persist cookie + close (banner shim may also call acceptAll).
           UCPF.acceptAll();
         } else if (type === 'reject_all') {
           UCPF.rejectAll();
@@ -479,7 +583,17 @@
         UCPF.openPreferences();
       }
 
+      // Overlay must not discard unsaved prefs — require Save / Reject / ESC.
       if (e.target.closest('[data-ucpf-close-overlay]')) {
+        if (prefsEl && !prefsEl.hidden) {
+          e.preventDefault();
+          setPrefsHint(prefsDirty
+            ? 'Press Save Preferences to apply your choices, or Reject All / Escape for essential only.'
+            : 'Press Save Preferences to close, or Reject All / Escape for essential only.');
+          var saveBtn = prefsEl.querySelector('[data-ucpf-action="save_preferences"]');
+          if (saveBtn) saveBtn.focus();
+          return;
+        }
         UCPF.rejectAll();
       }
     });
@@ -487,6 +601,7 @@
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') {
         if (prefsEl && !prefsEl.hidden) {
+          // ESC = essential only (reject) — explicit dismiss that does persist.
           UCPF.rejectAll();
         } else if (bannerEl && !bannerEl.hidden) {
           UCPF.rejectAll();

@@ -247,6 +247,10 @@ class Admin {
 			? $input['banner_layout']
 			: ( isset( $current['banner_layout'] ) ? $current['banner_layout'] : 'bar' );
 
+		$clean['banner_position'] = isset( $input['banner_position'] ) && in_array( $input['banner_position'], array( 'left', 'center', 'right' ), true )
+			? $input['banner_position']
+			: ( isset( $current['banner_position'] ) ? $current['banner_position'] : 'left' );
+
 		if ( isset( $input['banner_theme'] ) ) {
 			$theme = sanitize_key( $input['banner_theme'] );
 			$known = Theme_Manager::instance()->get_preset_keys();
@@ -907,7 +911,7 @@ class Admin {
 
 		$update = array();
 
-		$text_fields = array( 'business_name', 'business_address', 'business_country', 'business_phone', 'banner_layout', 'banner_theme' );
+		$text_fields = array( 'business_name', 'business_address', 'business_country', 'business_phone', 'banner_layout', 'banner_position', 'banner_theme' );
 		foreach ( $text_fields as $field ) {
 			if ( isset( $_POST[ $field ] ) ) {
 				$update[ $field ] = sanitize_text_field( wp_unslash( $_POST[ $field ] ) );

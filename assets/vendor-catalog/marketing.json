@@ -54,12 +54,40 @@
       "provider": "PayPal",
       "category": "functional",
       "treatment": "consent",
-      "description": "PayPal checkout and payment widgets.",
+      "description": "PayPal checkout, payment widgets, and related fraud/stats hosts.",
       "privacy_url": "https://www.paypal.com/us/legalhub/privacy-full",
-      "script_patterns": ["paypal.com/sdk", "paypalobjects.com", "www.paypal.com/sdk/js"],
-      "cookie_patterns": ["paypal*", "ts*", "enforce_policy"],
-      "cookies": [],
-      "iframe_patterns": ["paypal.com"],
+      "script_patterns": [
+        "paypal.com/sdk",
+        "paypalobjects.com",
+        "www.paypal.com/sdk/js",
+        "c.paypal.com",
+        "b.stats.paypal.com",
+        "c6.paypal.com",
+        "lvs.stats.paypal.com",
+        "stats.paypal.com"
+      ],
+      "cookie_patterns": ["paypal*", "ts*", "enforce_policy", "l7_az", "sc_f", "__paypal*"],
+      "cookies": [
+        {
+          "name": "l7_az",
+          "pattern": "l7_az",
+          "purpose": "PayPal login / availability zone routing.",
+          "retention": "Session / short-lived",
+          "category": "preferences",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in", "checkout"]
+        },
+        {
+          "name": "sc_f",
+          "pattern": "sc_f",
+          "purpose": "PayPal session / fraud-related cookie.",
+          "retention": "varies",
+          "category": "preferences",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in", "checkout"]
+        }
+      ],
+      "iframe_patterns": ["paypal.com", "c.paypal.com"],
       "default_blocking": true
     },
     {
@@ -108,7 +136,7 @@
       "treatment": "consent",
       "description": "Email marketing forms and tracking.",
       "privacy_url": "https://www.constantcontact.com/legal/privacy-center",
-      "script_patterns": ["static.ctctcdn.com", "constantcontact.com"],
+      "script_patterns": ["static.ctctcdn.com", "listgrowth.ctctcdn.com", "constantcontact.com"],
       "cookie_patterns": [],
       "cookies": [],
       "iframe_patterns": [],

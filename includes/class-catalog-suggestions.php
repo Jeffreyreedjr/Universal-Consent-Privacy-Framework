@@ -37,6 +37,40 @@ class Catalog_Suggestions {
 				'googleusercontent.com',
 				'w.org',
 				'wordpress.org',
+				'example.invalid',
+				'about:blank',
+			)
+		);
+	}
+
+	/**
+	 * Known vendor parent domains — prefer merging into bundled catalog, not local_* stubs.
+	 *
+	 * @return array<string, string> parent domain => service key hint
+	 */
+	public static function known_vendor_parents() {
+		return apply_filters(
+			'ucpf_catalog_known_vendor_parents',
+			array(
+				'paypal.com'           => 'paypal',
+				'paypalobjects.com'    => 'paypal',
+				'youtube.com'          => 'youtube',
+				'youtu.be'             => 'youtube',
+				'ytimg.com'            => 'youtube',
+				'ggpht.com'            => 'youtube',
+				'userway.org'          => 'userway',
+				'calendly.com'         => 'calendly',
+				'cloudflareinsights.com' => 'cloudflare_web_analytics',
+				'doubleclick.net'      => 'google_ads',
+				'googletagmanager.com' => 'google_tag_manager',
+				'google-analytics.com' => 'google_analytics_4',
+				'ctctcdn.com'          => 'constant_contact',
+				'mailchimp.com'        => 'mailchimp',
+				'chimpstatic.com'      => 'mailchimp',
+				'stripe.com'           => 'stripe',
+				'facebook.com'         => 'meta_pixel',
+				'facebook.net'         => 'meta_pixel',
+				'tawk.to'              => 'tawkto',
 			)
 		);
 	}
@@ -100,6 +134,32 @@ class Catalog_Suggestions {
 		if ( '' === $host ) {
 			return new \WP_Error( 'ucpf_bad_host', __( 'Invalid host.', 'universal-consent-privacy-framework' ) );
 		}
+		if ( 'example.invalid' === $host || false !== strpos( $host, 'example.invalid' ) || 'about:blank' === $host ) {
+			return new \WP_Error(
+				'ucpf_noise_host',
+				__( 'This host is scanner noise and cannot be applied as a site-local service.', 'universal-consent-privacy-framework' )
+			);
+		}
+		$merge = self::match_known_vendor( $host );
+		if ( $merge ) {
+			return new \WP_Error(
+				'ucpf_use_catalog',
+				sprintf(
+					/* translators: %s: bundled service key */
+					__( 'Host already covered by bundled catalog service “%s”. Expand that service in a plugin release instead of a site-local stub.', 'universal-consent-privacy-framework' ),
+					$merge
+				),
+				array( 'service_key' => $merge )
+			);
+		}
+		foreach ( self::noise_hosts() as $n ) {
+			if ( $n && false !== strpos( $host, strtolower( (string) $n ) ) ) {
+				return new \WP_Error(
+					'ucpf_noise_host',
+					__( 'This host is on the suggestion noise list.', 'universal-consent-privacy-framework' )
+				);
+			}
+		}
 		$categories = array_keys( Consent_Manager::instance()->get_categories() );
 		$category   = sanitize_key( $category );
 		if ( ! in_array( $category, $categories, true ) ) {
@@ -154,6 +214,29 @@ class Catalog_Suggestions {
 		Script_Registry::instance()->register_service( $validated, 'site_local' );
 
 		return $validated;
+	}
+
+	/**
+	 * If host belongs under a known vendor parent, return that service key.
+	 *
+	 * @param string $host Host.
+	 * @return string Empty if none.
+	 */
+	public static function match_known_vendor( $host ) {
+		$host = strtolower( (string) $host );
+		if ( '' === $host ) {
+			return '';
+		}
+		foreach ( self::known_vendor_parents() as $parent => $service_key ) {
+			$parent = strtolower( (string) $parent );
+			if ( '' === $parent ) {
+				continue;
+			}
+			if ( $host === $parent || self::ends_with( $host, '.' . $parent ) ) {
+				return sanitize_key( (string) $service_key );
+			}
+		}
+		return '';
 	}
 
 	/**
@@ -223,6 +306,11 @@ class Catalog_Suggestions {
 				}
 			}
 			if ( $skip ) {
+				continue;
+			}
+			$vendor_key = self::match_known_vendor( $host );
+			if ( $vendor_key ) {
+				// Already represented by bundled catalog — do not suggest local_* stub.
 				continue;
 			}
 			$already = false;
@@ -325,6 +413,9 @@ class Catalog_Suggestions {
 		if ( '' === $raw ) {
 			return '';
 		}
+		if ( 0 === stripos( $raw, 'about:blank' ) ) {
+			return 'about:blank';
+		}
 		if ( preg_match( '#^https?://#i', $raw ) ) {
 			$host = wp_parse_url( $raw, PHP_URL_HOST );
 			return $host ? strtolower( $host ) : '';
@@ -334,6 +425,9 @@ class Catalog_Suggestions {
 		$raw = explode( '?', $raw )[0];
 		$raw = strtolower( $raw );
 		$raw = preg_replace( '/:\d+$/', '', $raw );
+		if ( 'example.invalid' === $raw || false !== strpos( $raw, 'example.invalid' ) ) {
+			return 'example.invalid';
+		}
 		return preg_match( '/^[a-z0-9.-]+$/', $raw ) ? $raw : '';
 	}
 

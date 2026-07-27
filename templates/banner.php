@@ -15,8 +15,12 @@ $layout = Settings::get( 'banner_layout' );
 if ( ! in_array( $layout, array( 'bar', 'modal', 'corner' ), true ) ) {
 	$layout = 'bar';
 }
+$position = Settings::get( 'banner_position' );
+if ( ! in_array( $position, array( 'left', 'center', 'right' ), true ) ) {
+	$position = 'left';
+}
 $theme  = \UCPF\Theme_Manager::instance()->resolve_preset( Settings::get( 'banner_theme' ) );
-$layout_class = 'ucpf-banner--' . esc_attr( $layout );
+$layout_class = 'ucpf-banner--' . esc_attr( $layout ) . ' ucpf-banner--pos-' . esc_attr( $position );
 $cookie_policy_url = \UCPF\Page_Generator::instance()->get_page_url( 'cookie_policy' );
 $dns_url = \UCPF\Page_Generator::instance()->get_rights_url( 'do_not_sell' );
 $logo_url = Settings::get( 'logo_url' );
@@ -26,12 +30,12 @@ $copy = isset( $pack['copy'] ) && is_array( $pack['copy'] ) ? $pack['copy'] : ar
 $banner_title = ! empty( $copy['banner_title'] ) ? $copy['banner_title'] : __( 'Cookies', 'universal-consent-privacy-framework' );
 $banner_text  = ! empty( $copy['banner_text'] ) ? $copy['banner_text'] : __( 'We use essential cookies for security and optional cookies based on your choices. This plugin helps support privacy compliance; review with legal counsel.', 'universal-consent-privacy-framework' );
 $prefs_title  = ! empty( $copy['prefs_title'] ) ? $copy['prefs_title'] : __( 'Cookie Preferences', 'universal-consent-privacy-framework' );
-$prefs_intro  = ! empty( $copy['prefs_intro'] ) ? $copy['prefs_intro'] : __( 'Choose which optional cookie categories to allow. Essential cookies stay on. Use Tab to move, Space or Enter to toggle, and Escape to reject optional cookies.', 'universal-consent-privacy-framework' );
+$prefs_intro  = ! empty( $copy['prefs_intro'] ) ? $copy['prefs_intro'] : __( 'Choose which optional cookie categories to allow. Essential cookies stay on. Accept All or Save Preferences apply your choice and close. Escape rejects optional cookies (essential only).', 'universal-consent-privacy-framework' );
 $fab_label    = ! empty( $copy['fab_label'] ) ? $copy['fab_label'] : __( 'Cookie Settings', 'universal-consent-privacy-framework' );
 $choices_label = ! empty( $copy['privacy_choices_label'] ) ? $copy['privacy_choices_label'] : __( 'Your Privacy Choices', 'universal-consent-privacy-framework' );
 $show_choices = ! empty( $pack['privacy_choices_link'] ) && $dns_url;
 ?>
-<div id="ucpf-root" class="ucpf-theme-<?php echo esc_attr( $theme ); ?>" data-ucpf-layout="<?php echo esc_attr( $layout ); ?>" data-ucpf-pack="<?php echo esc_attr( $pack['id'] ); ?>">
+<div id="ucpf-root" class="ucpf-theme-<?php echo esc_attr( $theme ); ?>" data-ucpf-layout="<?php echo esc_attr( $layout ); ?>" data-ucpf-position="<?php echo esc_attr( $position ); ?>" data-ucpf-pack="<?php echo esc_attr( $pack['id'] ); ?>">
 	<div
 		class="ucpf-banner <?php echo esc_attr( $layout_class ); ?> ucpf-banner--hidden"
 		id="ucpf-banner"
@@ -41,6 +45,7 @@ $show_choices = ! empty( $pack['privacy_choices_link'] ) && $dns_url;
 		aria-describedby="ucpf-banner-desc"
 		hidden
 		data-ucpf-layout="<?php echo esc_attr( $layout ); ?>"
+		data-ucpf-position="<?php echo esc_attr( $position ); ?>"
 	>
 		<div class="ucpf-modal__overlay" data-ucpf-close-overlay hidden></div>
 		<div class="ucpf-banner__panel" tabindex="-1">
@@ -193,7 +198,8 @@ $show_choices = ! empty( $pack['privacy_choices_link'] ) && $dns_url;
       functional: !!all,
       security: !!all
     };
-    var maxAge = (window.ucpfConfig && window.ucpfConfig.cookieLifetime) || (365 * 24 * 60 * 60);
+    var maxAge = (window.ucpfConfig && window.ucpfConfig.cookieLifetime) || (180 * 24 * 60 * 60);
+    if (maxAge < 86400) maxAge = 180 * 24 * 60 * 60;
     var payload = {
       uuid: (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()),
       state: all ? 'accepted_all' : 'rejected_all',
@@ -205,8 +211,12 @@ $show_choices = ! empty( $pack['privacy_choices_link'] ) && $dns_url;
       expires: Math.floor(Date.now() / 1000) + maxAge
     };
     var secure = location.protocol === 'https:' ? '; Secure' : '';
-    document.cookie = 'ucpf_consent=' + encodeURIComponent(JSON.stringify(payload)) +
-      '; Path=/; Max-Age=' + maxAge + '; SameSite=Lax' + secure;
+    var encoded = encodeURIComponent(JSON.stringify(payload));
+    document.cookie = 'ucpf_consent=' + encoded + '; Path=/; Max-Age=' + maxAge + '; SameSite=Lax' + secure;
+    try {
+      localStorage.setItem('ucpf_consent_backup', JSON.stringify(payload));
+      sessionStorage.setItem('ucpf_consent_backup', JSON.stringify(payload));
+    } catch (err) { /* private mode */ }
     markDone();
     hideBannerNow();
   }

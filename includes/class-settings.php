@@ -30,6 +30,7 @@ class Settings {
 			'consent_version'           => '1.0.0',
 			'cookie_lifetime_days'      => 180,
 			'banner_layout'             => 'bar',
+			'banner_position'           => 'left',
 			'banner_theme'              => 'classic',
 			'show_reject_all'           => true,
 			'show_accept_all'           => true,

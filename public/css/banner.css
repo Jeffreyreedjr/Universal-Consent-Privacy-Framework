@@ -174,7 +174,7 @@
   transform: translateY(0) scale(1);
 }
 
-/* Corner card */
+/* Corner card (default before position modifiers) */
 .ucpf-banner--corner {
   top: auto !important;
   left: auto !important;
@@ -199,6 +199,55 @@
 
 .ucpf-banner--corner .ucpf-modal__overlay {
   display: none !important;
+}
+
+/* Horizontal position — clears ADA widgets (often bottom-right). */
+#ucpf-root .ucpf-banner.ucpf-banner--pos-left,
+.ucpf-banner.ucpf-banner--pos-left {
+  left: max(1rem, env(safe-area-inset-left)) !important;
+  right: auto !important;
+  transform: none !important;
+}
+
+#ucpf-root .ucpf-banner.ucpf-banner--pos-right,
+.ucpf-banner.ucpf-banner--pos-right {
+  left: auto !important;
+  right: max(1rem, env(safe-area-inset-right)) !important;
+  transform: none !important;
+}
+
+#ucpf-root .ucpf-banner.ucpf-banner--pos-center:not(.ucpf-banner--modal),
+.ucpf-banner.ucpf-banner--pos-center:not(.ucpf-banner--modal) {
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+}
+
+/* Bar + position: compact bottom card instead of full-bleed when not center-full. */
+#ucpf-root .ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-left,
+#ucpf-root .ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-right,
+.ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-left,
+.ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-right {
+  width: min(28rem, calc(100vw - 2rem)) !important;
+  max-width: min(28rem, calc(100vw - 2rem)) !important;
+  padding: 0 !important;
+  bottom: max(1rem, env(safe-area-inset-bottom)) !important;
+}
+
+#ucpf-root .ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-center,
+.ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-center {
+  width: min(36rem, calc(100vw - 2rem)) !important;
+  max-width: min(36rem, calc(100vw - 2rem)) !important;
+  padding: 0 !important;
+  bottom: max(1rem, env(safe-area-inset-bottom)) !important;
+}
+
+/* Modal ignores left/right — stay viewport-centered. */
+#ucpf-root .ucpf-banner.ucpf-banner--modal,
+.ucpf-banner.ucpf-banner--modal {
+  left: 0 !important;
+  right: 0 !important;
+  transform: none !important;
 }
 
 #ucpf-root .ucpf-banner__label,
@@ -422,6 +471,18 @@
   font-size: 0.9375rem !important;
   line-height: 1.5 !important;
   color: var(--ucpf-muted) !important;
+}
+
+#ucpf-root .ucpf-prefs__hint,
+.ucpf-prefs__hint {
+  margin: 0.75rem 0 0.5rem !important;
+  padding: 0.65rem 0.85rem !important;
+  border: 1px solid var(--ucpf-border) !important;
+  border-radius: var(--ucpf-radius-soft, 0.5rem) !important;
+  background: color-mix(in srgb, var(--ucpf-accent, #0b5cad) 18%, transparent) !important;
+  color: var(--ucpf-cream, #fff) !important;
+  font-size: 0.9375rem !important;
+  line-height: 1.4 !important;
 }
 
 #ucpf-root .ucpf-prefs__policy,

@@ -63,7 +63,7 @@ class Page_Generator {
 	public function init() {
 		// Pages created on demand.
 		add_filter( 'body_class', array( $this, 'body_class' ) );
-		add_action( 'wp_enqueue_scripts', array( $this, 'dequeue_elementor_on_legal_pages' ), 100 );
+		// Do NOT dequeue Elementor frontend assets — Theme Builder header/footer/nav depend on them.
 		add_filter( 'the_content', array( $this, 'wrap_legal_content' ), 5 );
 		add_action( 'init', array( $this, 'ensure_generated_page_meta' ), 20 );
 	}
@@ -78,8 +78,16 @@ class Page_Generator {
 		}
 		foreach ( $generated as $page_id ) {
 			$page_id = (int) $page_id;
-			if ( $page_id && get_post( $page_id ) && ! get_post_meta( $page_id, '_ucpf_generated_page', true ) ) {
+			if ( ! $page_id || ! get_post( $page_id ) ) {
+				continue;
+			}
+			if ( ! get_post_meta( $page_id, '_ucpf_generated_page', true ) ) {
 				update_post_meta( $page_id, '_ucpf_generated_page', '1' );
+			}
+			// Prefer theme default template so header/footer locations render.
+			$tpl = (string) get_post_meta( $page_id, '_wp_page_template', true );
+			if ( $tpl && in_array( $tpl, array( 'elementor_canvas', 'elementor_header_footer', 'canvas.php' ), true ) ) {
+				update_post_meta( $page_id, '_wp_page_template', 'default' );
 			}
 		}
 	}
@@ -111,35 +119,12 @@ class Page_Generator {
 	}
 
 	/**
-	 * Strip Elementor frontend CSS/JS on generated privacy pages.
+	 * Previously dequeued Elementor on legal pages to avoid content CSS collisions.
+	 * That also broke Theme Builder header / footer / navbar. Kept as a no-op for BC
+	 * if anything still hooks this method name.
 	 */
 	public function dequeue_elementor_on_legal_pages() {
-		if ( ! $this->is_ucpf_legal_page() ) {
-			return;
-		}
-
-		$styles = array(
-			'elementor-frontend',
-			'elementor-frontend-legacy',
-			'elementor-icons',
-			'elementor-common',
-			'elementor-post-' . get_the_ID(),
-			'e-animations',
-			'font-awesome',
-		);
-		foreach ( $styles as $handle ) {
-			wp_dequeue_style( $handle );
-			wp_deregister_style( $handle );
-		}
-
-		$scripts = array(
-			'elementor-frontend',
-			'elementor-webpack-runtime',
-			'elementor-frontend-modules',
-		);
-		foreach ( $scripts as $handle ) {
-			wp_dequeue_script( $handle );
-		}
+		// Intentionally empty — site chrome must load on privacy / cookie / consent pages.
 	}
 
 	/**
@@ -236,9 +221,12 @@ class Page_Generator {
 		}
 
 		update_post_meta( $post_id, '_ucpf_generated_page', '1' );
+		// Classic page content (not Elementor canvas) so the theme / Theme Builder chrome wraps it.
 		update_post_meta( $post_id, '_elementor_edit_mode', '' );
 		delete_post_meta( $post_id, '_elementor_data' );
 		delete_post_meta( $post_id, '_elementor_css' );
+		delete_post_meta( $post_id, '_wp_page_template' );
+		update_post_meta( $post_id, '_wp_page_template', 'default' );
 
 		if ( 'privacy_policy' === $key ) {
 			update_option( 'wp_page_for_privacy_policy', $post_id );

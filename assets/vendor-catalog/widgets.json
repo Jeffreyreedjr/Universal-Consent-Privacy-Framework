@@ -41,7 +41,7 @@
       "treatment": "consent",
       "description": "Accessibility widget preferences and related cookies.",
       "privacy_url": "https://userway.org/privacy/",
-      "script_patterns": ["cdn.userway.org", "userway.org/widget"],
+      "script_patterns": ["cdn.userway.org", "api.userway.org", "userway.org/widget", "userway.org"],
       "cookie_patterns": ["userway*", "uw-*"],
       "cookies": [],
       "iframe_patterns": [],

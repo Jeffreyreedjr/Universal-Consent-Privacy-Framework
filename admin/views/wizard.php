@@ -472,6 +472,17 @@ $doc_sources       = isset( $settings['document_sources'] ) && is_array( $settin
 								</select>
 							</td>
 						</tr>
+						<tr>
+							<th><?php esc_html_e( 'Banner position', 'universal-consent-privacy-framework' ); ?></th>
+							<td>
+								<select name="banner_position">
+									<option value="left" <?php selected( isset( $settings['banner_position'] ) ? $settings['banner_position'] : 'left', 'left' ); ?>><?php esc_html_e( 'Left', 'universal-consent-privacy-framework' ); ?></option>
+									<option value="center" <?php selected( isset( $settings['banner_position'] ) ? $settings['banner_position'] : 'left', 'center' ); ?>><?php esc_html_e( 'Center', 'universal-consent-privacy-framework' ); ?></option>
+									<option value="right" <?php selected( isset( $settings['banner_position'] ) ? $settings['banner_position'] : 'left', 'right' ); ?>><?php esc_html_e( 'Right', 'universal-consent-privacy-framework' ); ?></option>
+								</select>
+								<p class="description"><?php esc_html_e( 'Use Left if an accessibility widget sits bottom-right.', 'universal-consent-privacy-framework' ); ?></p>
+							</td>
+						</tr>
 					</table>
 				<?php endif; ?>
 

@@ -8,8 +8,8 @@
       "treatment": "consent",
       "description": "Embedded YouTube videos.",
       "privacy_url": "https://policies.google.com/privacy",
-      "script_patterns": ["youtube.com/iframe_api", "www.youtube.com/s"],
-      "cookie_patterns": ["VISITOR_INFO1_LIVE", "YSC", "PREF"],
+      "script_patterns": ["youtube.com/iframe_api", "www.youtube.com/s", "youtube.com", "youtu.be", "i.ytimg.com", "yt3.ggpht.com", "jnn-pa.googleapis.com"],
+      "cookie_patterns": ["VISITOR_INFO1_LIVE", "YSC", "PREF", "VISITOR_PRIVACY_METADATA", "__Secure-YNID", "__Secure-ROLLOUT_TOKEN", "__Secure-YEC"],
       "cookies": [
         {
           "name": "VISITOR_INFO1_LIVE",
@@ -26,6 +26,42 @@
           "purpose": "Registers a unique ID for statistics of which YouTube videos the user has seen.",
           "retention": "Session",
           "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "VISITOR_PRIVACY_METADATA",
+          "pattern": "VISITOR_PRIVACY_METADATA",
+          "purpose": "YouTube visitor privacy metadata for embedded players.",
+          "retention": "months",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "__Secure-YNID",
+          "pattern": "__Secure-YNID",
+          "purpose": "YouTube player preferences, secure login aids, and spam detection.",
+          "retention": "months",
+          "category": "preferences",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "__Secure-ROLLOUT_TOKEN",
+          "pattern": "__Secure-ROLLOUT_TOKEN",
+          "purpose": "Registers a unique ID for YouTube video view statistics / feature rollout.",
+          "retention": "months",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "__Secure-YEC",
+          "pattern": "__Secure-YEC",
+          "purpose": "YouTube embed / experiment cookie set with embedded players.",
+          "retention": "months",
+          "category": "marketing",
           "treatment": "consent",
           "contexts": ["guest", "logged_in"]
         }

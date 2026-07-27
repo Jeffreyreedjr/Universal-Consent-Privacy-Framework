@@ -71,6 +71,88 @@
       ],
       "iframe_patterns": [],
       "default_blocking": false
+    },
+    {
+      "key": "woocommerce_order_attribution",
+      "name": "WooCommerce Order Attribution",
+      "provider": "Automattic",
+      "category": "analytics",
+      "treatment": "consent",
+      "description": "Sourcebuster / order-attribution scripts (sbjs_* cookies). Separate from necessary cart/checkout cookies.",
+      "privacy_url": "https://automattic.com/privacy/",
+      "script_patterns": [
+        "sourcebuster.min.js",
+        "sourcebuster",
+        "order-attribution.min.js",
+        "wc-order-attribution"
+      ],
+      "cookie_patterns": [
+        "sbjs_migrations",
+        "sbjs_current_add",
+        "sbjs_first_add",
+        "sbjs_current",
+        "sbjs_first",
+        "sbjs_udata",
+        "sbjs_session",
+        "sbjs_*"
+      ],
+      "cookies": [
+        {
+          "name": "sbjs_session",
+          "pattern": "sbjs_session",
+          "purpose": "Page views in this session and current path for order attribution.",
+          "retention": "Session",
+          "category": "analytics",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "sbjs_udata",
+          "pattern": "sbjs_udata",
+          "purpose": "Visitor user-agent related attribution data.",
+          "retention": "months",
+          "category": "analytics",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "sbjs_current",
+          "pattern": "sbjs_current",
+          "purpose": "Traffic origin for the current visit.",
+          "retention": "months",
+          "category": "analytics",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "sbjs_first",
+          "pattern": "sbjs_first",
+          "purpose": "Traffic origin for the first visit in attribution window.",
+          "retention": "months",
+          "category": "analytics",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "woo_discount_rules",
+      "name": "Woo Discount Rules",
+      "provider": "Flycart",
+      "category": "necessary",
+      "treatment": "necessary",
+      "description": "First-party storefront discount / dynamic price UI scripts (not a marketing tracker).",
+      "privacy_url": "",
+      "script_patterns": [
+        "/woo-discount-rules/",
+        "awdr-dynamic-price"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": false
     }
   ]
 }
