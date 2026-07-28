@@ -79,7 +79,7 @@
       return 'security';
     }
 
-    // Functional: remote fonts, maps, scheduling embeds, icon kits.
+    // Functional: remote fonts, maps / map tiles, scheduling embeds, icon kits.
     if (
       u.indexOf('use.typekit.net') !== -1 ||
       u.indexOf('p.typekit.net') !== -1 ||
@@ -90,6 +90,15 @@
       u.indexOf('ka-p.fontawesome.com') !== -1 ||
       u.indexOf('maps.googleapis.com') !== -1 ||
       u.indexOf('maps.google.com') !== -1 ||
+      u.indexOf('maps.gstatic.com') !== -1 ||
+      u.indexOf('mapbox.com') !== -1 ||
+      u.indexOf('mapbox.cn') !== -1 ||
+      u.indexOf('maptiler.com') !== -1 ||
+      u.indexOf('openstreetmap.org') !== -1 ||
+      u.indexOf('tile.openstreetmap.org') !== -1 ||
+      u.indexOf('demotiles.maplibre.org') !== -1 ||
+      u.indexOf('stadiamaps.com') !== -1 ||
+      u.indexOf('thunderforest.com') !== -1 ||
       u.indexOf('assets.calendly.com') !== -1 ||
       (u.indexOf('calendly.com') !== -1 && u.indexOf('widget') !== -1)
     ) {
@@ -251,15 +260,49 @@
     }
   }
 
+  function blockedFetchResult(url) {
+    // Prefer AbortError so MapLibre / fetch clients fail closed without trying to
+    // decode an empty 204 body as a PNG/JPEG (console: "could not be decoded").
+    var u = String(url || '').toLowerCase();
+    var looksRaster =
+      /\.(png|jpe?g|gif|webp)(\?|#|$)/.test(u) ||
+      u.indexOf('/styles/') !== -1 && u.indexOf('/sprite') !== -1;
+
+    if (looksRaster && typeof Uint8Array !== 'undefined') {
+      // 1×1 transparent PNG — valid image decode, no third-party pixels.
+      var b64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+      try {
+        var bin = atob(b64);
+        var bytes = new Uint8Array(bin.length);
+        for (var i = 0; i < bin.length; i++) {
+          bytes[i] = bin.charCodeAt(i);
+        }
+        return Promise.resolve(
+          new Response(bytes, {
+            status: 200,
+            statusText: 'UCPF Blocked',
+            headers: {
+              'Content-Type': 'image/png',
+              'Cache-Control': 'no-store',
+            },
+          })
+        );
+      } catch (ePng) {}
+    }
+
+    if (typeof DOMException === 'function') {
+      return Promise.reject(new DOMException('UCPF: blocked until consent', 'AbortError'));
+    }
+    return Promise.reject(new TypeError('UCPF: blocked until consent'));
+  }
+
   // --- Network hooks ---
   var nativeFetch = window.fetch;
   if (typeof nativeFetch === 'function') {
     window.fetch = function (input, init) {
       var url = typeof input === 'string' ? input : input && input.url ? input.url : '';
       if (shouldBlockUrl(url)) {
-        return Promise.resolve(
-          new Response('', { status: 204, statusText: 'UCPF Blocked' })
-        );
+        return blockedFetchResult(url);
       }
       return nativeFetch.apply(this, arguments);
     };

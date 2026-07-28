@@ -65,6 +65,7 @@ class Page_Generator {
 		add_filter( 'body_class', array( $this, 'body_class' ) );
 		// Do NOT dequeue Elementor frontend assets — Theme Builder header/footer/nav depend on them.
 		add_filter( 'the_content', array( $this, 'wrap_legal_content' ), 5 );
+		add_filter( 'the_title', array( $this, 'hide_theme_page_title' ), 10, 2 );
 		add_action( 'init', array( $this, 'ensure_generated_page_meta' ), 20 );
 	}
 
@@ -125,6 +126,28 @@ class Page_Generator {
 	 */
 	public function dequeue_elementor_on_legal_pages() {
 		// Intentionally empty — site chrome must load on privacy / cookie / consent pages.
+	}
+
+	/**
+	 * Suppress theme-rendered page title on UCPF legal pages (template already has an h1).
+	 * Does not affect menus, widgets, or admin — only the main loop title.
+	 *
+	 * @param string $title Title.
+	 * @param int    $post_id Post ID.
+	 * @return string
+	 */
+	public function hide_theme_page_title( $title, $post_id = 0 ) {
+		if ( is_admin() || wp_doing_ajax() || wp_is_json_request() ) {
+			return $title;
+		}
+		if ( ! $this->is_ucpf_legal_page() || ! in_the_loop() || ! is_main_query() ) {
+			return $title;
+		}
+		$post_id = (int) $post_id;
+		if ( $post_id && (int) get_queried_object_id() !== $post_id ) {
+			return $title;
+		}
+		return '';
 	}
 
 	/**

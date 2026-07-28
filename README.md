@@ -1,10 +1,26 @@
 # Universal Consent & Privacy Framework (UCPF)
 
+<p align="center">
+  <img src=".wordpress-org/banner-772x250.png" alt="Universal Consent & Privacy Framework" width="772" height="250" />
+</p>
+
+<p align="center">
+  <img src=".wordpress-org/icon-256x256.png" alt="UCPF icon" width="128" height="128" />
+</p>
+
 Open-source WordPress privacy & cookie consent toolkit. Strict GDPR-oriented defaults, local-first catalog, optional Playwright deep scanner. **Not legal advice and not a guarantee of regulatory compliance.**
 
 - **Plugin slug:** `universal-consent-privacy-framework`
 - **License:** [GPL-2.0-or-later](LICENSE)
 - **Never phones home** (remote registry off by default; never loads remote executable code)
+
+## Screenshots
+
+| Banner & Branding | Front-end consent | Cookie Scanner |
+|-------------------|-------------------|----------------|
+| ![Admin branding](.wordpress-org/screenshot-1.png) | ![Consent banner](.wordpress-org/screenshot-2.png) | ![Cookie Scanner](.wordpress-org/screenshot-3.png) |
+
+Directory / SVN assets (icons, banners, screenshots) live in [`.wordpress-org/`](.wordpress-org/). The plugin zip also ships `assets/branding/` icons for the WP admin menu.
 
 ## Quick start
 
@@ -58,7 +74,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Good first contributions: noise filters 
 | [RELEASING](docs/RELEASING.md) | Version tags, WP.org, checksums |
 | [DEVELOPER](docs/DEVELOPER.md) | Hooks, registry, REST |
 | [SCANNER-SERVER](docs/SCANNER-SERVER.md) | Self-host Playwright API on your VPS |
-| [AGENTS.md](AGENTS.md) | Conventions for automated agents |
 
 ## Disclaimer
 

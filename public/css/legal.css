@@ -24,11 +24,55 @@
   box-shadow: none !important;
 }
 
-/* Hide duplicate page title blocks only — not Theme Builder / site navbar. */
-.ucpf-legal-page .entry-header:not(.elementor-location-header):not(header),
+/*
+ * Hide WordPress / theme page titles on UCPF legal pages at all times.
+ * Templates already render .ucpf-legal__title — duplicate theme titles look broken.
+ * Scope to article / main content only; never touch site header, Theme Builder header, or nav.
+ */
+.ucpf-legal-page article > .entry-header,
+.ucpf-legal-page article > header.entry-header,
 .ucpf-legal-page article > .page-header,
-.ucpf-legal-page .entry-content > .page-header {
+.ucpf-legal-page .entry-header:not(.elementor-location-header):not(header.site-header):not(.site-header),
+.ucpf-legal-page .page-header:not(.elementor-location-header):not(header.site-header),
+.ucpf-legal-page .entry-content > .page-header,
+.ucpf-legal-page .entry-content > .entry-header,
+.ucpf-legal-page .site-main > .page-header,
+.ucpf-legal-page .site-main > header.page-header,
+.ucpf-legal-page main > .page-header,
+.ucpf-legal-page main > header.page-header,
+.ucpf-legal-page article .entry-title,
+.ucpf-legal-page article h1.entry-title,
+.ucpf-legal-page article h1.page-title,
+.ucpf-legal-page .site-main > .entry-title,
+.ucpf-legal-page .site-main > h1.entry-title,
+.ucpf-legal-page .site-main > h1.page-title,
+.ucpf-legal-page main > .entry-title,
+.ucpf-legal-page main > h1.entry-title,
+.ucpf-legal-page main > h1.page-title,
+.ucpf-legal-page .wp-block-post-title,
+.ucpf-legal-page h1.wp-block-post-title,
+.ucpf-legal-page .ast-page-title-wrapper,
+.ucpf-legal-page .ast-archive-description .page-title,
+.ucpf-legal-page .page-title-wrapper,
+.ucpf-legal-page .c-page-header,
+.ucpf-legal-page .nv-page-title-wrap,
+.ucpf-legal-page .title-wrapper,
+.ucpf-legal-page .hero-title,
+.ucpf-legal-page .site-main .elementor-widget-theme-post-title,
+.ucpf-legal-page main .elementor-widget-theme-post-title,
+.ucpf-legal-page article .elementor-widget-theme-post-title,
+.ucpf-legal-page .site-main .elementor-page-title,
+.ucpf-legal-page main .elementor-page-title {
   display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  clip: rect(0, 0, 0, 0) !important;
+  position: absolute !important;
+  width: 1px !important;
 }
 
 /*
@@ -87,24 +131,35 @@
 
 .ucpf-legal h1,
 .ucpf-legal h2,
-.ucpf-legal h3 {
-  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+.ucpf-legal h3,
+.ucpf-legal .ucpf-legal__title {
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif !important;
   letter-spacing: -0.01em;
   color: var(--ucpf-legal-ink, #0f172a) !important;
-  line-height: 1.25;
-  font-weight: 700;
+  line-height: 1.25 !important;
+  font-weight: 700 !important;
+}
+
+.ucpf-legal h1,
+.ucpf-legal .ucpf-legal__title {
+  margin: 0 0 0.5rem !important;
+  font-size: clamp(1.75rem, 4vw, 2.25rem) !important;
+  letter-spacing: -0.02em !important;
+  line-height: 1.2 !important;
+  border: 0 !important;
+  padding: 0 !important;
 }
 
 .ucpf-legal h2 {
-  margin: 2.25rem 0 0.85rem;
-  font-size: 1.35rem;
-  padding-bottom: 0.45rem;
-  border-bottom: 1px solid var(--ucpf-legal-border, #cbd5e1);
+  margin: 2.25rem 0 0.85rem !important;
+  font-size: 1.35rem !important;
+  padding-bottom: 0.45rem !important;
+  border-bottom: 1px solid var(--ucpf-legal-border, #cbd5e1) !important;
 }
 
 .ucpf-legal h3 {
-  margin: 1.75rem 0 0.65rem;
-  font-size: 1.1rem;
+  margin: 1.75rem 0 0.65rem !important;
+  font-size: 1.1rem !important;
 }
 
 .ucpf-legal p,
@@ -139,18 +194,6 @@
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--ucpf-legal-accent, #0b5cad) !important;
-}
-
-.ucpf-legal__title {
-  margin: 0 0 0.5rem;
-  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-  font-size: clamp(1.75rem, 4vw, 2.25rem);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-  color: var(--ucpf-legal-ink, #0f172a) !important;
-  border: 0;
-  padding: 0;
 }
 
 .ucpf-legal__meta {

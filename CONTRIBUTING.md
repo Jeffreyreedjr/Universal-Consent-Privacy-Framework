@@ -28,7 +28,7 @@ Before opening a PR or pushing to a public remote:
 | `assets/fonts/` | Self-hosted Plus Jakarta Sans |
 | `public/js/consent-motion.js` | Banner CSS motion (after consent.js) |
 
-Coding standards (also in `AGENTS.md`):
+Coding standards:
 
 - Namespace `UCPF\`, text domain `universal-consent-privacy-framework`
 - `ABSPATH` guards, sanitize/validate/escape, prepared SQL, nonces, capabilities

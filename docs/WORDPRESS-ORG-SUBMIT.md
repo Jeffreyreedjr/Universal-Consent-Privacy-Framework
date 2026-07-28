@@ -6,7 +6,7 @@ Slug: `universal-consent-privacy-framework`
 
 1. **Create** a WordPress.org account whose username matches `Contributors:` in [`readme.txt`](../readme.txt) (currently `universalconsent`). As of prep, `https://profiles.wordpress.org/universalconsent/` returned **404** — register that username (or change `Contributors:` to your existing WP.org username before packaging).
 2. Upload the plugin zip to a local WordPress site and run **Tools → Plugin Check** (install [Plugin Check (PCP)](https://wordpress.org/plugins/plugin-check/)). Target **ERROR = 0** on the packaged zip from `.\package.ps1`. Static packaging gates (name match, no GSAP, Credits, Screenshots, assets on disk) already pass.
-3. Confirm `.wordpress-org/` has icons, banners, and screenshots (deployed to SVN assets after approval).
+3. Confirm `.wordpress-org/` has icons, banners, and screenshots (deployed to SVN assets after approval). The GitHub README embeds the same files. The plugin zip includes `assets/branding/` for the admin menu icon.
 
 ## Submit
 

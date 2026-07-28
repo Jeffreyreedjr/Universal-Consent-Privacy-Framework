@@ -55,13 +55,18 @@ class Admin {
 	 * Register admin menus.
 	 */
 	public function register_menus() {
+		$menu_icon = UCPF_PLUGIN_URL . 'assets/branding/icon-128x128.png';
+		if ( ! is_readable( UCPF_PLUGIN_DIR . 'assets/branding/icon-128x128.png' ) ) {
+			$menu_icon = 'dashicons-shield';
+		}
+
 		add_menu_page(
 			Brand::product_name(),
 			Brand::menu_title(),
 			'manage_options',
 			self::MENU_SLUG,
 			array( $this, 'render_dashboard' ),
-			'dashicons-shield',
+			$menu_icon,
 			58
 		);
 

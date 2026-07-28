@@ -9,6 +9,6 @@ Use this once when publishing the repo.
 5. `git push -u origin main`
 6. Tag `v0.1.7-alpha` (or current `0.x.y-alpha`) when ready for a Release (triggers `.github/workflows/release.yml`)
 7. After WordPress.org approval, add `SVN_USERNAME` / `SVN_PASSWORD` secrets for deploy workflow
-8. Fill `.wordpress-org/` with icons, banners, and screenshots before directory submission (see that folder’s README)
+8. Confirm `.wordpress-org/` icons, banners, and screenshots are present (already used by the GitHub README); required before WordPress.org directory submission
 
 See [RELEASING.md](RELEASING.md) for ongoing releases.

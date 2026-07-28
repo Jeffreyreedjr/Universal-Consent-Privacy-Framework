@@ -727,10 +727,16 @@
 .ucpf-prefs__category {
   display: flex !important;
   gap: 1rem !important;
-  align-items: flex-start !important;
+  align-items: center !important;
   justify-content: space-between !important;
   padding: 1rem 0 !important;
   border-bottom: 1px solid var(--ucpf-border) !important;
+}
+
+#ucpf-root .ucpf-prefs__category > div:first-child,
+.ucpf-prefs__category > div:first-child {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
 }
 
 #ucpf-root .ucpf-prefs__category-name,
@@ -752,60 +758,100 @@
   color: var(--ucpf-muted) !important;
 }
 
+/*
+ * Preference toggles — themes often style `button { width:100%; height:auto }` which
+ * stretches these into tall rectangles with a tiny thumb. Lock size under #ucpf-root.
+ */
+#ucpf-root button.ucpf-toggle,
+#ucpf-root .ucpf-toggle,
 .ucpf-toggle {
-  position: relative;
-  width: 3.25rem;
-  height: 1.875rem;
-  min-width: 3.25rem;
-  min-height: 1.875rem;
-  border: 2px solid var(--ucpf-border, rgba(255, 255, 255, 0.35));
-  border-radius: var(--ucpf-radius-pill);
-  background: color-mix(in srgb, var(--ucpf-surface, #111111) 85%, var(--ucpf-cream, #ffffff));
-  flex-shrink: 0;
-  padding: 0;
-  cursor: pointer;
+  position: relative !important;
+  display: inline-block !important;
+  box-sizing: border-box !important;
+  width: 3.25rem !important;
+  height: 1.875rem !important;
+  min-width: 3.25rem !important;
+  max-width: 3.25rem !important;
+  min-height: 1.875rem !important;
+  max-height: 1.875rem !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 2px solid var(--ucpf-border, rgba(255, 255, 255, 0.35)) !important;
+  border-radius: 999px !important;
+  background: color-mix(in srgb, var(--ucpf-surface, #111111) 85%, var(--ucpf-cream, #ffffff)) !important;
+  flex: 0 0 3.25rem !important;
+  align-self: center !important;
+  overflow: hidden !important;
+  cursor: pointer !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  line-height: 0 !important;
+  font-size: 0 !important;
+  text-align: left !important;
+  vertical-align: middle !important;
+  box-shadow: none !important;
+  transform: none !important;
 }
 
+#ucpf-root .ucpf-toggle[aria-checked="true"],
 .ucpf-toggle[aria-checked="true"] {
-  background: var(--ucpf-accent);
-  border-color: var(--ucpf-accent-2, var(--ucpf-accent));
+  background: var(--ucpf-accent) !important;
+  border-color: var(--ucpf-accent-2, var(--ucpf-accent)) !important;
 }
 
+#ucpf-root .ucpf-toggle__thumb,
 .ucpf-toggle__thumb {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 1.375rem;
-  height: 1.375rem;
-  border-radius: 50%;
-  background: var(--ucpf-on-accent, #ffffff);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
-  transition: transform 0.2s ease;
-  pointer-events: none;
+  position: absolute !important;
+  top: 2px !important;
+  left: 2px !important;
+  right: auto !important;
+  bottom: auto !important;
+  display: block !important;
+  box-sizing: border-box !important;
+  width: 1.25rem !important;
+  height: 1.25rem !important;
+  min-width: 1.25rem !important;
+  min-height: 1.25rem !important;
+  max-width: 1.25rem !important;
+  max-height: 1.25rem !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  background: var(--ucpf-on-accent, #ffffff) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45) !important;
+  transition: transform 0.2s ease !important;
+  pointer-events: none !important;
+  transform: translateX(0) !important;
 }
 
+#ucpf-root .ucpf-toggle[aria-checked="true"] .ucpf-toggle__thumb,
 .ucpf-toggle[aria-checked="true"] .ucpf-toggle__thumb {
-  transform: translateX(1.35rem);
+  transform: translateX(1.35rem) !important;
 }
 
+#ucpf-root .ucpf-toggle:hover:not(.ucpf-toggle--locked),
 .ucpf-toggle:hover:not(.ucpf-toggle--locked) {
-  border-color: var(--ucpf-cream, #ffffff);
+  border-color: var(--ucpf-cream, #ffffff) !important;
 }
 
+#ucpf-root .ucpf-toggle:focus-visible,
 .ucpf-toggle:focus-visible {
-  outline: 3px solid var(--ucpf-focus-ring, #b45309);
-  outline-offset: 3px;
+  outline: 3px solid var(--ucpf-focus-ring, #b45309) !important;
+  outline-offset: 3px !important;
 }
 
+#ucpf-root .ucpf-toggle--locked,
 .ucpf-toggle--locked {
-  opacity: 1;
-  cursor: not-allowed;
-  background: var(--ucpf-accent);
-  border-color: var(--ucpf-accent-2, var(--ucpf-accent));
+  opacity: 1 !important;
+  cursor: not-allowed !important;
+  background: var(--ucpf-accent) !important;
+  border-color: var(--ucpf-accent-2, var(--ucpf-accent)) !important;
 }
 
+#ucpf-root .ucpf-toggle--locked .ucpf-toggle__thumb,
 .ucpf-toggle--locked .ucpf-toggle__thumb {
-  background: var(--ucpf-on-accent, #ffffff);
+  background: var(--ucpf-on-accent, #ffffff) !important;
 }
 
 .ucpf-prefs__footer {

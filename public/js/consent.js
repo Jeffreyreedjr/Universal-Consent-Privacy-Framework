@@ -266,8 +266,21 @@
     document.cookie = 'wp_consent_' + category + '=' + (value ? 'allow' : 'deny') + cookieBase(maxAge);
   }
 
+  function softStubWooOrderAttribution() {
+    // WooCommerce wp-consent-api-integration may call setOrderTracking on pages
+    // where order-attribution.js never loaded (e.g. Contact). Prevent console throws.
+    try {
+      var oa = window.wc_order_attribution;
+      if (oa && typeof oa.setOrderTracking !== 'function') {
+        oa.setOrderTracking = function () {};
+      }
+    } catch (eStub) {}
+  }
+
   function syncWpConsent(categories, services) {
     categories = categories || {};
+    softStubWooOrderAttribution();
+
     // Client-side WP Consent API cookies so Site Kit / other listeners wake without reload.
     writeWpConsentCookie('functional', true);
     writeWpConsentCookie('preferences', !!categories.preferences);
@@ -277,29 +290,35 @@
       writeWpConsentCookie('security', !!categories.security);
     }
 
-    if (typeof window.wp_set_consent === 'function') {
-      window.wp_set_consent('functional', 'allow');
-      var map = {
-        preferences: categories.preferences,
-        statistics: categories.analytics,
-        marketing: categories.marketing,
-        security: categories.security,
-      };
-      Object.keys(map).forEach(function (key) {
-        if (map[key] === undefined) return;
-        window.wp_set_consent(key, map[key] ? 'allow' : 'deny');
-      });
-    }
-    if (typeof window.wp_set_service_consent === 'function' && services) {
-      Object.keys(services).forEach(function (service) {
-        window.wp_set_service_consent(service, !!services[service]);
-      });
-    }
-    if (window.wp_consent_type === undefined && config) {
-      window.wp_consent_type = (config.consentType === 'optout') ? 'optout' : 'optin';
-      document.dispatchEvent(new CustomEvent('wp_consent_type_defined'));
-    }
     try {
+      if (typeof window.wp_set_consent === 'function') {
+        window.wp_set_consent('functional', 'allow');
+        var map = {
+          preferences: categories.preferences,
+          statistics: categories.analytics,
+          marketing: categories.marketing,
+          security: categories.security,
+        };
+        Object.keys(map).forEach(function (key) {
+          if (map[key] === undefined) return;
+          try {
+            window.wp_set_consent(key, map[key] ? 'allow' : 'deny');
+          } catch (eSet) {}
+        });
+      }
+      if (typeof window.wp_set_service_consent === 'function' && services) {
+        Object.keys(services).forEach(function (service) {
+          try {
+            window.wp_set_service_consent(service, !!services[service]);
+          } catch (eSvc) {}
+        });
+      }
+      if (window.wp_consent_type === undefined && config) {
+        window.wp_consent_type = (config.consentType === 'optout') ? 'optout' : 'optin';
+        softStubWooOrderAttribution();
+        document.dispatchEvent(new CustomEvent('wp_consent_type_defined'));
+      }
+      softStubWooOrderAttribution();
       document.dispatchEvent(new CustomEvent('wp_listen_for_consent_change', {
         detail: {
           functional: 'allow',

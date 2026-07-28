@@ -28,6 +28,11 @@ All notable changes to Universal Consent & Privacy Framework are documented here
 - Accept All: hard reload after cookie write so WordPress-enqueued Google Tag / fonts activate (same path as Reject / Save)
 - Setup Wizard: Scanner API URL/key step before Website Scan (Playwright ready check + WordPress helper fallback)
 - Setup Wizard Generate pages: Data Request and Do Not Sell / Share page URL fields (saved with Continue)
+- Legal pages: hide theme/WordPress duplicate page titles (CSS + main-loop filter); force UCPF h1/h2/h3 sizes with !important — site header/theme chrome untouched
+- Preference toggles: lock width/height under `#ucpf-root` with !important so theme `button` rules cannot stretch them into tall rectangles
+- Network gate: blocked `fetch` aborts (or returns 1×1 PNG for raster) so MapLibre does not log “image could not be decoded”; expand map tile hosts as functional
+- WP Consent sync: soft-stub missing `wc_order_attribution.setOrderTracking` so Woo’s consent listener does not throw on non-shop pages
+- Branding assets: ship `assets/branding/` icons in the plugin zip (admin menu); GitHub README shows `.wordpress-org/` banner + screenshots; deploy `ASSETS_DIR=.wordpress-org`
 
 ## [0.1.6-alpha] — 2026-07-28
 
