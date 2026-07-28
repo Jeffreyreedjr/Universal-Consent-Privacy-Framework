@@ -27,28 +27,33 @@ $nav = array(
 	'consent' => array(
 		'label' => __( 'Consent', 'universal-consent-privacy-framework' ),
 		'steps' => array(
-			5 => __( 'Website Scan', 'universal-consent-privacy-framework' ),
-			6 => __( 'Statistics', 'universal-consent-privacy-framework' ),
-			7 => __( 'Services', 'universal-consent-privacy-framework' ),
-			8 => __( 'Cookie review', 'universal-consent-privacy-framework' ),
+			5 => __( 'Scanner API', 'universal-consent-privacy-framework' ),
+			6 => __( 'Website Scan', 'universal-consent-privacy-framework' ),
+			7 => __( 'Statistics', 'universal-consent-privacy-framework' ),
+			8 => __( 'Services', 'universal-consent-privacy-framework' ),
+			9 => __( 'Cookie review', 'universal-consent-privacy-framework' ),
 		),
 	),
 	'documents' => array(
 		'label' => __( 'Documents', 'universal-consent-privacy-framework' ),
 		'steps' => array(
-			9 => __( 'Generate pages', 'universal-consent-privacy-framework' ),
+			10 => __( 'Generate pages', 'universal-consent-privacy-framework' ),
 		),
 	),
 	'finish' => array(
 		'label' => __( 'Finish', 'universal-consent-privacy-framework' ),
 		'steps' => array(
-			10 => __( 'Finish', 'universal-consent-privacy-framework' ),
+			11 => __( 'Finish', 'universal-consent-privacy-framework' ),
 		),
 	),
 );
 
 $selected_services = isset( $settings['selected_services'] ) && is_array( $settings['selected_services'] ) ? $settings['selected_services'] : array();
 $doc_sources       = isset( $settings['document_sources'] ) && is_array( $settings['document_sources'] ) ? $settings['document_sources'] : array();
+$scanner_url       = isset( $settings['scanner_api_url'] ) ? (string) $settings['scanner_api_url'] : '';
+$scanner_key       = isset( $settings['scanner_api_key'] ) ? (string) $settings['scanner_api_key'] : '';
+$scanner_ready     = (bool) \UCPF\Privacy_Scan_Importer::api_base();
+$wizard_max_step   = 11;
 ?>
 <div class="wrap ucpf-admin ucpf-wizard">
 	<h1><?php esc_html_e( 'Setup Wizard', 'universal-consent-privacy-framework' ); ?></h1>
@@ -64,7 +69,7 @@ $doc_sources       = isset( $settings['document_sources'] ) && is_array( $settin
 						<?php foreach ( $section['steps'] as $num => $label ) :
 							$num       = (int) $num;
 							$is_active = $step === $num;
-							$can_jump  = $num < $step || ( ! empty( $settings['wizard_completed'] ) && $num <= 10 );
+							$can_jump  = $num < $step || ( ! empty( $settings['wizard_completed'] ) && $num <= $wizard_max_step );
 							?>
 							<li class="<?php echo $is_active ? 'is-active' : ( $num < $step ? 'is-complete' : '' ); ?>">
 								<?php if ( $can_jump && ! $is_active ) : ?>
@@ -125,6 +130,7 @@ $doc_sources       = isset( $settings['document_sources'] ) && is_array( $settin
 							</td>
 						</tr>
 					</table>
+					<p class="description"><?php esc_html_e( 'Later in the wizard (Generate pages) you can paste URLs for your Data Request and Do Not Sell / Share pages so policies and consent UI can link to them. Forms stay on your site — UCPF only stores the links.', 'universal-consent-privacy-framework' ); ?></p>
 
 				<?php elseif ( 3 === $step ) : ?>
 					<h2><?php esc_html_e( 'Website information', 'universal-consent-privacy-framework' ); ?></h2>
@@ -162,8 +168,47 @@ $doc_sources       = isset( $settings['document_sources'] ) && is_array( $settin
 					</table>
 
 				<?php elseif ( 5 === $step ) : ?>
+					<h2><?php esc_html_e( 'Scanner API', 'universal-consent-privacy-framework' ); ?></h2>
+					<p><?php esc_html_e( 'Enter your self-hosted Playwright scanner URL and API key before running a deep scan. This is HTTPS JSON only — UCPF never loads remote executable code.', 'universal-consent-privacy-framework' ); ?></p>
+					<table class="form-table">
+						<tr>
+							<th><label for="ucpf-wizard-scanner-api-url"><?php esc_html_e( 'Scanner API URL', 'universal-consent-privacy-framework' ); ?></label></th>
+							<td>
+								<input type="url" class="regular-text" id="ucpf-wizard-scanner-api-url" name="scanner_api_url" value="<?php echo esc_attr( $scanner_url ); ?>" placeholder="https://scanner.example.com" autocomplete="off" />
+								<p class="description"><?php esc_html_e( 'Base URL of your scanner service (no trailing slash required).', 'universal-consent-privacy-framework' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th><label for="ucpf-wizard-scanner-api-key"><?php esc_html_e( 'Scanner API key', 'universal-consent-privacy-framework' ); ?></label></th>
+							<td>
+								<input type="password" class="regular-text" id="ucpf-wizard-scanner-api-key" name="scanner_api_key" value="" placeholder="<?php echo $scanner_key ? esc_attr__( 'Key saved — leave blank to keep', 'universal-consent-privacy-framework' ) : ''; ?>" autocomplete="new-password" />
+								<?php if ( $scanner_key ) : ?>
+									<p class="description"><?php esc_html_e( 'A key is already saved. Leave blank to keep it, or enter a new key to replace it.', 'universal-consent-privacy-framework' ); ?></p>
+								<?php else : ?>
+									<p class="description"><?php esc_html_e( 'Must match the key on your scanner host. Prefer UCPF_SCANNER_API_KEY in wp-config.php on production.', 'universal-consent-privacy-framework' ); ?></p>
+								<?php endif; ?>
+							</td>
+						</tr>
+					</table>
+					<?php if ( $scanner_ready ) : ?>
+						<p class="ucpf-infra-status__row"><span class="ucpf-infra-status__mark" aria-hidden="true">✓</span> <?php esc_html_e( 'Scanner API URL is configured. Continue to Website Scan to run Playwright.', 'universal-consent-privacy-framework' ); ?></p>
+					<?php else : ?>
+						<p class="description"><?php esc_html_e( 'You can skip this and use the WordPress helper scan on the next step, or import a local Playwright report later from Cookie Scanner. Deep Playwright scans need the API URL.', 'universal-consent-privacy-framework' ); ?></p>
+					<?php endif; ?>
+					<p class="description"><a href="<?php echo esc_url( admin_url( 'admin.php?page=ucpf-advanced' ) ); ?>"><?php esc_html_e( 'Advanced Settings also has these fields (agency hub, scheduled scans, etc.).', 'universal-consent-privacy-framework' ); ?></a></p>
+
+				<?php elseif ( 6 === $step ) : ?>
 					<h2><?php esc_html_e( 'Website Scan', 'universal-consent-privacy-framework' ); ?></h2>
-					<p><?php esc_html_e( 'Emulates a logged-out front-end visitor. Pick pages below (or use the Cookie Scanner screen for full controls). Guest crawl temporarily allows tags during discover so cookies can be observed.', 'universal-consent-privacy-framework' ); ?></p>
+					<?php if ( $scanner_ready ) : ?>
+						<p><?php esc_html_e( 'Scanner API is ready. Prefer Playwright for HttpOnly cookies and consent coverage checks. The WordPress helper below is a lighter inventory fallback.', 'universal-consent-privacy-framework' ); ?></p>
+						<p>
+							<a class="button button-primary" href="<?php echo esc_url( admin_url( 'admin.php?page=ucpf-scanner' ) ); ?>"><?php esc_html_e( 'Open Cookie Scanner (Playwright)', 'universal-consent-privacy-framework' ); ?></a>
+						</p>
+						<p class="description"><?php esc_html_e( 'Or run a quick WordPress helper scan here:', 'universal-consent-privacy-framework' ); ?></p>
+					<?php else : ?>
+						<p><?php esc_html_e( 'No Scanner API URL yet — using the WordPress helper scan. Emulates a logged-out front-end visitor. Add API credentials on the previous step (or Advanced Settings) for Playwright.', 'universal-consent-privacy-framework' ); ?></p>
+					<?php endif; ?>
+					<p><?php esc_html_e( 'Pick pages below (or use the Cookie Scanner screen for full controls). Guest crawl temporarily allows tags during discover so cookies can be observed.', 'universal-consent-privacy-framework' ); ?></p>
 					<div class="ucpf-scanner-picker" id="ucpf-scanner-picker">
 						<div class="ucpf-scanner-chips" id="ucpf-scanner-chips"></div>
 						<div class="ucpf-scanner-pages" id="ucpf-scanner-pages">
@@ -203,7 +248,7 @@ $doc_sources       = isset( $settings['document_sources'] ) && is_array( $settin
 						?></p>
 					<?php endif; ?>
 
-				<?php elseif ( 6 === $step ) : ?>
+				<?php elseif ( 7 === $step ) : ?>
 					<h2><?php esc_html_e( 'Statistics', 'universal-consent-privacy-framework' ); ?></h2>
 					<p><?php esc_html_e( 'Enable every analytics tool you run on this site and enter each tag/ID. You can select more than one (for example GA4 + Clarity + Hotjar).', 'universal-consent-privacy-framework' ); ?></p>
 					<?php
@@ -290,7 +335,7 @@ $doc_sources       = isset( $settings['document_sources'] ) && is_array( $settin
 					})();
 					</script>
 
-				<?php elseif ( 7 === $step ) : ?>
+				<?php elseif ( 8 === $step ) : ?>
 					<h2><?php esc_html_e( 'Services', 'universal-consent-privacy-framework' ); ?></h2>
 					<p><?php esc_html_e( 'Confirm other third-party services on this site. Analytics tools you enabled under Statistics are already configured.', 'universal-consent-privacy-framework' ); ?></p>
 					<?php
@@ -433,7 +478,7 @@ $doc_sources       = isset( $settings['document_sources'] ) && is_array( $settin
 					})();
 					</script>
 
-				<?php elseif ( 8 === $step ) : ?>
+				<?php elseif ( 9 === $step ) : ?>
 					<h2><?php esc_html_e( 'Cookie review', 'universal-consent-privacy-framework' ); ?></h2>
 					<p><?php esc_html_e( 'Review detected cookies and set how each service is dealt with. Necessary cookies (WordPress login, WooCommerce cart/session) stay allowed.', 'universal-consent-privacy-framework' ); ?></p>
 					<?php
@@ -441,12 +486,35 @@ $doc_sources       = isset( $settings['document_sources'] ) && is_array( $settin
 					include UCPF_PLUGIN_DIR . 'admin/views/partials/cookie-review.php';
 					?>
 
-				<?php elseif ( 9 === $step ) : ?>
+				<?php elseif ( 10 === $step ) : ?>
+					<?php
+					$dr_url  = isset( $settings['data_request_page_url'] ) ? (string) $settings['data_request_page_url'] : '';
+					$dns_url = isset( $settings['do_not_sell_page_url'] ) ? (string) $settings['do_not_sell_page_url'] : '';
+					?>
 					<h2><?php esc_html_e( 'Generate pages', 'universal-consent-privacy-framework' ); ?></h2>
-					<p><?php esc_html_e( 'Create Cookie Policy, Privacy Policy, and Consent Preferences from templates. Set external Data Request / Do Not Sell page URLs under Generated Pages — forms are hosted on your home site, not collected here.', 'universal-consent-privacy-framework' ); ?></p>
+					<p><?php esc_html_e( 'Create Cookie Policy, Privacy Policy, and Consent Preferences from templates. Then set links to your Data Request and Do Not Sell / Share pages so policies and the banner can point visitors there.', 'universal-consent-privacy-framework' ); ?></p>
 					<p><button type="button" class="button button-primary" id="ucpf-wizard-generate-pages"><?php esc_html_e( 'Generate policy pages now', 'universal-consent-privacy-framework' ); ?></button></p>
-					<p><a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=ucpf-pages' ) ); ?>"><?php esc_html_e( 'Open Generated Pages (rights URLs)', 'universal-consent-privacy-framework' ); ?></a></p>
 					<div id="ucpf-pages-status" class="ucpf-wizard__status" hidden></div>
+
+					<h3><?php esc_html_e( 'Rights request page links', 'universal-consent-privacy-framework' ); ?></h3>
+					<p class="description"><?php esc_html_e( 'Paste the public URLs of pages where visitors can submit a data/privacy request or opt out of sale/sharing (for example CCPA/CPRA “Do Not Sell or Share”). Forms stay on your site — UCPF only stores these links for policies and shortcodes. Not a legal determination.', 'universal-consent-privacy-framework' ); ?></p>
+					<table class="form-table">
+						<tr>
+							<th><label for="ucpf-wizard-dr-url"><?php esc_html_e( 'Data Request page URL', 'universal-consent-privacy-framework' ); ?></label></th>
+							<td>
+								<input type="url" class="large-text code" id="ucpf-wizard-dr-url" name="data_request_page_url" value="<?php echo esc_attr( $dr_url ); ?>" placeholder="https://example.com/privacy-rights/" autocomplete="off" />
+								<p class="description"><?php esc_html_e( 'Used for “Submit a privacy or data rights request” links in generated policies.', 'universal-consent-privacy-framework' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th><label for="ucpf-wizard-dns-url"><?php esc_html_e( 'Do Not Sell / Share page URL', 'universal-consent-privacy-framework' ); ?></label></th>
+							<td>
+								<input type="url" class="large-text code" id="ucpf-wizard-dns-url" name="do_not_sell_page_url" value="<?php echo esc_attr( $dns_url ); ?>" placeholder="https://example.com/do-not-sell/" autocomplete="off" />
+								<p class="description"><?php esc_html_e( 'Used for California / US state opt-out links (Do Not Sell or Share My Personal Information). Leave blank if not applicable.', 'universal-consent-privacy-framework' ); ?></p>
+							</td>
+						</tr>
+					</table>
+					<p><a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=ucpf-pages' ) ); ?>"><?php esc_html_e( 'Open Generated Pages (full settings)', 'universal-consent-privacy-framework' ); ?></a></p>
 
 				<?php else : ?>
 					<h2><?php esc_html_e( 'Finish', 'universal-consent-privacy-framework' ); ?></h2>
@@ -495,7 +563,7 @@ $doc_sources       = isset( $settings['document_sources'] ) && is_array( $settin
 						<button type="submit" class="button" name="wizard_direction" value="prev" formnovalidate><?php esc_html_e( 'Previous', 'universal-consent-privacy-framework' ); ?></button>
 					<?php endif; ?>
 					<button type="submit" class="button" name="wizard_direction" value="stay" formnovalidate><?php esc_html_e( 'Save', 'universal-consent-privacy-framework' ); ?></button>
-					<?php if ( $step < 10 ) : ?>
+					<?php if ( $step < 11 ) : ?>
 						<button type="submit" class="button button-primary" name="wizard_direction" value="next"><?php esc_html_e( 'Save and Continue', 'universal-consent-privacy-framework' ); ?></button>
 					<?php else : ?>
 						<button type="submit" class="button button-primary" name="wizard_direction" value="finish"><?php esc_html_e( 'Finish', 'universal-consent-privacy-framework' ); ?></button>

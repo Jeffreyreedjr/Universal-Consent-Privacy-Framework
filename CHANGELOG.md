@@ -26,8 +26,8 @@ All notable changes to Universal Consent & Privacy Framework are documented here
 - Reject All / withdraw: neutralize all gated scripts+stylesheets, then reload so enqueued Google Tag (`GT-…&ver=`) and fonts do not keep loading
 - Save Preferences: same hard reload after cookie write so nitpicked categories (e.g. Security only) match Accept/Reject behavior for scripts and fonts
 - Accept All: hard reload after cookie write so WordPress-enqueued Google Tag / fonts activate (same path as Reject / Save)
-- Cloudflare proxy multi-signal detection (request headers, fetch cf-ray, cookies, challenge, NS) with Scanner/Integrations/Wizard checkmarks
-- Global transactional email catalog (`email.json`): umbrella + Mailgun/SendGrid/Postmark/SES/Brevo SMTP/Mandrill/…; SMTP plugin map + option needles; auto-select necessary disclosure on scan/import
+- Setup Wizard: Scanner API URL/key step before Website Scan (Playwright ready check + WordPress helper fallback)
+- Setup Wizard Generate pages: Data Request and Do Not Sell / Share page URL fields (saved with Continue)
 
 ## [0.1.6-alpha] — 2026-07-28
 

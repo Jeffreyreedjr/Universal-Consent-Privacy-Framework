@@ -812,11 +812,29 @@ class Admin {
 	 * Setup wizard.
 	 */
 	public function render_wizard() {
-		$this->render( 'wizard', array(
-			'wizard_step' => max( 1, min( 10, (int) Settings::get( 'wizard_step' ) ) ),
-			'last_scan'   => Cookie_Scanner::instance()->get_last_scan(),
-			'services'    => Script_Registry::instance()->get_services(),
-		) );
+		$wizard_max = 11;
+		$step       = max( 1, (int) Settings::get( 'wizard_step' ) );
+
+		// One-time: Scanner API step inserted before Website Scan (old steps 5–10 → 6–11).
+		if ( ! get_option( 'ucpf_wizard_api_step_v1', false ) ) {
+			if ( $step >= 5 && $step <= 10 && ! Settings::get( 'wizard_completed' ) ) {
+				$step = min( $wizard_max, $step + 1 );
+				Settings::update( array( 'wizard_step' => $step ) );
+			} elseif ( $step > $wizard_max ) {
+				$step = $wizard_max;
+				Settings::update( array( 'wizard_step' => $step ) );
+			}
+			update_option( 'ucpf_wizard_api_step_v1', 1, false );
+		}
+
+		$this->render(
+			'wizard',
+			array(
+				'wizard_step' => max( 1, min( $wizard_max, $step ) ),
+				'last_scan'   => Cookie_Scanner::instance()->get_last_scan(),
+				'services'    => Script_Registry::instance()->get_services(),
+			)
+		);
 	}
 
 	/**
@@ -927,12 +945,31 @@ class Admin {
 
 		if ( isset( $_POST['selected_statistics'] ) && is_array( $_POST['selected_statistics'] ) ) {
 			$update['selected_statistics'] = array_values( array_filter( array_map( 'sanitize_key', wp_unslash( $_POST['selected_statistics'] ) ) ) );
-		} elseif ( 6 === $step ) {
+		} elseif ( 7 === $step ) {
 			$update['selected_statistics'] = array();
 		}
 
 		if ( isset( $_POST['contact_email'] ) ) {
 			$update['contact_email'] = sanitize_email( wp_unslash( $_POST['contact_email'] ) );
+		}
+
+		// Scanner API (wizard step before Website Scan).
+		if ( isset( $_POST['scanner_api_url'] ) ) {
+			$update['scanner_api_url'] = esc_url_raw( wp_unslash( $_POST['scanner_api_url'] ) );
+		}
+		if ( array_key_exists( 'scanner_api_key', $_POST ) ) {
+			$key_in = sanitize_text_field( wp_unslash( $_POST['scanner_api_key'] ) );
+			// Empty password field = keep existing key (do not wipe).
+			if ( '' !== $key_in ) {
+				$update['scanner_api_key'] = $key_in;
+			}
+		}
+
+		if ( isset( $_POST['data_request_page_url'] ) ) {
+			$update['data_request_page_url'] = esc_url_raw( wp_unslash( $_POST['data_request_page_url'] ) );
+		}
+		if ( isset( $_POST['do_not_sell_page_url'] ) ) {
+			$update['do_not_sell_page_url'] = esc_url_raw( wp_unslash( $_POST['do_not_sell_page_url'] ) );
 		}
 
 		$bool_fields = array( 'consent_logging', 'respect_dnt_gpc', 'banner_enabled', 'blocker_enabled' );
@@ -950,7 +987,7 @@ class Admin {
 
 		if ( isset( $_POST['selected_services'] ) && is_array( $_POST['selected_services'] ) ) {
 			$update['selected_services'] = array_map( 'sanitize_key', wp_unslash( $_POST['selected_services'] ) );
-		} elseif ( 7 === $step ) {
+		} elseif ( 8 === $step ) {
 			$update['selected_services'] = array();
 		}
 
@@ -974,7 +1011,7 @@ class Admin {
 		$service_ids_changed = false;
 
 		// Statistics step: enable each checked analytics tool + IDs (multi-select).
-		if ( 6 === $step ) {
+		if ( 7 === $step ) {
 			$templates = Tracking_Templates::all();
 			$selected  = isset( $update['selected_statistics'] ) && is_array( $update['selected_statistics'] )
 				? $update['selected_statistics']
@@ -1002,7 +1039,7 @@ class Admin {
 		}
 
 		// Services step: sync marketing tags only — analytics stay owned by Statistics.
-		if ( 7 === $step && isset( $update['selected_services'] ) && is_array( $update['selected_services'] ) ) {
+		if ( 8 === $step && isset( $update['selected_services'] ) && is_array( $update['selected_services'] ) ) {
 			$templates = Tracking_Templates::all();
 			$partial   = array();
 			$selected  = array_map( 'sanitize_key', $update['selected_services'] );
@@ -1034,16 +1071,17 @@ class Admin {
 			$update['service_ids'] = $service_ids;
 		}
 
-		if ( $goto >= 1 && $goto <= 10 && ( $goto <= $step || Settings::get( 'wizard_completed' ) ) ) {
+		$wizard_max = 11;
+		if ( $goto >= 1 && $goto <= $wizard_max && ( $goto <= $step || Settings::get( 'wizard_completed' ) ) ) {
 			$update['wizard_step'] = $goto;
 		} elseif ( 'prev' === $direction ) {
 			$update['wizard_step'] = max( 1, $step - 1 );
 		} elseif ( 'finish' === $direction ) {
-			$update['wizard_step']      = 10;
+			$update['wizard_step']      = $wizard_max;
 			$update['wizard_completed'] = true;
 		} elseif ( 'next' === $direction ) {
-			$update['wizard_step'] = min( 10, $step + 1 );
-			if ( (int) $update['wizard_step'] >= 10 ) {
+			$update['wizard_step'] = min( $wizard_max, $step + 1 );
+			if ( (int) $update['wizard_step'] >= $wizard_max ) {
 				$update['wizard_completed'] = true;
 			}
 		} else {

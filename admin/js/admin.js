@@ -1421,7 +1421,7 @@
       var adv = (ucpfAdmin && ucpfAdmin.advancedSettingsUrl) ? ucpfAdmin.advancedSettingsUrl : '';
       setStatus(
         $status,
-        'Playwright scan needs a Scanner API URL under Advanced Settings' +
+        'Playwright scan needs a Scanner API URL (Setup Wizard → Scanner API, or Advanced Settings)' +
           (adv ? ' (' + adv + ')' : '') +
           '. Or import a local CLI report JSON.',
         true
