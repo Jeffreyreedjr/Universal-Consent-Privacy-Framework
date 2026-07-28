@@ -27,7 +27,7 @@ Self-hosted **Plus Jakarta Sans** (OFL) in `assets/fonts/` — no CDN / no phone
 - UI chrome / icons ≥ **3:1**
 - Focus rings via `--ucpf-focus-ring` / `--ucpf-admin-focus` / `--ucpf-legal-focus`, visible on `:focus-visible`
 - Interactive controls expose **default / hover / active / focus-visible / disabled**
-- Respect `prefers-reduced-motion` (CSS + GSAP `matchMedia`)
+- Respect `prefers-reduced-motion` (CSS entrance animations)
 
 Banner & Branding `accent_color` injects `--ucpf-accent` + derived hover/active and mirrors onto legal accents so custom themes cannot leave orphan green hover states.
 
@@ -40,7 +40,7 @@ Banner & Branding `accent_color` injects `--ucpf-accent` + derived hover/active 
 
 ## Motion
 
-- Admin dashboard: GSAP stagger (bundled in `admin/build`)
-- Public banner: `public/js/lib/gsap.min.js` + `consent-motion.js` after consent boot
+- Admin dashboard: CSS stagger entrances (`ucpf-enter` / `ucpf-bento--intro`)
+- Public banner: `consent-motion.js` toggles CSS keyframe classes after consent boot
 
 Overrides: Banner & Branding settings, theme pack import/export, or filter `ucpf_theme_tokens`.

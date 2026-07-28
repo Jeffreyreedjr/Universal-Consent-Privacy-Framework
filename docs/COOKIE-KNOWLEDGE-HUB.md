@@ -109,6 +109,7 @@ Fleet and contribution packs are **anonymized** (no `site_url`, no first-party h
 - [ ] After hub push: spot-check Refresh on one site, then rely on daily cache
 - [ ] Keep scanner API keys per-site (separate from the knowledge hub)
 - [ ] Never treat hub data as a compliance certificate
+- [ ] Cloudflare proxy / transactional email are detected on scan (headers, NS, SMTP plugins) — disclose as necessary processors; not Accept All gated
 
 ## Rules
 

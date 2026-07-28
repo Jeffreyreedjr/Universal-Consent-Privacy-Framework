@@ -251,6 +251,54 @@
     "importance": "non_essential"
   },
   {
+    "match": ["kit.fontawesome.com", "ka-f.fontawesome.com", "ka-p.fontawesome.com", "use.fontawesome.com"],
+    "provider": "Font Awesome",
+    "category": "preferences",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": ["trackcmp.net", "activehosted.com", "lusrprx.com"],
+    "provider": "ActiveCampaign",
+    "category": "marketing",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": ["convertkit.com", "ck.page", "cdn.convertkit.com"],
+    "provider": "ConvertKit",
+    "category": "marketing",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": ["getdrip.com", "tag.getdrip.com"],
+    "provider": "Drip",
+    "category": "marketing",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": ["getresponse.com", "web-in.getresponse.com"],
+    "provider": "GetResponse",
+    "category": "marketing",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": ["mailerlite.com", "assets.mlcdn.com", "static.mailerlite.com"],
+    "provider": "MailerLite",
+    "category": "marketing",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
     "match": ["cdn.userway.org", "api.userway.org", "userway.org"],
     "provider": "UserWay",
     "category": "preferences",

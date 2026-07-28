@@ -4,6 +4,10 @@ Bundled cookie and service definitions that ship with the plugin zip. This is UC
 
 Edit JSON under this folder and ship updates in plugin releases. Site Cookie review overrides stay site-local; **fleet-wide defaults live here**.
 
+## Consent gate (any builder / theme)
+
+Services with `treatment: consent` and `default_blocking: true` feed the early **network gate** (`public/js/network-gate.js`) via `__ucpfGateExtra` — by category (`analytics`, `marketing`, `functional`, `security`). Blocking is **URL/pattern-based**, so it applies whether the tag came from Elementor, Divi, Bricks, a theme, Custom HTML, or `wp_enqueue_*`. Stylesheets (`<link>`) and scripts are deferred until that category is granted.
+
 ## Classification conventions (UCPF categories)
 
 | Catalog `category` | Admin label | Typical treatment |
@@ -34,6 +38,19 @@ Current fleet defaults (keep in sync when reviewing a reference site):
 1. Prefer **Playwright scan** (Scanner API or local CLI + import) from Cookie Scanner — inventories cookies (incl. HttpOnly), storage, scripts, iframes, beacons across no-consent / reject / accept.
 2. Or run the built-in WordPress helper for a lighter inventory pass (does not verify blocking).
 3. Review unknowns; refresh Cookie Policy; re-verify with Playwright after changing treatments.
+
+### Infrastructure (not front-end trackers)
+
+- **Cloudflare proxy** — multi-signal: `CF-*` request headers, fetch `cf-ray` / `server: cloudflare`, challenge HTML, CF cookies, and site-host NS (`*.ns.cloudflare.com`). Catalog key `cloudflare` (necessary). Web Analytics / Turnstile stay separate.
+- **Transactional email** — `email.json` umbrella `transactional_email` plus ESP providers. Detected via active SMTP plugins (`plugin-map.json`) and option/host needles (Mailgun, SendGrid, Mandrill, SES, …). **Not** visible to Playwright network as a visitor tracker. Keep marketing embeds (`mailchimp` forms) separate from `mailchimp_transactional`.
+
+## Files
+
+| File | Role |
+|------|------|
+| `core.json`, `google.json`, … | Service + cookie definitions |
+| `email.json` | Transactional SMTP / ESP disclosure services |
+| `plugin-map.json` | Active plugin → service key (detection only) |
 
 See `tools/ucpf-scanner/README.md` and `docs/GETTING-STARTED.md`.
 

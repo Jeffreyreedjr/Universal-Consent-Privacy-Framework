@@ -19,6 +19,7 @@ $ExcludeDirs = @(
     "node_modules",
     "vendor",
     ".wp-env",
+    ".phpcs-tools",
     "agent-tools",
     "docs",
     "tools",

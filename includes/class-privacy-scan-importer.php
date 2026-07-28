@@ -499,6 +499,35 @@ class Privacy_Scan_Importer {
 			}
 		}
 		$keys = array_values( array_unique( array_filter( array_map( 'sanitize_key', $keys ) ) ) );
+
+		// Live infrastructure signals on this WordPress host (proxy headers / NS / SMTP plugins).
+		if ( class_exists( __NAMESPACE__ . '\\Cookie_Scanner' ) ) {
+			$scanner = Cookie_Scanner::instance();
+			$cf      = $scanner->detect_cloudflare_proxy();
+			if ( ! empty( $cf['proxied'] ) ) {
+				$keys[]                         = 'cloudflare';
+				$imported['cloudflare_proxied'] = true;
+				$imported['cloudflare_signals'] = isset( $cf['signals'] ) ? $cf['signals'] : array();
+			}
+			foreach ( $scanner->scan_active_plugins_public() as $finding ) {
+				if ( ! empty( $finding['service'] ) ) {
+					$keys[] = sanitize_key( $finding['service'] );
+				}
+			}
+			$tx     = array_merge( array( 'transactional_email', 'gravity_smtp' ), Cookie_Scanner::transactional_provider_keys() );
+			$has_tx = false;
+			foreach ( $keys as $k ) {
+				if ( in_array( $k, $tx, true ) ) {
+					$has_tx = true;
+					break;
+				}
+			}
+			if ( $has_tx ) {
+				$keys[] = 'transactional_email';
+			}
+		}
+
+		$keys = array_values( array_unique( array_filter( array_map( 'sanitize_key', $keys ) ) ) );
 		if ( $keys ) {
 			self::select_detected_services( $keys );
 		}
@@ -547,6 +576,15 @@ class Privacy_Scan_Importer {
 		if ( ! $keys ) {
 			return;
 		}
+
+		// Legacy Gravity SMTP map key → umbrella transactional service.
+		$keys = array_map(
+			static function ( $key ) {
+				return ( 'gravity_smtp' === $key ) ? 'transactional_email' : $key;
+			},
+			$keys
+		);
+		$keys = array_values( array_unique( $keys ) );
 
 		$selected = Settings::get( 'selected_services', array() );
 		if ( ! is_array( $selected ) ) {
@@ -682,7 +720,28 @@ class Privacy_Scan_Importer {
 			'google_tag_manager'       => array( 'google tag manager', 'gtm-', 'googletagmanager.com/gtm', 'gtm.js', 'googletagmanager.com' ),
 			'google_ads'               => array( 'google ads', 'google advertising', 'doubleclick', 'googleads.g.doubleclick.net', 'static.doubleclick.net' ),
 			'youtube'                  => array( 'youtube', 'youtu.be', 'youtube.com', 'ytimg.com', 'i.ytimg.com', 'ysc', 'visitor_info1_live' ),
-			'mailchimp'                => array( 'mailchimp', 'chimpstatic.com', 'list-manage.com', 'mailchimp-for-woocommerce' ),
+			'mailchimp'                => array( 'mailchimp forms', 'chimpstatic.com', 'list-manage.com', 'mailchimp-for-woocommerce', 'mailchimp-for-wp' ),
+			'mailchimp_transactional'  => array( 'mailchimp transactional', 'mandrill', 'mandrillapp.com', 'smtp.mandrillapp.com' ),
+			'transactional_email'      => array( 'transactional email', 'gravity smtp', 'gravitysmtp', 'wp mail smtp', 'fluentsmtp', 'fluent smtp', 'post smtp', 'easy wp smtp', 'smtp mailer' ),
+			'mailgun'                  => array( 'mailgun', 'api.mailgun.net', 'smtp.mailgun.org' ),
+			'sendgrid'                 => array( 'sendgrid', 'api.sendgrid.com', 'smtp.sendgrid.net' ),
+			'postmark'                 => array( 'postmark', 'postmarkapp.com' ),
+			'amazon_ses'               => array( 'amazon ses', 'amazonaws.com/ses', 'email-smtp.', 'wp-offload-ses', 'wp ses' ),
+			'brevo_smtp'               => array( 'brevo smtp', 'smtp-relay.brevo.com', 'api.brevo.com', 'sendinblue smtp' ),
+			'sparkpost'                => array( 'sparkpost' ),
+			'smtp2go'                  => array( 'smtp2go' ),
+			'mailjet'                  => array( 'mailjet', 'in-v3.mailjet.com' ),
+			'elastic_email'            => array( 'elastic email', 'elasticemail' ),
+			'sendlayer'                => array( 'sendlayer' ),
+			'smtp_com'                 => array( 'smtp.com', 'api.smtp.com' ),
+			'resend'                   => array( 'resend.com', 'api.resend.com' ),
+			'mailersend'               => array( 'mailersend' ),
+			'emailit'                  => array( 'emailit' ),
+			'zoho_mail'                => array( 'zoho mail', 'smtp.zoho.com' ),
+			'microsoft_365_smtp'       => array( 'microsoft 365 smtp', 'smtp.office365.com', 'outlook.office365.com' ),
+			'gmail_smtp'               => array( 'gmail smtp', 'smtp.gmail.com', 'googleapis.com/gmail' ),
+			'generic_smtp'             => array( 'generic smtp', 'custom smtp', 'other smtp' ),
+			'gravity_smtp'             => array( 'gravity_smtp' ),
 			'paypal'                   => array( 'paypal', 'paypalobjects.com', 'c.paypal.com', 'b.stats.paypal.com' ),
 			'calendly'                 => array( 'calendly', 'assets.calendly.com' ),
 			'constant_contact'         => array( 'constant contact', 'ctctcdn.com', 'listgrowth.ctctcdn.com' ),
@@ -693,6 +752,12 @@ class Privacy_Scan_Importer {
 			'hcaptcha'                 => array( 'hcaptcha', 'hcaptcha.com' ),
 			'google_fonts'             => array( 'google fonts', 'fonts.googleapis.com', 'fonts.gstatic.com' ),
 			'adobe_fonts'              => array( 'typekit', 'adobe fonts', 'use.typekit.net', 'p.typekit.net' ),
+			'font_awesome'             => array( 'font awesome', 'fontawesome', 'kit.fontawesome.com' ),
+			'activecampaign'           => array( 'activecampaign', 'trackcmp.net', 'activehosted.com' ),
+			'convertkit'               => array( 'convertkit', 'ck.page' ),
+			'drip'                     => array( 'drip', 'getdrip.com' ),
+			'getresponse'              => array( 'getresponse' ),
+			'mailerlite'               => array( 'mailerlite', 'mlcdn.com' ),
 			'userway'                  => array( 'userway', 'cdn.userway.org', 'api.userway.org' ),
 			'jotform'                  => array( 'jotform', 'jotfor.ms', 'cdn.jotfor.ms' ),
 			'elementor'                => array( 'elementor' ),

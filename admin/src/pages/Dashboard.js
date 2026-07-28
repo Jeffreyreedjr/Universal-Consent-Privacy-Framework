@@ -1,5 +1,4 @@
 import { useLayoutEffect, useRef } from 'react';
-import { gsap } from 'gsap';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { Notice } from '../components/Notice';
@@ -22,63 +21,39 @@ export function Dashboard( { data } ) {
 			return undefined;
 		}
 
-		const mm = gsap.matchMedia();
-		mm.add( '(prefers-reduced-motion: no-preference)', () => {
-			const ctx = gsap.context( () => {
-				const bento = root.querySelector( '.ucpf-bento' );
-				const bentoCards = bento
-					? gsap.utils.toArray( bento.querySelectorAll( '[data-ucpf-animate="card"]' ) )
-					: [];
-				const other = gsap.utils
-					.toArray( root.querySelectorAll( '[data-ucpf-animate="card"]' ) )
-					.filter( ( el ) => ! bentoCards.includes( el ) );
+		const reduce =
+			typeof window !== 'undefined' &&
+			window.matchMedia &&
+			window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches;
 
-				if ( bento ) {
-					bento.classList.add( 'ucpf-bento--intro' );
-				}
+		if ( reduce ) {
+			return undefined;
+		}
 
-				if ( bentoCards.length ) {
-					gsap.fromTo(
-						bentoCards,
-						{ autoAlpha: 0, y: 28, scale: 0.96 },
-						{
-							autoAlpha: 1,
-							y: 0,
-							scale: 1,
-							duration: 0.55,
-							stagger: 0.1,
-							ease: 'power3.out',
-							clearProps: 'transform',
-							onComplete: () => {
-								if ( bento ) {
-									bento.classList.remove( 'ucpf-bento--intro' );
-								}
-								gsap.set( bentoCards, { clearProps: 'visibility,opacity' } );
-							},
-						}
-					);
-				}
+		root.classList.add( 'ucpf-dash--enter' );
+		const bento = root.querySelector( '.ucpf-bento' );
+		if ( bento ) {
+			bento.classList.add( 'ucpf-bento--intro' );
+		}
 
-				if ( other.length ) {
-					gsap.fromTo(
-						other,
-						{ autoAlpha: 0, y: 14 },
-						{
-							autoAlpha: 1,
-							y: 0,
-							duration: 0.4,
-							stagger: 0.05,
-							ease: 'power2.out',
-							clearProps: 'transform,visibility,opacity',
-						}
-					);
-				}
-			}, root );
-
-			return () => ctx.revert();
+		const cards = root.querySelectorAll( '[data-ucpf-animate="card"]' );
+		cards.forEach( ( el, i ) => {
+			el.style.setProperty( '--ucpf-enter-delay', `${ Math.min( i * 0.06, 0.48 ) }s` );
+			el.classList.add( 'ucpf-enter' );
 		} );
 
-		return () => mm.revert();
+		const clearIntro = () => {
+			if ( bento ) {
+				bento.classList.remove( 'ucpf-bento--intro' );
+			}
+			root.classList.remove( 'ucpf-dash--enter' );
+		};
+
+		const timer = window.setTimeout( clearIntro, 900 );
+		return () => {
+			window.clearTimeout( timer );
+			clearIntro();
+		};
 	}, [] );
 
 	return (

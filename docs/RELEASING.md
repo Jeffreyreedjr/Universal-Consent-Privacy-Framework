@@ -49,7 +49,9 @@ Get-FileHash dist\universal-consent-privacy-framework.zip -Algorithm SHA256
 
 **Slug:** `universal-consent-privacy-framework`
 
-1. Submit the plugin for directory review (one-time human process)
+See [WORDPRESS-ORG-SUBMIT.md](WORDPRESS-ORG-SUBMIT.md) for the full pre-submit and post-approval checklist.
+
+1. Submit the plugin for directory review (one-time human process) — Contributors username must exist on WordPress.org
 2. Store SVN credentials as GitHub secrets: `SVN_USERNAME`, `SVN_PASSWORD`
 3. After approval, tag releases: `.github/workflows/deploy-wordpress-org.yml` deploys via [10up/action-wordpress-plugin-deploy](https://github.com/10up/action-wordpress-plugin-deploy)
 4. Assets live in `.wordpress-org/` (icons, banners, screenshots)

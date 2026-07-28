@@ -11,8 +11,8 @@ Default theme: **classic**. Local-first; remote registry **off**.
 - [ ] Powered-by respects toggle
 - [ ] `:focus-visible` rings on buttons, toggles, FAB
 - [ ] Hover / active states distinct from default
-- [ ] `prefers-reduced-motion: reduce` disables GSAP entrance
-- [ ] Accept/Reject still works if GSAP fails to load (boot + consent.js)
+- [ ] `prefers-reduced-motion: reduce` disables CSS entrance motion
+- [ ] Accept/Reject still works if motion script fails to load (boot + consent.js)
 
 ## Admin shell
 

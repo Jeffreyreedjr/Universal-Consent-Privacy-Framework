@@ -14,6 +14,13 @@
     return window.UCPF && window.UCPF.hasConsent(category);
   }
 
+  function classifyUrl(url) {
+    if (typeof window.__ucpfClassifyUrl === 'function') {
+      return window.__ucpfClassifyUrl(url);
+    }
+    return null;
+  }
+
   function activateScript(node) {
     var src = node.getAttribute('data-src');
     var category = node.getAttribute('data-ucpf-category');
@@ -130,6 +137,68 @@
     window.dispatchEvent(new CustomEvent('ucpf:service:blocked', { detail: { service: service } }));
   }
 
+  /**
+   * Soft-defer live scripts/links for any denied gated category (gate classification).
+   * Hard reset after Reject All is a page reload in consent.js.
+   */
+  function neutralizeDeniedAssets() {
+    try {
+      if (typeof window.__ucpfRescanGate === 'function') {
+        window.__ucpfRescanGate();
+      }
+    } catch (eRescan) {}
+
+    try {
+      document.querySelectorAll('script[src]').forEach(function (node) {
+        var src = node.getAttribute('src') || '';
+        var kind = classifyUrl(src);
+        if (!kind || hasConsentForCategory(kind)) {
+          return;
+        }
+        node.setAttribute('data-src', src);
+        node.setAttribute('data-ucpf-category', kind);
+        node.setAttribute('data-ucpf-gated', '1');
+        node.type = 'text/plain';
+        try {
+          node.removeAttribute('src');
+        } catch (e) {}
+      });
+    } catch (eScript) {}
+
+    try {
+      document
+        .querySelectorAll('link[href][rel*="stylesheet"], link[href][rel*="preload"]')
+        .forEach(function (node) {
+          var href = node.getAttribute('href') || '';
+          var kind = classifyUrl(href);
+          if (!kind || hasConsentForCategory(kind)) {
+            return;
+          }
+          node.setAttribute('data-href', href);
+          node.setAttribute('data-ucpf-category', kind);
+          node.setAttribute('data-ucpf-deferred', '1');
+          node.setAttribute('data-ucpf-gated', '1');
+          try {
+            node.removeAttribute('href');
+          } catch (e) {}
+        });
+    } catch (eLink) {}
+
+    if (typeof gtag === 'function') {
+      try {
+        gtag('consent', 'update', {
+          ad_storage: hasConsentForCategory('marketing') ? 'granted' : 'denied',
+          analytics_storage: hasConsentForCategory('analytics') ? 'granted' : 'denied',
+          ad_user_data: hasConsentForCategory('marketing') ? 'granted' : 'denied',
+          ad_personalization: hasConsentForCategory('marketing') ? 'granted' : 'denied',
+          functionality_storage: hasConsentForCategory('functional') ? 'granted' : 'denied',
+          personalization_storage: hasConsentForCategory('preferences') ? 'granted' : 'denied',
+          security_storage: hasConsentForCategory('security') || hasConsentForCategory('necessary') ? 'granted' : 'denied',
+        });
+      } catch (e2) {}
+    }
+  }
+
   window.UCPFLoader = {
     applyConsent: function () {
       scanPlaceholders();
@@ -138,46 +207,14 @@
       scanPlaceholders();
     },
     unloadService: function () {
-      neutralizeTracking();
+      neutralizeDeniedAssets();
     },
   };
 
-  function neutralizeTracking() {
-    if (hasConsentForCategory('analytics')) {
-      return;
-    }
-    try {
-      document.querySelectorAll('script[src]').forEach(function (node) {
-        var src = node.getAttribute('src') || '';
-        var low = src.toLowerCase();
-        if (
-          low.indexOf('googletagmanager.com/gtag') !== -1 ||
-          low.indexOf('googletagmanager.com/gtm') !== -1 ||
-          low.indexOf('google-analytics.com') !== -1 ||
-          low.indexOf('analytics.google.com') !== -1
-        ) {
-          node.setAttribute('data-src', src);
-          node.setAttribute('data-ucpf-category', 'analytics');
-          node.type = 'text/plain';
-          node.removeAttribute('src');
-        }
-      });
-    } catch (e) {}
-    if (typeof gtag === 'function') {
-      try {
-        gtag('consent', 'update', {
-          ad_storage: hasConsentForCategory('marketing') ? 'granted' : 'denied',
-          analytics_storage: 'denied',
-          ad_user_data: hasConsentForCategory('marketing') ? 'granted' : 'denied',
-          ad_personalization: hasConsentForCategory('marketing') ? 'granted' : 'denied',
-        });
-      } catch (e2) {}
-    }
-  }
-
   window.addEventListener('ucpf:consent:changed', function () {
+    // Always neutralize denied assets first, then activate only granted placeholders.
+    neutralizeDeniedAssets();
     scanPlaceholders();
-    neutralizeTracking();
   });
   document.addEventListener('DOMContentLoaded', scanPlaceholders);
 })();

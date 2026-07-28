@@ -773,7 +773,7 @@ class Admin {
 			'label'  => __( 'Analytics network gate', 'universal-consent-privacy-framework' ),
 			'status' => is_readable( $gate_file ) ? 'ok' : 'fail',
 			'detail' => is_readable( $gate_file )
-				? __( 'Early network gate present (blocks GA/GTM/Meta collect until consent).', 'universal-consent-privacy-framework' )
+				? __( 'Early network gate present (blocks analytics/marketing/functional/security until consent).', 'universal-consent-privacy-framework' )
 				: __( 'Network gate file missing.', 'universal-consent-privacy-framework' ),
 		);
 

@@ -13,7 +13,7 @@ Before opening a PR or pushing to a public remote:
 ## Development setup
 
 1. Clone the repo into `wp-content/plugins/` or use a local WP (e.g. wp-env).
-2. From the plugin root: `npm install` then `npm run build` (React admin dashboard + GSAP bundle under `admin/build/`).
+2. From the plugin root: `npm install` then `npm run build` (React admin dashboard under `admin/build/`).
 3. Activate **Universal Consent & Privacy Framework**.
 4. Optional scanner: see `tools/ucpf-scanner/README.md`.
 
@@ -26,7 +26,7 @@ Before opening a PR or pushing to a public remote:
 | `admin/src/` | React dashboard (edit here) |
 | `admin/css/` | Design system / shell styles |
 | `assets/fonts/` | Self-hosted Plus Jakarta Sans |
-| `public/js/consent-motion.js` | Banner GSAP (after consent.js) |
+| `public/js/consent-motion.js` | Banner CSS motion (after consent.js) |
 
 Coding standards (also in `AGENTS.md`):
 

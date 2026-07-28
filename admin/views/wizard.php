@@ -404,11 +404,15 @@ $doc_sources       = isset( $settings['document_sources'] ) && is_array( $settin
 								$label   = $service ? $service['name'] : $key;
 								$checked = in_array( $key, $selected_services, true )
 									|| ( empty( $selected_services ) && ! empty( $last_scan['results'] ) );
+								$is_infra = in_array( $key, array( 'cloudflare', 'transactional_email' ), true )
+									|| in_array( $key, \UCPF\Cookie_Scanner::transactional_provider_keys(), true );
 								printf(
-									'<label class="ucpf-wizard__chip"><input type="checkbox" name="selected_services[]" value="%1$s" %2$s /> %3$s</label>',
+									'<label class="ucpf-wizard__chip%4$s"><input type="checkbox" name="selected_services[]" value="%1$s" %2$s /> %3$s <span class="ucpf-detected-mark" title="%5$s" aria-label="%5$s">✓</span></label>',
 									esc_attr( $key ),
 									checked( $checked, true, false ),
-									esc_html( $label )
+									esc_html( $label ),
+									$is_infra ? ' ucpf-wizard__chip--infra' : ' ucpf-wizard__chip--detected',
+									esc_attr__( 'Detected on this site', 'universal-consent-privacy-framework' )
 								);
 							}
 							?>

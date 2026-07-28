@@ -17,7 +17,17 @@ All notable changes to Universal Consent & Privacy Framework are documented here
 - Banner default copy mentions withdraw/manage consent via Cookie Settings
 - Scanner UI clarifies Playwright (verify) vs WordPress helper (inventory); gates Playwright run on Scanner API
 - Cookie Policy collapses property-/site-specific tracker cookies (`_ga_*`, `_gcl_*`, Hotjar `_hj*_*`, …) to catalog patterns; Integration IDs remain admin-only
+- Replace GreenSock GSAP with CSS motion (GPL-compatible for WordPress.org)
+- WordPress.org directory assets (icons, banners, screenshots) + Screenshots section
+- Open Cookie Database offline snapshot attribution in `readme.txt` Credits
 - `readme.txt` plugin title matches header `Plugin Name` (…(Alpha)) for Plugin Check `mismatched_plugin_name`
+- Catalog-driven consent gate: network gate blocks analytics/marketing/functional/security (scripts + stylesheets) from full vendor catalog; Adobe Fonts/Typekit and builder-injected tags included
+- Vendor catalog: ActiveCampaign, ConvertKit, Drip, GetResponse, MailerLite, Font Awesome kits
+- Reject All / withdraw: neutralize all gated scripts+stylesheets, then reload so enqueued Google Tag (`GT-…&ver=`) and fonts do not keep loading
+- Save Preferences: same hard reload after cookie write so nitpicked categories (e.g. Security only) match Accept/Reject behavior for scripts and fonts
+- Accept All: hard reload after cookie write so WordPress-enqueued Google Tag / fonts activate (same path as Reject / Save)
+- Cloudflare proxy multi-signal detection (request headers, fetch cf-ray, cookies, challenge, NS) with Scanner/Integrations/Wizard checkmarks
+- Global transactional email catalog (`email.json`): umbrella + Mailgun/SendGrid/Postmark/SES/Brevo SMTP/Mandrill/…; SMTP plugin map + option needles; auto-select necessary disclosure on scan/import
 
 ## [0.1.6-alpha] — 2026-07-28
 

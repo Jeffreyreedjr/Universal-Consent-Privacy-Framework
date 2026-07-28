@@ -65,6 +65,14 @@ class Catalog_Suggestions {
 				'fonts.googleapis.com' => 'google_fonts',
 				'fonts.gstatic.com'    => 'google_fonts',
 				'typekit.net'          => 'adobe_fonts',
+				'fontawesome.com'      => 'font_awesome',
+				'trackcmp.net'         => 'activecampaign',
+				'activehosted.com'     => 'activecampaign',
+				'convertkit.com'       => 'convertkit',
+				'getdrip.com'          => 'drip',
+				'getresponse.com'      => 'getresponse',
+				'mailerlite.com'       => 'mailerlite',
+				'mlcdn.com'            => 'mailerlite',
 				'challenges.cloudflare.com' => 'cloudflare_turnstile',
 				'calendly.com'         => 'calendly',
 				'cloudflareinsights.com' => 'cloudflare_web_analytics',
@@ -368,22 +376,48 @@ class Catalog_Suggestions {
 	}
 
 	/**
-	 * Gate extra patterns — site-local suggestions (bundled majors already hardcoded in network-gate.js).
+	 * Gate URL patterns from consent-blocked catalog services (bundled + site_local).
+	 * Source of truth for the early network gate beyond hardcoded majors.
 	 *
-	 * @return array{analytics: string[], marketing: string[]}
+	 * @return array{analytics: string[], marketing: string[], functional: string[], security: string[]}
 	 */
 	public static function gate_extra_patterns() {
-		$analytics = array();
-		$marketing = array();
+		$buckets = array(
+			'analytics'  => array(),
+			'marketing'  => array(),
+			'functional' => array(),
+			'security'   => array(),
+		);
+
 		foreach ( Script_Registry::instance()->get_services() as $svc ) {
-			$source = isset( $svc['source'] ) ? $svc['source'] : '';
-			if ( 'site_local' !== $source ) {
+			if ( ! is_array( $svc ) ) {
+				continue;
+			}
+			$treatment = isset( $svc['treatment'] ) ? $svc['treatment'] : 'consent';
+			if ( in_array( $treatment, array( 'necessary', 'ignore' ), true ) ) {
 				continue;
 			}
 			if ( isset( $svc['default_blocking'] ) && ! $svc['default_blocking'] ) {
 				continue;
 			}
-			$cat  = isset( $svc['category'] ) ? $svc['category'] : '';
+			$cat = isset( $svc['category'] ) ? sanitize_key( $svc['category'] ) : '';
+			if ( 'necessary' === $cat ) {
+				continue;
+			}
+			$bucket = 'analytics';
+			if ( 'marketing' === $cat ) {
+				$bucket = 'marketing';
+			} elseif ( in_array( $cat, array( 'functional', 'preferences' ), true ) ) {
+				$bucket = 'functional';
+			} elseif ( 'security' === $cat ) {
+				$bucket = 'security';
+			} elseif ( in_array( $cat, array( 'analytics', 'statistics' ), true ) ) {
+				$bucket = 'analytics';
+			} else {
+				// Unknown optional categories: fail closed as analytics-gated.
+				$bucket = 'analytics';
+			}
+
 			$pats = array_merge(
 				(array) ( $svc['script_patterns'] ?? array() ),
 				(array) ( $svc['iframe_patterns'] ?? array() )
@@ -393,19 +427,15 @@ class Catalog_Suggestions {
 				if ( '' === $p || strlen( $p ) < 4 ) {
 					continue;
 				}
-				if ( 'marketing' === $cat ) {
-					$marketing[] = $p;
-				} elseif ( in_array( $cat, array( 'analytics', 'statistics' ), true ) ) {
-					$analytics[] = $p;
-				} else {
-					// Prefer preferences/functional as analytics-gated (fail closed for unknown).
-					$analytics[] = $p;
-				}
+				$buckets[ $bucket ][] = $p;
 			}
 		}
+
 		return array(
-			'analytics' => array_values( array_unique( $analytics ) ),
-			'marketing' => array_values( array_unique( $marketing ) ),
+			'analytics'  => array_values( array_unique( $buckets['analytics'] ) ),
+			'marketing'  => array_values( array_unique( $buckets['marketing'] ) ),
+			'functional' => array_values( array_unique( $buckets['functional'] ) ),
+			'security'   => array_values( array_unique( $buckets['security'] ) ),
 		);
 	}
 

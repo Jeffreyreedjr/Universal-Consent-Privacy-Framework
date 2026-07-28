@@ -1195,6 +1195,7 @@ class Cookie_Scanner {
 		$seen_services = array();
 		$patterns      = Script_Registry::instance()->get_all_patterns();
 		$cf_challenged = false;
+		$cf_fetch_hits = array();
 
 		$max_urls   = isset( $args['max_urls'] ) ? max( 1, min( self::MAX_SERVER_URLS, (int) $args['max_urls'] ) ) : self::MAX_SERVER_URLS;
 		$normalized = array();
@@ -1235,6 +1236,11 @@ class Cookie_Scanner {
 
 			if ( ! empty( $fetched['cf_challenged'] ) ) {
 				$cf_challenged = true;
+			}
+			if ( ! empty( $fetched['cf_signals'] ) && is_array( $fetched['cf_signals'] ) ) {
+				foreach ( $fetched['cf_signals'] as $sig ) {
+					$cf_fetch_hits[ (string) $sig ] = true;
+				}
 			}
 
 			$html = $fetched['body'];
@@ -1289,6 +1295,10 @@ class Cookie_Scanner {
 			foreach ( $this->scan_active_plugins() as $finding ) {
 				$results[] = $finding;
 			}
+
+			foreach ( $this->scan_transactional_email() as $finding ) {
+				$results[] = $finding;
+			}
 		}
 
 		foreach ( $live_cookies as $cookie_name ) {
@@ -1302,6 +1312,41 @@ class Cookie_Scanner {
 
 		$cookies_found = $this->dedupe_cookies( $cookies_found );
 		$unknown       = $this->dedupe_unknown( $unknown );
+
+		$cf_cookie_hit = false;
+		foreach ( $cookies_found as $row ) {
+			if ( ! empty( $row['service'] ) && 'cloudflare' === $row['service'] ) {
+				$cf_cookie_hit = true;
+				break;
+			}
+		}
+
+		$cf_detect = $this->detect_cloudflare_proxy(
+			array(
+				'cf_challenged' => $cf_challenged,
+				'fetch_signals' => array_keys( $cf_fetch_hits ),
+				'cookie_hit'    => $cf_cookie_hit,
+			)
+		);
+		if ( ! empty( $cf_detect['proxied'] ) ) {
+			$results[] = array(
+				'type'               => 'signal',
+				'service'            => 'cloudflare',
+				'service_name'       => 'Cloudflare',
+				'pattern'            => implode( ',', $cf_detect['signals'] ),
+				'suggested_category' => 'necessary',
+				'treatment'          => 'necessary',
+				'confidence'         => 'high',
+				'blocking_status'    => 'allowed',
+				'suggested_action'   => __( 'Cloudflare proxy / edge detected (security & performance). Disclose in privacy policy; treat as necessary.', 'universal-consent-privacy-framework' ),
+				'page_url'           => 'infrastructure',
+				'context'            => 'signal',
+				'detection_methods'  => $cf_detect['signals'],
+			);
+		}
+
+		$results = $this->ensure_transactional_umbrella( $results );
+
 		$detected_keys = array();
 		foreach ( $results as $row ) {
 			if ( ! empty( $row['service'] ) ) {
@@ -1315,13 +1360,16 @@ class Cookie_Scanner {
 		}
 
 		$payload = array(
-			'date'              => current_time( 'mysql' ),
-			'results'           => $results,
-			'cookies'           => $cookies_found,
-			'unknown_cookies'   => $unknown,
-			'detected_services' => array_keys( $detected_keys ),
-			'scanned_urls'      => count( $normalized ),
-			'cf_challenged'     => $cf_challenged,
+			'date'                => current_time( 'mysql' ),
+			'results'             => $results,
+			'cookies'             => $cookies_found,
+			'unknown_cookies'     => $unknown,
+			'detected_services'   => array_keys( $detected_keys ),
+			'scanned_urls'        => count( $normalized ),
+			'cf_challenged'       => $cf_challenged,
+			'cloudflare_proxied'  => ! empty( $cf_detect['proxied'] ),
+			'cloudflare_signals'  => isset( $cf_detect['signals'] ) ? $cf_detect['signals'] : array(),
+			'transactional_email' => $this->summarize_transactional_from_results( $results ),
 		);
 
 		if ( empty( $args['skip_persist'] ) ) {
@@ -1334,15 +1382,18 @@ class Cookie_Scanner {
 		}
 
 		return array(
-			'scanned_at'        => $payload['date'],
-			'results'           => $results,
-			'cookies'           => $cookies_found,
-			'unknown_cookies'   => $unknown,
-			'detected_services' => array_keys( $detected_keys ),
-			'scanned_urls'      => $payload['scanned_urls'],
-			'cf_challenged'     => $cf_challenged,
-			'notice'            => $notice,
-			'pages_refreshed'   => ! empty( $payload['_pages_refreshed'] ),
+			'scanned_at'          => $payload['date'],
+			'results'             => $results,
+			'cookies'             => $cookies_found,
+			'unknown_cookies'     => $unknown,
+			'detected_services'   => array_keys( $detected_keys ),
+			'scanned_urls'        => $payload['scanned_urls'],
+			'cf_challenged'       => $cf_challenged,
+			'cloudflare_proxied'  => ! empty( $cf_detect['proxied'] ),
+			'cloudflare_signals'  => isset( $cf_detect['signals'] ) ? $cf_detect['signals'] : array(),
+			'transactional_email' => isset( $payload['transactional_email'] ) ? $payload['transactional_email'] : array(),
+			'notice'              => $notice,
+			'pages_refreshed'     => ! empty( $payload['_pages_refreshed'] ),
 		);
 	}
 
@@ -1560,13 +1611,31 @@ class Cookie_Scanner {
 			}
 		}
 
-		$body         = (string) wp_remote_retrieve_body( $response );
+		$body          = (string) wp_remote_retrieve_body( $response );
 		$cf_challenged = $this->html_looks_like_cloudflare_challenge( $body, $code );
+		$cf_signals    = array();
+		if ( $cf_challenged ) {
+			$cf_signals[] = 'challenge';
+		}
+
+		$hdr_cf_ray    = wp_remote_retrieve_header( $response, 'cf-ray' );
+		$hdr_cf_cache  = wp_remote_retrieve_header( $response, 'cf-cache-status' );
+		$hdr_server    = wp_remote_retrieve_header( $response, 'server' );
+		if ( $hdr_cf_ray ) {
+			$cf_signals[] = 'cf-ray';
+		}
+		if ( $hdr_cf_cache ) {
+			$cf_signals[] = 'cf-cache-status';
+		}
+		if ( is_string( $hdr_server ) && false !== stripos( $hdr_server, 'cloudflare' ) ) {
+			$cf_signals[] = 'server-cloudflare';
+		}
 
 		return array(
 			'body'          => $body,
 			'cookies'       => array_values( array_unique( $names ) ),
 			'cf_challenged' => $cf_challenged,
+			'cf_signals'    => array_values( array_unique( $cf_signals ) ),
 			'http_code'     => $code,
 		);
 	}
@@ -1600,6 +1669,387 @@ class Cookie_Scanner {
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * Detect whether the site sits behind Cloudflare (proxy / edge).
+	 *
+	 * Multi-signal: request headers, fetch response headers, challenge HTML,
+	 * CF cookies, and NS records for the site host only.
+	 *
+	 * @param array $args {
+	 *     @type bool  $cf_challenged Challenge interstitial seen.
+	 *     @type array $fetch_signals Signals from page fetches.
+	 *     @type bool  $cookie_hit    Cloudflare catalog cookies observed.
+	 * }
+	 * @return array{proxied:bool,signals:string[]}
+	 */
+	public function detect_cloudflare_proxy( array $args = array() ) {
+		$signals = array();
+
+		$header_map = array(
+			'HTTP_CF_RAY'           => 'cf-ray-request',
+			'HTTP_CF_CONNECTING_IP' => 'cf-connecting-ip',
+			'HTTP_CF_IPCOUNTRY'     => 'cf-ipcountry',
+			'HTTP_CF_VISITOR'       => 'cf-visitor',
+		);
+		foreach ( $header_map as $server_key => $label ) {
+			if ( ! empty( $_SERVER[ $server_key ] ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- presence check only.
+				$signals[ $label ] = true;
+			}
+		}
+
+		if ( ! empty( $args['cf_challenged'] ) ) {
+			$signals['challenge'] = true;
+		}
+		if ( ! empty( $args['cookie_hit'] ) ) {
+			$signals['cookie'] = true;
+		}
+		if ( ! empty( $args['fetch_signals'] ) && is_array( $args['fetch_signals'] ) ) {
+			foreach ( $args['fetch_signals'] as $sig ) {
+				$sig = sanitize_key( (string) $sig );
+				if ( '' !== $sig ) {
+					$signals[ $sig ] = true;
+				}
+			}
+		}
+
+		$ns = $this->detect_cloudflare_nameservers();
+		if ( ! empty( $ns['hit'] ) ) {
+			$signals['ns'] = true;
+		}
+
+		$list = array_keys( $signals );
+		return array(
+			'proxied' => ! empty( $list ),
+			'signals' => $list,
+		);
+	}
+
+	/**
+	 * Cached NS lookup for Cloudflare nameservers on the site host only.
+	 *
+	 * @return array{hit:bool,nameservers:string[]}
+	 */
+	private function detect_cloudflare_nameservers() {
+		$host = wp_parse_url( home_url( '/' ), PHP_URL_HOST );
+		$host = is_string( $host ) ? strtolower( $host ) : '';
+		if ( '' === $host || ! function_exists( 'dns_get_record' ) ) {
+			return array(
+				'hit'         => false,
+				'nameservers' => array(),
+			);
+		}
+
+		$cache_key = 'ucpf_cf_ns_' . md5( $host );
+		$cached    = get_transient( $cache_key );
+		if ( is_array( $cached ) && isset( $cached['hit'] ) ) {
+			return $cached;
+		}
+
+		$nameservers = array();
+		$hit         = false;
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- DNS may be disabled on some hosts.
+		$records = @dns_get_record( $host, DNS_NS );
+		if ( is_array( $records ) ) {
+			foreach ( $records as $row ) {
+				$target = '';
+				if ( ! empty( $row['target'] ) ) {
+					$target = strtolower( (string) $row['target'] );
+				} elseif ( ! empty( $row['ns'] ) ) {
+					$target = strtolower( (string) $row['ns'] );
+				}
+				if ( '' === $target ) {
+					continue;
+				}
+				$nameservers[] = $target;
+				if ( preg_match( '/\.ns\.cloudflare\.com\.?$/', $target ) ) {
+					$hit = true;
+				}
+			}
+		}
+
+		$result = array(
+			'hit'         => $hit,
+			'nameservers' => $nameservers,
+		);
+		set_transient( $cache_key, $result, DAY_IN_SECONDS );
+		return $result;
+	}
+
+	/**
+	 * Catalog keys for transactional email providers (excludes umbrella).
+	 *
+	 * @return string[]
+	 */
+	public static function transactional_provider_keys() {
+		return array(
+			'mailchimp_transactional',
+			'mailgun',
+			'sendgrid',
+			'postmark',
+			'amazon_ses',
+			'brevo_smtp',
+			'sparkpost',
+			'smtp2go',
+			'mailjet',
+			'elastic_email',
+			'sendlayer',
+			'smtp_com',
+			'resend',
+			'mailersend',
+			'emailit',
+			'zoho_mail',
+			'microsoft_365_smtp',
+			'gmail_smtp',
+			'generic_smtp',
+		);
+	}
+
+	/**
+	 * Detect ESP / SMTP provider from wp_options (SMTP plugin settings).
+	 *
+	 * @return array
+	 */
+	private function scan_transactional_email() {
+		$findings = array();
+		$meta     = $this->get_plugin_map_meta();
+		$keys     = ! empty( $meta['option_keys'] ) ? $meta['option_keys'] : array();
+		$keys     = apply_filters( 'ucpf_scan_option_keys', $keys );
+
+		$needles = array(
+			'mandrillapp.com'          => 'mailchimp_transactional',
+			'smtp.mandrillapp.com'     => 'mailchimp_transactional',
+			'mailchimp transactional'  => 'mailchimp_transactional',
+			'mailchimp_transactional'  => 'mailchimp_transactional',
+			'api.mailgun.net'          => 'mailgun',
+			'smtp.mailgun.org'         => 'mailgun',
+			'mailgun'                  => 'mailgun',
+			'api.sendgrid.com'         => 'sendgrid',
+			'smtp.sendgrid.net'        => 'sendgrid',
+			'sendgrid'                 => 'sendgrid',
+			'smtp.postmarkapp.com'     => 'postmark',
+			'api.postmarkapp.com'      => 'postmark',
+			'postmark'                 => 'postmark',
+			'email-smtp.'              => 'amazon_ses',
+			'amazonaws.com/ses'        => 'amazon_ses',
+			'amazon_ses'               => 'amazon_ses',
+			'aws_ses'                  => 'amazon_ses',
+			'api.brevo.com'            => 'brevo_smtp',
+			'smtp-relay.brevo.com'     => 'brevo_smtp',
+			'sendinblue'               => 'brevo_smtp',
+			'brevo'                    => 'brevo_smtp',
+			'sparkpost'                => 'sparkpost',
+			'smtp2go'                  => 'smtp2go',
+			'in-v3.mailjet.com'        => 'mailjet',
+			'mailjet'                  => 'mailjet',
+			'elasticemail'             => 'elastic_email',
+			'smtp.elasticemail.com'    => 'elastic_email',
+			'sendlayer'                => 'sendlayer',
+			'smtp.sendlayer.com'       => 'sendlayer',
+			'smtp.com'                 => 'smtp_com',
+			'api.smtp.com'             => 'smtp_com',
+			'api.resend.com'           => 'resend',
+			'resend.com'               => 'resend',
+			'mailersend'                => 'mailersend',
+			'emailit'                  => 'emailit',
+			'smtp.zoho.com'            => 'zoho_mail',
+			'zoho.com/mail'            => 'zoho_mail',
+			'smtp.office365.com'       => 'microsoft_365_smtp',
+			'outlook.office365.com'    => 'microsoft_365_smtp',
+			'microsoft365'             => 'microsoft_365_smtp',
+			'smtp.gmail.com'           => 'gmail_smtp',
+			'googleapis.com/gmail'     => 'gmail_smtp',
+			'gmail'                    => 'gmail_smtp',
+		);
+
+		/**
+		 * Filter transactional ESP needles (substring => service key).
+		 *
+		 * @param array $needles Map of needle => service key.
+		 */
+		$needles = apply_filters( 'ucpf_transactional_email_needles', $needles );
+
+		$smtp_plugin_active = $this->service_has_active_plugin( 'transactional_email' )
+			|| $this->service_has_active_plugin( 'amazon_ses' )
+			|| $this->service_has_active_plugin( 'gmail_smtp' );
+
+		$seen = array();
+		foreach ( $keys as $name ) {
+			$value = get_option( $name );
+			if ( is_array( $value ) || is_object( $value ) ) {
+				$value = wp_json_encode( $value );
+			}
+			if ( ! is_string( $value ) || '' === $value || strlen( $value ) > 100000 ) {
+				continue;
+			}
+			$lower = strtolower( $value );
+			foreach ( $needles as $needle => $service_key ) {
+				$needle = (string) $needle;
+				if ( '' === $needle || isset( $seen[ $service_key ] ) ) {
+					continue;
+				}
+				if ( false === strpos( $lower, strtolower( $needle ) ) ) {
+					continue;
+				}
+				// Ambiguous needles (brevo/gmail/mailgun as bare words) require an SMTP plugin.
+				$ambiguous = in_array( strtolower( $needle ), array( 'mailgun', 'sendgrid', 'postmark', 'brevo', 'sendinblue', 'gmail', 'sparkpost', 'smtp2go', 'mailjet', 'sendlayer', 'mailersend', 'emailit', 'resend.com' ), true );
+				if ( $ambiguous && ! $smtp_plugin_active ) {
+					continue;
+				}
+				// Never treat marketing Mailchimp list options as Mandrill unless SMTP plugin or explicit transactional needle.
+				if ( 'mailchimp_transactional' === $service_key && ! $smtp_plugin_active && false === strpos( $lower, 'mandrill' ) && false === strpos( $lower, 'transactional' ) ) {
+					continue;
+				}
+				$seen[ $service_key ] = true;
+				$service              = Script_Registry::instance()->get_service( $service_key );
+				$findings[]           = array(
+					'type'               => 'option',
+					'service'            => $service_key,
+					'service_name'       => $service ? $service['name'] : $service_key,
+					'pattern'            => $needle,
+					'suggested_category' => 'necessary',
+					'treatment'          => 'necessary',
+					'confidence'         => 'high',
+					'blocking_status'    => 'allowed',
+					'suggested_action'   => sprintf(
+						/* translators: %s: option name */
+						__( 'Transactional mailer found in option: %s', 'universal-consent-privacy-framework' ),
+						$name
+					),
+					'page_url'           => 'wp_options',
+					'context'            => 'admin',
+				);
+			}
+
+			// Configured generic SMTP host without a known ESP needle.
+			if ( $smtp_plugin_active && empty( $seen ) && ( false !== strpos( $lower, '"host"' ) || false !== strpos( $lower, 'smtp_host' ) || false !== strpos( $lower, 'mailer' ) ) ) {
+				if ( preg_match( '/"host"\s*:\s*"([^"]+)"/i', $value, $m ) || preg_match( '/smtp_host["\']?\s*[:=]\s*["\']?([^\s"\']+)/i', $value, $m ) ) {
+					$host = strtolower( (string) $m[1] );
+					if ( $host && 'localhost' !== $host && '127.0.0.1' !== $host && ! isset( $seen['generic_smtp'] ) ) {
+						$known = false;
+						foreach ( $needles as $n => $_k ) {
+							if ( false !== strpos( $host, strtolower( (string) $n ) ) ) {
+								$known = true;
+								break;
+							}
+						}
+						if ( ! $known ) {
+							$seen['generic_smtp'] = true;
+							$service              = Script_Registry::instance()->get_service( 'generic_smtp' );
+							$findings[]           = array(
+								'type'               => 'option',
+								'service'            => 'generic_smtp',
+								'service_name'       => $service ? $service['name'] : 'Custom SMTP',
+								'pattern'            => $host,
+								'suggested_category' => 'necessary',
+								'treatment'          => 'necessary',
+								'confidence'         => 'medium',
+								'blocking_status'    => 'allowed',
+								'suggested_action'   => __( 'Custom SMTP host configured in an SMTP plugin.', 'universal-consent-privacy-framework' ),
+								'page_url'           => 'wp_options',
+								'context'            => 'admin',
+							);
+						}
+					}
+				}
+			}
+		}
+
+		return $findings;
+	}
+
+	/**
+	 * Ensure umbrella transactional_email when any SMTP plugin or provider is found.
+	 *
+	 * @param array $results Findings.
+	 * @return array
+	 */
+	private function ensure_transactional_umbrella( array $results ) {
+		$providers = array_fill_keys( self::transactional_provider_keys(), true );
+		$providers['transactional_email'] = true;
+		$providers['gravity_smtp']        = true; // Legacy map key.
+
+		$has_email = false;
+		$has_umbrella = false;
+		foreach ( $results as $row ) {
+			if ( empty( $row['service'] ) ) {
+				continue;
+			}
+			$key = sanitize_key( $row['service'] );
+			if ( isset( $providers[ $key ] ) ) {
+				$has_email = true;
+			}
+			if ( 'transactional_email' === $key ) {
+				$has_umbrella = true;
+			}
+		}
+		if ( $has_email && ! $has_umbrella ) {
+			$service    = Script_Registry::instance()->get_service( 'transactional_email' );
+			$results[]  = array(
+				'type'               => 'signal',
+				'service'            => 'transactional_email',
+				'service_name'       => $service ? $service['name'] : 'Transactional email',
+				'pattern'            => 'umbrella',
+				'suggested_category' => 'necessary',
+				'treatment'          => 'necessary',
+				'confidence'         => 'high',
+				'blocking_status'    => 'allowed',
+				'suggested_action'   => __( 'Transactional email delivery detected (SMTP / ESP). Disclose as a processor; not a visitor tracker.', 'universal-consent-privacy-framework' ),
+				'page_url'           => 'infrastructure',
+				'context'            => 'signal',
+			);
+		}
+		return $results;
+	}
+
+	/**
+	 * Summarize transactional email detection for UI / payload.
+	 *
+	 * @param array $results Findings.
+	 * @return array{detected:bool,providers:string[]}
+	 */
+	private function summarize_transactional_from_results( array $results ) {
+		$providers = array();
+		$provider_keys = array_fill_keys( self::transactional_provider_keys(), true );
+		$detected = false;
+		foreach ( $results as $row ) {
+			if ( empty( $row['service'] ) ) {
+				continue;
+			}
+			$key = sanitize_key( $row['service'] );
+			if ( 'transactional_email' === $key || 'gravity_smtp' === $key ) {
+				$detected = true;
+				continue;
+			}
+			if ( isset( $provider_keys[ $key ] ) ) {
+				$detected         = true;
+				$providers[ $key ] = true;
+			}
+		}
+		return array(
+			'detected'  => $detected,
+			'providers' => array_keys( $providers ),
+		);
+	}
+
+	/**
+	 * Public wrapper: whether an active plugin maps to a catalog service.
+	 *
+	 * @param string $service_key Service key.
+	 * @return bool
+	 */
+	public function service_has_active_plugin_public( $service_key ) {
+		return $this->service_has_active_plugin( $service_key );
+	}
+
+	/**
+	 * Public wrapper: active plugin → catalog service findings.
+	 *
+	 * @return array
+	 */
+	public function scan_active_plugins_public() {
+		return $this->scan_active_plugins();
 	}
 
 	/**
@@ -1836,9 +2286,11 @@ class Cookie_Scanner {
 			'clarity.ms'      => array( 'service' => 'microsoft_clarity', 'category' => 'analytics' ),
 			'hotjar'          => array( 'service' => 'hotjar', 'category' => 'analytics' ),
 			'klaviyo'         => array( 'service' => 'klaviyo', 'category' => 'marketing' ),
-			'mailchimp'       => array( 'service' => 'mailchimp', 'category' => 'marketing' ),
 			'tawk.to'         => array( 'service' => 'tawkto', 'category' => 'functional' ),
 			'googletagmanager'=> array( 'service' => 'google_tag_manager', 'category' => 'analytics' ),
+			// Marketing Mailchimp embeds only — transactional Mandrill is scan_transactional_email().
+			'chimpstatic.com' => array( 'service' => 'mailchimp', 'category' => 'marketing' ),
+			'list-manage.com' => array( 'service' => 'mailchimp', 'category' => 'marketing' ),
 		);
 
 		$seen = array();
@@ -1904,6 +2356,22 @@ class Cookie_Scanner {
 		}
 		if ( isset( $payload['detected_services'] ) ) {
 			update_option( 'ucpf_detected_services', $payload['detected_services'], false );
+		}
+
+		// Auto-select infrastructure disclosures (CF proxy + transactional email).
+		$auto_keys = array();
+		if ( ! empty( $payload['cloudflare_proxied'] ) || ( ! empty( $payload['detected_services'] ) && in_array( 'cloudflare', (array) $payload['detected_services'], true ) ) ) {
+			$auto_keys[] = 'cloudflare';
+		}
+		$tx_keys = array_merge( array( 'transactional_email' ), self::transactional_provider_keys() );
+		foreach ( (array) ( isset( $payload['detected_services'] ) ? $payload['detected_services'] : array() ) as $key ) {
+			$key = sanitize_key( $key );
+			if ( in_array( $key, $tx_keys, true ) || 'gravity_smtp' === $key ) {
+				$auto_keys[] = ( 'gravity_smtp' === $key ) ? 'transactional_email' : $key;
+			}
+		}
+		if ( $auto_keys && class_exists( __NAMESPACE__ . '\\Privacy_Scan_Importer' ) ) {
+			Privacy_Scan_Importer::select_detected_services( $auto_keys );
 		}
 
 		/**

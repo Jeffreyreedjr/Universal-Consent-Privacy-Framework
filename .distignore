@@ -5,6 +5,7 @@
 .github
 .cursor
 .wp-env
+.phpcs-tools
 .distignore
 .gitignore
 .gitattributes

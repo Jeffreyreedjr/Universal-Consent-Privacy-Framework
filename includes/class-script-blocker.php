@@ -600,6 +600,47 @@ class Script_Blocker {
 					if ( is_string( $replaced ) ) {
 						$html = $replaced;
 					}
+
+					// Soft-defer matching stylesheet / preload links (Typekit, Google Fonts, kits).
+					$link_replaced = preg_replace_callback(
+						'#<link([^>]*' . preg_quote( $pattern, '#' ) . '[^>]*)/?>#is',
+						static function ( $m ) use ( $key, $category ) {
+							$attrs = $m[1];
+							if ( ! preg_match( '/\brel\s*=\s*([\'"])(stylesheet|preload)\1/i', $attrs ) ) {
+								return $m[0];
+							}
+							$href = '';
+							if ( preg_match( '/\bhref\s*=\s*([\'"])(.*?)\1/i', $attrs, $hm ) ) {
+								$href = $hm[2];
+							}
+							if ( '' === $href ) {
+								return $m[0];
+							}
+							$media = 'all';
+							if ( preg_match( '/\bmedia\s*=\s*([\'"])(.*?)\1/i', $attrs, $mm ) ) {
+								$media = $mm[2];
+							}
+							$id = '';
+							if ( preg_match( '/\bid\s*=\s*([\'"])(.*?)\1/i', $attrs, $im ) ) {
+								$id = $im[2];
+							}
+							return sprintf(
+								'<%1$s rel="%2$s" data-ucpf-deferred="1" data-ucpf-category="%3$s" data-ucpf-service="%4$s" data-href="%5$s" media="%6$s"%7$s />',
+								'link',
+								'stylesheet',
+								esc_attr( $category ),
+								esc_attr( $key ),
+								esc_url( $href ),
+								esc_attr( $media ),
+								$id ? ' id="' . esc_attr( $id ) . '"' : ''
+							);
+						},
+						$html,
+						20
+					);
+					if ( is_string( $link_replaced ) ) {
+						$html = $link_replaced;
+					}
 				}
 			}
 

@@ -227,6 +227,80 @@ $advanced_url  = admin_url( 'admin.php?page=ucpf-advanced' );
 			</ol>
 		</div>
 	<?php else : ?>
+		<?php
+		$cf_live     = \UCPF\Cookie_Scanner::instance()->detect_cloudflare_proxy(
+			array(
+				'cf_challenged' => ! empty( $last_scan['cf_challenged'] ),
+				'cookie_hit'    => ! empty( $last_scan['cloudflare_proxied'] ) || ( ! empty( $last_scan['detected_services'] ) && in_array( 'cloudflare', (array) $last_scan['detected_services'], true ) ),
+				'fetch_signals' => isset( $last_scan['cloudflare_signals'] ) && is_array( $last_scan['cloudflare_signals'] ) ? $last_scan['cloudflare_signals'] : array(),
+			)
+		);
+		$cf_ok       = ! empty( $last_scan['cloudflare_proxied'] ) || ! empty( $cf_live['proxied'] );
+		$cf_signals  = ! empty( $last_scan['cloudflare_signals'] ) && is_array( $last_scan['cloudflare_signals'] ) ? $last_scan['cloudflare_signals'] : ( isset( $cf_live['signals'] ) ? $cf_live['signals'] : array() );
+		$tx_meta     = isset( $last_scan['transactional_email'] ) && is_array( $last_scan['transactional_email'] ) ? $last_scan['transactional_email'] : array();
+		$tx_ok       = ! empty( $tx_meta['detected'] );
+		if ( ! $tx_ok && ! empty( $last_scan['detected_services'] ) && is_array( $last_scan['detected_services'] ) ) {
+			$tx_keys = array_merge( array( 'transactional_email', 'gravity_smtp' ), \UCPF\Cookie_Scanner::transactional_provider_keys() );
+			foreach ( $last_scan['detected_services'] as $ds ) {
+				if ( in_array( $ds, $tx_keys, true ) ) {
+					$tx_ok = true;
+					break;
+				}
+			}
+		}
+		$tx_providers = ! empty( $tx_meta['providers'] ) && is_array( $tx_meta['providers'] ) ? $tx_meta['providers'] : array();
+		?>
+		<div class="ucpf-infra-status" aria-label="<?php esc_attr_e( 'Infrastructure detection', 'universal-consent-privacy-framework' ); ?>">
+			<p class="ucpf-infra-status__row">
+				<span class="ucpf-infra-status__mark" aria-hidden="true"><?php echo $cf_ok ? '✓' : '—'; ?></span>
+				<strong><?php esc_html_e( 'Cloudflare proxy', 'universal-consent-privacy-framework' ); ?></strong>
+				<?php if ( $cf_ok ) : ?>
+					<span class="description">
+						<?php
+						echo esc_html(
+							$cf_signals
+								? sprintf(
+									/* translators: %s: comma-separated detection methods */
+									__( 'Detected (%s). Necessary security/CDN — disclose in privacy policy.', 'universal-consent-privacy-framework' ),
+									implode( ', ', array_map( 'strval', $cf_signals ) )
+								)
+								: __( 'Detected. Necessary security/CDN — disclose in privacy policy.', 'universal-consent-privacy-framework' )
+						);
+						?>
+					</span>
+				<?php else : ?>
+					<span class="description"><?php esc_html_e( 'Not detected on last scan (headers, cookies, NS, or challenge).', 'universal-consent-privacy-framework' ); ?></span>
+				<?php endif; ?>
+			</p>
+			<p class="ucpf-infra-status__row">
+				<span class="ucpf-infra-status__mark" aria-hidden="true"><?php echo $tx_ok ? '✓' : '—'; ?></span>
+				<strong><?php esc_html_e( 'Transactional email', 'universal-consent-privacy-framework' ); ?></strong>
+				<?php if ( $tx_ok ) : ?>
+					<span class="description">
+						<?php
+						if ( $tx_providers ) {
+							$labels = array();
+							foreach ( $tx_providers as $pk ) {
+								$svc = \UCPF\Script_Registry::instance()->get_service( $pk );
+								$labels[] = $svc ? $svc['name'] : $pk;
+							}
+							echo esc_html(
+								sprintf(
+									/* translators: %s: provider names */
+									__( 'Detected — %s (server-side delivery; not a visitor tracker).', 'universal-consent-privacy-framework' ),
+									implode( ', ', $labels )
+								)
+							);
+						} else {
+							esc_html_e( 'Detected (SMTP plugin / ESP). Server-side delivery; not a visitor tracker.', 'universal-consent-privacy-framework' );
+						}
+						?>
+					</span>
+				<?php else : ?>
+					<span class="description"><?php esc_html_e( 'No SMTP plugin or ESP config detected yet.', 'universal-consent-privacy-framework' ); ?></span>
+				<?php endif; ?>
+			</p>
+		</div>
 		<p>
 			<?php
 			echo esc_html(

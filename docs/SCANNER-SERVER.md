@@ -4,6 +4,8 @@ Run the Playwright scanner on **your** VPS/server so WordPress can start deep sc
 
 **Not a legal compliance guarantee.** Put the API behind HTTPS. Never commit `.env`.
 
+WordPress-side infrastructure detection (Cloudflare proxy via headers/NS/cookies; transactional email via SMTP plugins/options) runs in the plugin scanner/import path — Playwright does not need to “see” SMTP.
+
 ---
 
 ## What you need

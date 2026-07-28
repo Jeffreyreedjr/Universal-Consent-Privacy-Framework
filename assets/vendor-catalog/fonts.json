@@ -33,6 +33,25 @@
       "cookies": [],
       "iframe_patterns": [],
       "default_blocking": true
+    },
+    {
+      "key": "font_awesome",
+      "name": "Font Awesome",
+      "provider": "Fonticons",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Loads Font Awesome kits or CDN icon fonts from Fonticons.",
+      "privacy_url": "https://fontawesome.com/privacy",
+      "script_patterns": [
+        "kit.fontawesome.com",
+        "ka-f.fontawesome.com",
+        "ka-p.fontawesome.com",
+        "use.fontawesome.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
     }
   ]
 }

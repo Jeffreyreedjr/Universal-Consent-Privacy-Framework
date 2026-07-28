@@ -1,37 +1,36 @@
 /**
- * Consent banner motion (GSAP). Loads after consent.js + gsap vendor.
+ * Consent banner motion (CSS). Loads after consent.js.
  * Does not own Accept/Reject — inline boot + consent.js remain authoritative.
- * Skips all tweens when prefers-reduced-motion: reduce.
+ * Skips class toggles when prefers-reduced-motion: reduce.
  */
 (function () {
   'use strict';
-  if (typeof gsap === 'undefined') return;
 
   var reduce =
     window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (reduce) return;
 
-  function animatePanel(root, y) {
+  function animatePanel(root) {
     if (!root || root.hasAttribute('hidden')) return;
     var p =
       root.querySelector('.ucpf-banner__panel') ||
       root.querySelector('.ucpf-prefs__dialog') ||
       root;
-    gsap.fromTo(
-      p,
-      { opacity: 0, y: y || 18 },
-      { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out', overwrite: true }
-    );
+    p.classList.remove('ucpf-motion-enter');
+    // Force reflow so re-adding the class restarts the animation.
+    void p.offsetWidth;
+    p.classList.add('ucpf-motion-enter');
   }
 
   function staggerActions(banner) {
     var actions = banner.querySelectorAll('.ucpf-banner__actions .ucpf-btn');
     if (!actions.length) return;
-    gsap.fromTo(
-      actions,
-      { opacity: 0.55, y: 8 },
-      { opacity: 1, y: 0, duration: 0.35, stagger: 0.05, ease: 'power2.out', overwrite: true }
-    );
+    actions.forEach(function (btn, i) {
+      btn.style.setProperty('--ucpf-motion-delay', 0.05 * i + 's');
+      btn.classList.remove('ucpf-motion-stagger');
+      void btn.offsetWidth;
+      btn.classList.add('ucpf-motion-stagger');
+    });
   }
 
   function watch() {
@@ -42,7 +41,7 @@
       new MutationObserver(function () {
         var now = banner.classList.contains('ucpf-banner--visible');
         if (now && !wasVisible) {
-          animatePanel(banner, 18);
+          animatePanel(banner);
           staggerActions(banner);
         }
         wasVisible = now;
@@ -53,7 +52,7 @@
       new MutationObserver(function () {
         var nowHidden = prefs.hasAttribute('hidden');
         if (wasHidden && !nowHidden) {
-          animatePanel(prefs, 28);
+          animatePanel(prefs);
         }
         wasHidden = nowHidden;
       }).observe(prefs, { attributes: true, attributeFilter: ['hidden', 'class'] });

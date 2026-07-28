@@ -1,6 +1,9 @@
 # Build / vendor
 dist/
 .wp-env/
+.wp-env-home/
+.phpcs-tools/
+.plugin-check-run/
 node_modules/
 vendor/
 *.log

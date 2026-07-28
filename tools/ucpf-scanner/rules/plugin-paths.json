@@ -73,7 +73,91 @@
       "category": "necessary",
       "treatment": "necessary",
       "importance": "required",
-      "note": "Usually admin/server only — rarely loads for visitors."
+      "note": "Transactional email (admin/server). Maps to UCPF transactional_email."
+    },
+    "wp-mail-smtp": {
+      "provider": "WP Mail SMTP",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional email (admin/server)."
+    },
+    "wp-mail-smtp-pro": {
+      "provider": "WP Mail SMTP Pro",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional email (admin/server)."
+    },
+    "fluent-smtp": {
+      "provider": "FluentSMTP",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional email (admin/server)."
+    },
+    "post-smtp": {
+      "provider": "Post SMTP",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional email (admin/server)."
+    },
+    "easy-wp-smtp": {
+      "provider": "Easy WP SMTP",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional email (admin/server)."
+    },
+    "smtp-mailer": {
+      "provider": "SMTP Mailer",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional email (admin/server)."
+    },
+    "wp-smtp": {
+      "provider": "WP SMTP",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional email (admin/server)."
+    },
+    "wp-ses": {
+      "provider": "WP SES",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Amazon SES transactional email."
+    },
+    "wp-offload-ses": {
+      "provider": "WP Offload SES",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Amazon SES transactional email."
+    },
+    "wp-offload-ses-lite": {
+      "provider": "WP Offload SES Lite",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Amazon SES transactional email."
+    },
+    "site-mailer": {
+      "provider": "Site Mailer",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional email (admin/server)."
+    },
+    "gmail-smtp": {
+      "provider": "Gmail SMTP",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Gmail / Google Workspace transactional mailer."
     },
     "wp-defender": {
       "provider": "Defender Security",

@@ -366,6 +366,28 @@
     hideBanner();
     hidePrefs();
     showFab();
+
+    // Accept / Reject / Save Preferences: reload so PHP re-renders enqueued tags
+    // (GT &ver=, fonts, captchas) for the exact consent mix. Same-page inject alone
+    // misses WordPress-enqueued scripts that were deferred as text/plain.
+    if (
+      action === 'accept_all' ||
+      action === 'reject_all' ||
+      action === 'save_preferences'
+    ) {
+      if (action === 'accept_all' && window.UCPFLoader) {
+        // Promote deferred tags immediately; reload then locks in PHP-side enqueue.
+        window.UCPFLoader.applyConsent(state);
+      }
+      var hardReq = apiRequest('consent', Object.assign({ action: action, uuid: local.uuid }, payload)).catch(function () {
+        return { success: true, consent: local, offline: true };
+      });
+      window.setTimeout(function () {
+        window.location.reload();
+      }, 50);
+      return hardReq;
+    }
+
     if (window.UCPFLoader) window.UCPFLoader.applyConsent(state);
 
     return apiRequest('consent', Object.assign({ action: action, uuid: local.uuid }, payload)).then(function (response) {
@@ -743,19 +765,25 @@
       });
       syncWpConsent(local.categories, local.services);
       syncGtagConsent(local.categories);
+      if (window.UCPFLoader && typeof window.UCPFLoader.unloadService === 'function') {
+        window.UCPFLoader.unloadService();
+      }
       hideBanner();
       hidePrefs();
       showFab();
-      return fetch(config.restUrl + 'withdraw', {
+      dispatch('ucpf:consent:withdrawn', state);
+      var withdrawReq = fetch(config.restUrl + 'withdraw', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': config.nonce },
         credentials: 'same-origin',
         body: '{}',
-      }).then(function () {
-        dispatch('ucpf:consent:withdrawn', state);
       }).catch(function () {
-        dispatch('ucpf:consent:withdrawn', state);
+        return null;
       });
+      window.setTimeout(function () {
+        window.location.reload();
+      }, 50);
+      return withdrawReq;
     },
     openPreferences: function () {
       showPrefs();

@@ -932,7 +932,43 @@
   .ucpf-banner__panel,
   .ucpf-toggle__thumb,
   .ucpf-btn,
-  .ucpf-fab {
+  .ucpf-fab,
+  .ucpf-motion-enter,
+  .ucpf-motion-stagger {
     transition: none !important;
+    animation: none !important;
   }
+}
+
+@keyframes ucpf-motion-panel {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ucpf-motion-btn {
+  from {
+    opacity: 0.55;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#ucpf-root .ucpf-motion-enter,
+.ucpf-motion-enter {
+  animation: ucpf-motion-panel 0.4s ease-out both;
+}
+
+#ucpf-root .ucpf-motion-stagger,
+.ucpf-motion-stagger {
+  animation: ucpf-motion-btn 0.35s ease-out both;
+  animation-delay: var(--ucpf-motion-delay, 0s);
 }

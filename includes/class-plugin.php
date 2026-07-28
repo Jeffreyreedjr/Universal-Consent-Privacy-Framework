@@ -108,10 +108,10 @@ class Plugin {
 	}
 
 	/**
-	 * Print denied Consent Mode defaults + network/script hard-gate before third-party tags.
+	 * Print denied Consent Mode defaults + network/script/link hard-gate before third-party tags.
 	 *
 	 * Google Consent Mode "denied" alone still allows cookieless /g/collect (click events included).
-	 * The network gate blocks those until analytics (or marketing) consent is granted.
+	 * The network gate blocks analytics/marketing/functional/security URL patterns until consent.
 	 */
 	public function print_early_privacy_gate() {
 		if ( is_admin() || Consent_Manager::instance()->is_discover_mode() ) {
@@ -179,17 +179,9 @@ class Plugin {
 		);
 
 		wp_enqueue_script(
-			'ucpf-gsap',
-			UCPF_PLUGIN_URL . 'public/js/lib/gsap.min.js',
-			array(),
-			UCPF_VERSION,
-			false
-		);
-
-		wp_enqueue_script(
 			'ucpf-consent-motion',
 			UCPF_PLUGIN_URL . 'public/js/consent-motion.js',
-			array( 'ucpf-consent', 'ucpf-gsap' ),
+			array( 'ucpf-consent' ),
 			UCPF_VERSION,
 			false
 		);

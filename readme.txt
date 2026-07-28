@@ -37,6 +37,12 @@ Universal Consent & Privacy Framework (UCPF) helps support privacy compliance on
 
 Final legal review is the site owner's responsibility. Generated policies are templates only.
 
+== Screenshots ==
+
+1. Banner & Branding admin — themes, accents, and live preview
+2. Front-end consent banner — Reject All, Customize, and Accept All
+3. Cookie Scanner — page selection, consent coverage, and inventory review
+
 == Installation ==
 
 1. Upload the plugin folder to `/wp-content/plugins/` or install from WordPress.org
@@ -84,10 +90,20 @@ Google/Meta/Microsoft scripts load only after consent when you enable service te
 
 Optional self-hosted scanner APIs you configure yourself are operator-controlled; the plugin never loads remote executable code from them (JSON reports only).
 
+== Credits ==
+
+Cookie descriptions may fall back to a bundled offline snapshot of the Open Cookie Database (https://github.com/jkwakman/Open-Cookie-Database). Attribution to jkwakman/Open-Cookie-Database. The snapshot is local only (no runtime phone-home to cookiedatabase.org) and is not a compliance guarantee.
+
 == Changelog ==
 
 = 0.1.7-alpha =
 * Agency Git knowledge hub: sync status + Refresh now, merge-knowledge-hub.ps1, smarter export grouping, wildcard knowledge match (no hosted DB)
+* Cookie Policy collapses property-/site-specific tracker cookies to catalog patterns; Integration IDs remain admin-only
+* Replace GreenSock GSAP with CSS motion (WordPress.org GPL-compatible)
+* Open Cookie Database offline snapshot attribution in Credits
+* WordPress.org directory assets (icons, banners, screenshots)
+* Catalog-driven consent gate for analytics/marketing/functional/security (scripts + stylesheets; any builder)
+* Vendor catalog: ActiveCampaign, ConvertKit, Drip, GetResponse, MailerLite, Font Awesome
 
 = 0.1.6-alpha =
 * Agency scanner queue: waiting queue + per-key caps, no cancel-all on busy, durable jobs, queue position in admin, scheduled stagger/backoff
@@ -189,7 +205,7 @@ Optional self-hosted scanner APIs you configure yourself are operator-controlled
 * Agency/community registry foundations (local-first; remote off by default)
 
 = 1.2.0 =
-* Modern admin shell + React dashboard, self-hosted fonts, GSAP consent motion (WCAG focus/hover/active)
+* Modern admin shell + React dashboard, self-hosted fonts, CSS consent motion (WCAG focus/hover/active)
 
 = 1.1.0 =
 * Open-source readiness, white-label branding UI, Classic theme rename

@@ -110,6 +110,38 @@ $gcm         = isset( $settings['google_consent_mode'] ) ? $settings['google_con
 				<td>
 					<p><?php echo class_exists( 'WooCommerce' ) ? esc_html__( 'WooCommerce detected — cart/session treated as necessary.', 'universal-consent-privacy-framework' ) : esc_html__( 'WooCommerce not active.', 'universal-consent-privacy-framework' ); ?></p>
 					<p><?php echo did_action( 'elementor/loaded' ) ? esc_html__( 'Elementor detected — banner z-index compatibility enabled.', 'universal-consent-privacy-framework' ) : esc_html__( 'Elementor not detected.', 'universal-consent-privacy-framework' ); ?></p>
+					<?php
+					$ucpf_cf   = \UCPF\Cookie_Scanner::instance()->detect_cloudflare_proxy();
+					$ucpf_scan = \UCPF\Cookie_Scanner::instance()->get_last_scan();
+					$ucpf_tx   = isset( $ucpf_scan['transactional_email'] ) && is_array( $ucpf_scan['transactional_email'] ) ? $ucpf_scan['transactional_email'] : array();
+					$ucpf_tx_on = ! empty( $ucpf_tx['detected'] );
+					if ( ! $ucpf_tx_on && ! empty( $ucpf_scan['detected_services'] ) && is_array( $ucpf_scan['detected_services'] ) ) {
+						$ucpf_tx_keys = array_merge( array( 'transactional_email', 'gravity_smtp' ), \UCPF\Cookie_Scanner::transactional_provider_keys() );
+						foreach ( $ucpf_scan['detected_services'] as $ds ) {
+							if ( in_array( $ds, $ucpf_tx_keys, true ) ) {
+								$ucpf_tx_on = true;
+								break;
+							}
+						}
+					}
+					if ( ! $ucpf_tx_on && \UCPF\Cookie_Scanner::instance()->service_has_active_plugin_public( 'transactional_email' ) ) {
+						$ucpf_tx_on = true;
+					}
+					?>
+					<p>
+						<?php
+						echo ! empty( $ucpf_cf['proxied'] )
+							? esc_html__( '✓ Cloudflare proxy detected — treat as necessary security/CDN (disclose in privacy policy).', 'universal-consent-privacy-framework' )
+							: esc_html__( 'Cloudflare proxy not detected on this request (headers / NS).', 'universal-consent-privacy-framework' );
+						?>
+					</p>
+					<p>
+						<?php
+						echo $ucpf_tx_on
+							? esc_html__( '✓ Transactional email (SMTP / ESP) detected — server-side delivery; disclose as a processor.', 'universal-consent-privacy-framework' )
+							: esc_html__( 'Transactional email (SMTP plugin) not detected yet. Run Cookie Scanner after installing an SMTP plugin.', 'universal-consent-privacy-framework' );
+						?>
+					</p>
 				</td>
 			</tr>
 		</table>

@@ -1,6 +1,7 @@
 /**
- * Hard-gate Google Analytics / GTM network + dynamic script loads until analytics (or marketing) consent.
- * Runs as early as possible in <head>. Consent Mode alone still allows cookieless /g/collect — this stops it.
+ * Catalog-driven consent gate: block analytics/marketing/functional/security
+ * network + script/link injection until the matching category is granted.
+ * Runs as early as possible in <head> so builders/themes that bypass wp_enqueue_* still get gated.
  */
 (function () {
   'use strict';
@@ -48,14 +49,6 @@
     return !!cookie.categories[category];
   }
 
-  function analyticsAllowed() {
-    return categoryAllowed('analytics');
-  }
-
-  function marketingAllowed() {
-    return categoryAllowed('marketing');
-  }
-
   function matchExtra(url, list) {
     if (!list || !list.length) {
       return false;
@@ -74,12 +67,43 @@
       return null;
     }
     var u = url.toLowerCase();
+
+    // Security / CAPTCHA (before broader google matches).
+    if (
+      u.indexOf('google.com/recaptcha') !== -1 ||
+      u.indexOf('gstatic.com/recaptcha') !== -1 ||
+      u.indexOf('hcaptcha.com') !== -1 ||
+      u.indexOf('newassets.hcaptcha.com') !== -1 ||
+      u.indexOf('challenges.cloudflare.com') !== -1
+    ) {
+      return 'security';
+    }
+
+    // Functional: remote fonts, maps, scheduling embeds, icon kits.
+    if (
+      u.indexOf('use.typekit.net') !== -1 ||
+      u.indexOf('p.typekit.net') !== -1 ||
+      u.indexOf('fonts.googleapis.com') !== -1 ||
+      u.indexOf('fonts.gstatic.com') !== -1 ||
+      u.indexOf('kit.fontawesome.com') !== -1 ||
+      u.indexOf('ka-f.fontawesome.com') !== -1 ||
+      u.indexOf('ka-p.fontawesome.com') !== -1 ||
+      u.indexOf('maps.googleapis.com') !== -1 ||
+      u.indexOf('maps.google.com') !== -1 ||
+      u.indexOf('assets.calendly.com') !== -1 ||
+      (u.indexOf('calendly.com') !== -1 && u.indexOf('widget') !== -1)
+    ) {
+      return 'functional';
+    }
+
     // Analytics / GTM / product analytics.
     if (
       u.indexOf('google-analytics.com') !== -1 ||
       u.indexOf('analytics.google.com') !== -1 ||
       u.indexOf('/g/collect') !== -1 ||
+      u.indexOf('googletagmanager.com/gtag/js') !== -1 ||
       u.indexOf('googletagmanager.com/gtag') !== -1 ||
+      u.indexOf('googletagmanager.com/gtm.js') !== -1 ||
       u.indexOf('googletagmanager.com/gtm') !== -1 ||
       u.indexOf('googletagmanager.com/a?') !== -1 ||
       u.indexOf('region1.google-analytics.com') !== -1 ||
@@ -98,7 +122,8 @@
     ) {
       return 'analytics';
     }
-    // Ads / marketing pixels.
+
+    // Ads / marketing pixels / ESP trackers.
     if (
       u.indexOf('googleadservices.com') !== -1 ||
       u.indexOf('googlesyndication.com') !== -1 ||
@@ -121,11 +146,20 @@
       u.indexOf('ct.pinterest.com') !== -1 ||
       u.indexOf('static.ads-twitter.com') !== -1 ||
       u.indexOf('analytics.twitter.com') !== -1 ||
-      u.indexOf('t.co/i/adsct') !== -1
+      u.indexOf('t.co/i/adsct') !== -1 ||
+      u.indexOf('js.stripe.com') !== -1 ||
+      u.indexOf('hooks.stripe.com') !== -1
     ) {
       return 'marketing';
     }
+
     var extra = window.__ucpfGateExtra || {};
+    if (matchExtra(u, extra.security)) {
+      return 'security';
+    }
+    if (matchExtra(u, extra.functional)) {
+      return 'functional';
+    }
     if (matchExtra(u, extra.marketing)) {
       return 'marketing';
     }
@@ -140,13 +174,15 @@
     if (!kind) {
       return false;
     }
-    if (kind === 'analytics') {
-      return !analyticsAllowed();
+    return !categoryAllowed(kind);
+  }
+
+  function isStylesheetLink(node) {
+    if (!node || node.tagName !== 'LINK') {
+      return false;
     }
-    if (kind === 'marketing') {
-      return !marketingAllowed();
-    }
-    return false;
+    var rel = (node.getAttribute('rel') || '').toLowerCase();
+    return rel.indexOf('stylesheet') !== -1 || rel.indexOf('preload') !== -1;
   }
 
   function blockScriptNode(node) {
@@ -171,6 +207,48 @@
       node.src = '';
     } catch (e2) {}
     return true;
+  }
+
+  function blockLinkNode(node) {
+    if (!isStylesheetLink(node)) {
+      return false;
+    }
+    var href = node.getAttribute('href') || node.href || '';
+    if (!href || href.charAt(0) === '#' || !shouldBlockUrl(href)) {
+      return false;
+    }
+    if (node.getAttribute('data-ucpf-gated') === '1' || node.getAttribute('data-ucpf-deferred') === '1') {
+      return true;
+    }
+    var kind = classifyUrl(href) || 'functional';
+    node.setAttribute('data-href', href);
+    node.setAttribute('data-ucpf-category', kind);
+    node.setAttribute('data-ucpf-deferred', '1');
+    node.setAttribute('data-ucpf-gated', '1');
+    try {
+      node.removeAttribute('href');
+    } catch (e) {}
+    try {
+      node.href = '';
+    } catch (e2) {}
+    return true;
+  }
+
+  function blockNode(node) {
+    if (!node || node.nodeType !== 1) {
+      return;
+    }
+    if (node.tagName === 'SCRIPT') {
+      blockScriptNode(node);
+    } else if (node.tagName === 'LINK') {
+      blockLinkNode(node);
+    } else if (node.querySelectorAll) {
+      Array.prototype.forEach.call(node.querySelectorAll('script[src]'), blockScriptNode);
+      Array.prototype.forEach.call(
+        node.querySelectorAll('link[href][rel*="stylesheet"], link[href][rel*="preload"]'),
+        blockLinkNode
+      );
+    }
   }
 
   // --- Network hooks ---
@@ -244,11 +322,12 @@
     }
   } catch (eImg) {}
 
-  // --- Dynamic script injection ---
+  // --- Dynamic script / link injection ---
   var nativeCreateElement = Document.prototype.createElement;
   Document.prototype.createElement = function (tagName, options) {
     var el = nativeCreateElement.call(this, tagName, options);
-    if (String(tagName).toLowerCase() === 'script') {
+    var tag = String(tagName).toLowerCase();
+    if (tag === 'script') {
       try {
         var desc = Object.getOwnPropertyDescriptor(HTMLScriptElement.prototype, 'src');
         if (desc && desc.set) {
@@ -271,6 +350,31 @@
           });
         }
       } catch (eSrc) {}
+    } else if (tag === 'link') {
+      try {
+        var hrefDesc = Object.getOwnPropertyDescriptor(HTMLLinkElement.prototype, 'href');
+        if (hrefDesc && hrefDesc.set) {
+          Object.defineProperty(el, 'href', {
+            configurable: true,
+            enumerable: true,
+            get: function () {
+              return hrefDesc.get.call(this);
+            },
+            set: function (value) {
+              var rel = (this.getAttribute('rel') || '').toLowerCase();
+              var isStyle = !rel || rel.indexOf('stylesheet') !== -1 || rel.indexOf('preload') !== -1;
+              if (isStyle && shouldBlockUrl(String(value || ''))) {
+                this.setAttribute('data-href', value);
+                this.setAttribute('data-ucpf-category', classifyUrl(value) || 'functional');
+                this.setAttribute('data-ucpf-deferred', '1');
+                this.setAttribute('data-ucpf-gated', '1');
+                return;
+              }
+              hrefDesc.set.call(this, value);
+            },
+          });
+        }
+      } catch (eHref) {}
     }
     return el;
   };
@@ -281,9 +385,7 @@
       return;
     }
     proto[method] = function (node) {
-      if (node && node.tagName === 'SCRIPT') {
-        blockScriptNode(node);
-      }
+      blockNode(node);
       return native.apply(this, arguments);
     };
   }
@@ -295,26 +397,20 @@
     try {
       var mo = new MutationObserver(function (mutations) {
         mutations.forEach(function (m) {
-          Array.prototype.forEach.call(m.addedNodes || [], function (node) {
-            if (node.nodeType !== 1) {
-              return;
-            }
-            if (node.tagName === 'SCRIPT') {
-              blockScriptNode(node);
-            } else if (node.querySelectorAll) {
-              Array.prototype.forEach.call(node.querySelectorAll('script[src]'), blockScriptNode);
-            }
-          });
+          Array.prototype.forEach.call(m.addedNodes || [], blockNode);
         });
       });
       mo.observe(document.documentElement, { childList: true, subtree: true });
     } catch (eMo) {}
   }
 
-  // Neutralize already-present blocked scripts (e.g. printed before this gate).
   function scanExisting() {
     try {
       Array.prototype.forEach.call(document.querySelectorAll('script[src]'), blockScriptNode);
+      Array.prototype.forEach.call(
+        document.querySelectorAll('link[href][rel*="stylesheet"], link[href][rel*="preload"]'),
+        blockLinkNode
+      );
     } catch (e) {}
   }
   scanExisting();
@@ -322,8 +418,14 @@
     document.addEventListener('DOMContentLoaded', scanExisting);
   }
 
+  // Shared with loader for post-reject neutralization.
+  window.__ucpfClassifyUrl = classifyUrl;
+  window.__ucpfRescanGate = scanExisting;
+  window.__ucpfShouldBlockUrl = shouldBlockUrl;
+
   window.addEventListener('ucpf:consent:changed', function () {
-    // Allow loader to promote deferred scripts after Accept All.
+    // Re-defer any live gated tags before/while the loader runs (e.g. after Reject All).
+    scanExisting();
     if (window.UCPFLoader && typeof window.UCPFLoader.applyConsent === 'function') {
       window.UCPFLoader.applyConsent();
     }
