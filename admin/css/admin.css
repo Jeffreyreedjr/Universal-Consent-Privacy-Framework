@@ -468,6 +468,108 @@
   margin-top: 0.35rem;
 }
 
+.ucpf-scan-remembered {
+  margin: 0.35rem 0 0.75rem;
+  color: var(--ucpf-admin-accent);
+}
+
+.ucpf-scanner-coverage,
+.ucpf-scanner-run {
+  max-width: 52rem;
+  margin: 1rem 0 1.25rem;
+  padding: 1.1rem 1.25rem;
+  background: var(--ucpf-admin-surface);
+  border: 1px solid var(--ucpf-admin-border);
+  border-radius: var(--ucpf-admin-radius);
+  box-shadow: var(--ucpf-admin-shadow);
+}
+
+.ucpf-scanner-coverage h2,
+.ucpf-scanner-run h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.1rem;
+}
+
+.ucpf-scanner-run__primary,
+.ucpf-scanner-run__fallback {
+  margin: 0.85rem 0 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--ucpf-admin-border);
+  border-radius: var(--ucpf-admin-radius-sm);
+  background: var(--ucpf-admin-surface-muted);
+}
+
+.ucpf-scanner-run__primary {
+  border-color: var(--ucpf-admin-accent);
+  background: var(--ucpf-admin-surface);
+}
+
+.ucpf-scanner-run__heading {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+}
+
+.ucpf-scanner-run__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0.65rem 0 0;
+}
+
+.ucpf-scanner-run__setup {
+  margin: 0.85rem 0 1rem;
+  padding: 0.85rem 1rem;
+}
+
+.ucpf-scanner-run__setup p {
+  margin: 0;
+}
+
+.ucpf-verify-banner {
+  max-width: 52rem;
+  margin: 1rem 0 1.25rem;
+  padding: 0.85rem 1rem;
+}
+
+.ucpf-verify-banner__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0.65rem 0 0;
+}
+
+.ucpf-verify-delta {
+  max-width: 52rem;
+  margin: 0 0 1.25rem;
+  padding: 0.85rem 1.1rem;
+  border: 1px solid var(--ucpf-admin-border);
+  border-radius: var(--ucpf-admin-radius-sm);
+  background: var(--ucpf-admin-surface-muted);
+}
+
+.ucpf-verify-delta h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+}
+
+.ucpf-verify-delta ul {
+  margin: 0.35rem 0 0;
+}
+
+.ucpf-scan-depth {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.ucpf-scan-depth select {
+  max-width: 100%;
+  min-width: min(100%, 28rem);
+}
+
 [aria-live] {
   /* ensure live regions are present for AT */
 }
@@ -730,6 +832,20 @@
   max-width: min(22rem, calc(100% - 1.5rem)) !important;
   padding: 0 !important;
   transform: none !important;
+}
+
+.ucpf-admin__preview .ucpf-banner__actions {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 0.5rem !important;
+  width: 100% !important;
+}
+
+.ucpf-admin__preview .ucpf-banner__actions .ucpf-btn {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
 }
 
 .ucpf-admin__preview .ucpf-banner--bar.ucpf-banner--pos-right {

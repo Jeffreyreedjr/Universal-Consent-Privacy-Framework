@@ -22,6 +22,40 @@
     }
   }
 
+  function cookieDomainAttr() {
+    var d = (config.cookieDomain || '').toString().trim();
+    if (!d || d === 'localhost' || /^\d+\.\d+\.\d+\.\d+$/.test(d)) {
+      return '';
+    }
+    if (d.charAt(0) !== '.') {
+      d = '.' + d.replace(/^\./, '');
+    }
+    // Only set Domain when it matches the current host (avoid invalid Domain=).
+    var host = (location.hostname || '').toLowerCase();
+    var bare = d.replace(/^\./, '').toLowerCase();
+    if (host !== bare && host.slice(-(bare.length + 1)) !== '.' + bare) {
+      return '';
+    }
+    return '; Domain=' + d;
+  }
+
+  function cookieBase(maxAge) {
+    var secure = location.protocol === 'https:' ? '; Secure' : '';
+    return '; Path=/' + cookieDomainAttr() + '; Max-Age=' + maxAge + '; SameSite=Lax' + secure;
+  }
+
+  function readStoredConsent() {
+    var cookie = parseCookie();
+    if (cookie && !shouldReprompt(cookie)) {
+      return cookie;
+    }
+    var backup = readConsentBackup();
+    if (backup && !shouldReprompt(backup)) {
+      return backup;
+    }
+    return null;
+  }
+
   function parseCookie() {
     var match = document.cookie.match(new RegExp('(?:^|; )' + COOKIE_NAME.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '=([^;]*)'));
     if (!match) return null;
@@ -32,6 +66,10 @@
       try {
         return JSON.parse(raw);
       } catch (e2) {
+        // Corrupt / truncated cookie — clear so backup can rehydrate.
+        try {
+          document.cookie = COOKIE_NAME + '=; Path=/' + cookieDomainAttr() + '; Max-Age=0; SameSite=Lax';
+        } catch (e3) { /* ignore */ }
         return null;
       }
     }
@@ -111,22 +149,23 @@
       state.uuid = '';
       return;
     }
-    var cookie = parseCookie() || readConsentBackup();
-    if (!cookie || shouldReprompt(cookie)) {
+    var cookie = readStoredConsent();
+    if (!cookie) {
       state.state = 'unknown';
       state.categories = defaultRejected();
       state.services = {};
       state.uuid = '';
       return;
     }
-    // Cookie missing but backup valid — rehydrate the cookie so Path=/ persists again.
-    if (!parseCookie() && cookie.state && cookie.state !== 'unknown') {
+    // Cookie missing/corrupt but backup valid — rehydrate so Path=/ persists again.
+    if (!parseCookie()) {
       writeLocalCookie(cookie);
     }
     state.uuid = cookie.uuid || '';
     state.state = cookie.state || 'custom';
     state.categories = cookie.categories || defaultRejected();
     state.services = cookie.services || {};
+    markConsentDone();
   }
 
   function collectCookieNames() {
@@ -220,10 +259,11 @@
   }
 
   function writeWpConsentCookie(category, value) {
-    var maxAge = 30 * 24 * 60 * 60;
-    var secure = location.protocol === 'https:' ? '; Secure' : '';
-    document.cookie = 'wp_consent_' + category + '=' + (value ? 'allow' : 'deny') +
-      '; Path=/; Max-Age=' + maxAge + '; SameSite=Lax' + secure;
+    var maxAge = parseInt(config.cookieLifetime, 10);
+    if (!maxAge || maxAge < 86400) {
+      maxAge = 180 * 86400;
+    }
+    document.cookie = 'wp_consent_' + category + '=' + (value ? 'allow' : 'deny') + cookieBase(maxAge);
   }
 
   function syncWpConsent(categories, services) {
@@ -287,10 +327,13 @@
       timestamp: Math.floor(Date.now() / 1000),
       expires: expires,
     };
-    var secure = location.protocol === 'https:' ? '; Secure' : '';
+    // Keep under typical browser/proxy cookie limits (~4KB) — oversized writes are dropped silently.
     var encoded = encodeURIComponent(JSON.stringify(data));
-    // Path=/ so consent survives navigation across the whole site.
-    document.cookie = COOKIE_NAME + '=' + encoded + '; Path=/; Max-Age=' + maxAge + '; SameSite=Lax' + secure;
+    if (encoded.length > 3500) {
+      data.services = {};
+      encoded = encodeURIComponent(JSON.stringify(data));
+    }
+    document.cookie = COOKIE_NAME + '=' + encoded + cookieBase(maxAge);
     state.uuid = data.uuid;
     state.state = data.state;
     state.categories = data.categories;
@@ -299,7 +342,7 @@
     // Verify browser accepted the cookie; retry once if needed.
     var readBack = parseCookie();
     if (!readBack || readBack.state !== data.state) {
-      document.cookie = COOKIE_NAME + '=' + encoded + '; Path=/; Max-Age=' + maxAge + '; SameSite=Lax' + secure;
+      document.cookie = COOKIE_NAME + '=' + encoded + cookieBase(maxAge);
     }
     markConsentDone();
     return data;
@@ -326,7 +369,8 @@
     if (window.UCPFLoader) window.UCPFLoader.applyConsent(state);
 
     return apiRequest('consent', Object.assign({ action: action, uuid: local.uuid }, payload)).then(function (response) {
-      if (response && response.consent && response.consent.categories) {
+      // Re-apply server echo only when it still looks like a real choice (never wipe accept/reject).
+      if (response && response.consent && response.consent.categories && response.consent.state && response.consent.state !== 'unknown') {
         writeLocalCookie(response.consent);
         syncWpConsent(state.categories, state.services);
       }
@@ -386,8 +430,35 @@
     bannerEl.classList.add('ucpf-banner--pos-' + position);
     bannerEl.setAttribute('data-ucpf-layout', layout);
     bannerEl.setAttribute('data-ucpf-position', position);
-    if (bannerEl.parentElement && bannerEl.parentElement.id === 'ucpf-root') {
-      bannerEl.parentElement.setAttribute('data-ucpf-layout', layout);
+
+    var rootEl = bannerEl.parentElement && bannerEl.parentElement.id === 'ucpf-root'
+      ? bannerEl.parentElement
+      : document.getElementById('ucpf-root');
+    if (rootEl) {
+      rootEl.setAttribute('data-ucpf-layout', layout);
+      rootEl.setAttribute('data-ucpf-position', position);
+
+      // Sync theme class from live config (page caches often keep a stale ucpf-theme-* class).
+      var theme = String(config.bannerTheme || '').replace(/[^a-z0-9_]/gi, '');
+      if (!theme) {
+        var m = (rootEl.className || '').match(/ucpf-theme-([a-z0-9_]+)/i);
+        theme = m ? m[1] : 'classic';
+      }
+      rootEl.className = String(rootEl.className || '')
+        .replace(/ucpf-theme-\S+/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      rootEl.classList.add('ucpf-theme-' + theme);
+    }
+
+    // Floating prefs button follows the same Banner position setting.
+    var fab = document.getElementById('ucpf-fab') || document.querySelector('#ucpf-root .ucpf-fab');
+    if (fab) {
+      ['left', 'center', 'right'].forEach(function (name) {
+        fab.classList.remove('ucpf-fab--pos-' + name);
+      });
+      fab.classList.add('ucpf-fab--pos-' + position);
+      fab.setAttribute('data-ucpf-position', position);
     }
 
     var overlay = bannerEl.querySelector('.ucpf-modal__overlay');
@@ -663,14 +734,26 @@
       }, 'reject_all');
     },
     withdraw: function () {
+      clearReshowTimers();
+      var local = writeLocalCookie({
+        state: 'withdrawn',
+        categories: defaultRejected(),
+        services: {},
+        uuid: state.uuid,
+      });
+      syncWpConsent(local.categories, local.services);
+      syncGtagConsent(local.categories);
+      hideBanner();
+      hidePrefs();
+      showFab();
       return fetch(config.restUrl + 'withdraw', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': config.nonce },
         credentials: 'same-origin',
         body: '{}',
       }).then(function () {
-        state.state = 'withdrawn';
-        state.categories = defaultRejected();
+        dispatch('ucpf:consent:withdrawn', state);
+      }).catch(function () {
         dispatch('ucpf:consent:withdrawn', state);
       });
     },
@@ -703,6 +786,7 @@
     loadState();
     if (state.state !== 'unknown') {
       markConsentDone();
+      clearReshowTimers();
     }
     if (config.discoverMode) {
       // Discover crawl: allow tags without writing a visitor consent cookie.
@@ -722,6 +806,7 @@
       prefsEl = document.getElementById('ucpf-prefs');
       fabEl = document.getElementById('ucpf-fab') || document.querySelector('.ucpf-fab');
       if (window.__ucpfConsentDone || state.state !== 'unknown') {
+        clearReshowTimers();
         hideBanner();
         showFab();
         syncWpConsent(state.categories, state.services);
@@ -733,9 +818,11 @@
     }
     revealUi();
     // Guests: banner markup may arrive after head scripts (body_open/footer).
+    // Only reshow when consent is still unknown — never after accept/reject.
     [100, 500, 1500, 3000].forEach(function (ms) {
       reshowTimers.push(window.setTimeout(function () {
         if (window.__ucpfConsentDone || state.state !== 'unknown') {
+          clearReshowTimers();
           return;
         }
         bannerEl = document.getElementById('ucpf-banner');

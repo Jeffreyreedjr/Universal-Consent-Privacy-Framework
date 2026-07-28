@@ -65,6 +65,27 @@
       "cookies": [],
       "iframe_patterns": [],
       "default_blocking": false
+    },
+    {
+      "key": "jotform",
+      "name": "Jotform",
+      "provider": "Jotform",
+      "category": "preferences",
+      "treatment": "consent",
+      "description": "Embedded Jotform forms, events, and payment iframes.",
+      "privacy_url": "https://www.jotform.com/privacy/",
+      "script_patterns": [
+        "jotform.com",
+        "jotfor.ms",
+        "cdn.jotfor.ms",
+        "events.jotform.com",
+        "api.jotform.com",
+        "pci.jotform.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["jotform.com", "pci.jotform.com"],
+      "default_blocking": true
     }
   ]
 }

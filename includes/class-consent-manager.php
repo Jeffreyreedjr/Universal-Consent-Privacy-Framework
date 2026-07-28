@@ -468,10 +468,15 @@ class Consent_Manager {
 			$value            = rawurlencode( wp_json_encode( $data ) );
 		}
 
+		$domain = '';
+		if ( defined( 'COOKIE_DOMAIN' ) && COOKIE_DOMAIN ) {
+			$domain = (string) COOKIE_DOMAIN;
+		}
+
 		$options = array(
 			'expires'  => time() + ( $lifetime * DAY_IN_SECONDS ),
 			'path'     => '/',
-			'domain'   => '',
+			'domain'   => $domain,
 			'secure'   => $secure,
 			'httponly' => false,
 			'samesite' => 'Lax',

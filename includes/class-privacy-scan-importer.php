@@ -55,6 +55,11 @@ class Privacy_Scan_Importer {
 			);
 		}
 
+		$previous = Cookie_Scanner::instance()->get_last_scan();
+		if ( ! is_array( $previous ) ) {
+			$previous = array();
+		}
+
 		$cookies_known   = array();
 		$cookies_unknown = array();
 		$results         = array();
@@ -88,7 +93,10 @@ class Privacy_Scan_Importer {
 			$contexts     = isset( $row['contexts'] ) && is_array( $row['contexts'] ) ? array_map( 'sanitize_key', $row['contexts'] ) : array();
 			$context      = ! empty( $contexts ) ? implode( ',', $contexts ) : 'deep_scan';
 
-			$match    = Script_Registry::instance()->match_cookie_name( $name );
+			$match    = Script_Registry::instance()->match_cookie_name(
+				$name,
+				isset( $row['domain'] ) ? (string) $row['domain'] : ''
+			);
 			$from_ocd = $match && ! empty( $match['source'] ) && 'open_cookie_database' === $match['source'];
 			$service  = ( $match && ! empty( $match['service'] ) ) ? Script_Registry::instance()->get_service( $match['service'] ) : null;
 
@@ -103,11 +111,13 @@ class Privacy_Scan_Importer {
 				$provider = $service['name'];
 			} elseif ( ! $provider && $service && ! empty( $service['provider'] ) ) {
 				$provider = $service['provider'];
-			} elseif ( ! $provider && $match && ! empty( $match['provider'] ) ) {
+			} elseif ( ! $provider && $match && ! empty( $match['provider'] ) && ! $from_ocd ) {
 				$provider = sanitize_text_field( (string) $match['provider'] );
 			}
 
-			$needs_review = ( ! $category ) || 'needs_review' === $status || 'unclassified' === $importance;
+			// Catalog hits are classified even when Playwright left importance unclassified.
+			$catalog_hit  = $match && ! $from_ocd && ( ! empty( $match['service'] ) || ( ! empty( $match['source'] ) && 'ucpf' === $match['source'] ) );
+			$needs_review = ( ! $category ) || 'needs_review' === $status || ( 'unclassified' === $importance && ! $catalog_hit );
 
 			if ( $needs_review && ! $category ) {
 				// OCD may suggest category/purpose; admin still confirms in Cookie Review.
@@ -270,16 +280,23 @@ class Privacy_Scan_Importer {
 			if ( Scan_Noise_Filter::should_ignore_leak( $leak_type, $leak_name ) ) {
 				continue;
 			}
-			$consent_leaks[] = array(
-				'type'       => $leak_type,
-				'name'       => $leak_name,
-				'provider'   => isset( $leak['provider'] ) ? sanitize_text_field( $leak['provider'] ) : '',
-				'category'   => isset( $leak['category'] ) ? sanitize_key( $leak['category'] ) : '',
-				'treatment'  => isset( $leak['treatment'] ) ? sanitize_key( $leak['treatment'] ) : '',
-				'importance' => isset( $leak['importance'] ) ? sanitize_key( $leak['importance'] ) : '',
-				'severity'   => isset( $leak['severity'] ) ? sanitize_key( $leak['severity'] ) : 'high',
-				'reason'     => isset( $leak['reason'] ) ? sanitize_text_field( $leak['reason'] ) : '',
-				'contexts'   => isset( $leak['contexts'] ) && is_array( $leak['contexts'] ) ? array_map( 'sanitize_key', $leak['contexts'] ) : array(),
+			$consent_leaks[] = array_merge(
+				array(
+					'type'       => $leak_type,
+					'name'       => $leak_name,
+					'provider'   => isset( $leak['provider'] ) ? sanitize_text_field( $leak['provider'] ) : '',
+					'category'   => isset( $leak['category'] ) ? sanitize_key( $leak['category'] ) : '',
+					'treatment'  => isset( $leak['treatment'] ) ? sanitize_key( $leak['treatment'] ) : '',
+					'importance' => isset( $leak['importance'] ) ? sanitize_key( $leak['importance'] ) : '',
+					'severity'   => isset( $leak['severity'] ) ? sanitize_key( $leak['severity'] ) : 'high',
+					'reason'     => isset( $leak['reason'] ) ? sanitize_text_field( $leak['reason'] ) : '',
+					'contexts'   => isset( $leak['contexts'] ) && is_array( $leak['contexts'] ) ? array_map( 'sanitize_key', $leak['contexts'] ) : array(),
+				),
+				self::remediation_for_signal(
+					$leak_type,
+					$leak_name,
+					isset( $leak['provider'] ) ? (string) $leak['provider'] : ''
+				)
 			);
 		}
 
@@ -337,6 +354,14 @@ class Privacy_Scan_Importer {
 			'tcf'                => self::sanitize_tcf( isset( $report['tcf'] ) ? $report['tcf'] : array() ),
 			'dark_patterns'      => self::sanitize_dark_patterns( isset( $report['dark_patterns'] ) ? $report['dark_patterns'] : array() ),
 			'compliance_score'   => self::sanitize_compliance_score( isset( $report['compliance_score'] ) ? $report['compliance_score'] : array() ),
+			'verify_delta'       => self::build_verify_delta(
+				array(
+					'consent_leaks'    => $consent_leaks,
+					'findings_summary' => $findings_summary,
+					'compliance_score' => self::sanitize_compliance_score( isset( $report['compliance_score'] ) ? $report['compliance_score'] : array() ),
+				),
+				$previous
+			),
 		);
 
 		if ( empty( $cookies_known ) && empty( $cookies_unknown ) && empty( $cookie_rows ) ) {
@@ -350,6 +375,7 @@ class Privacy_Scan_Importer {
 		$persisted = Cookie_Scanner::instance()->persist_scan_payload( $payload );
 		if ( ! is_wp_error( $persisted ) && is_array( $persisted ) ) {
 			Agency_Scanner::store_baseline( $payload );
+			Cookie_Knowledge::ingest_scan_cookies( $cookies_known, $cookies_unknown );
 		}
 		return $persisted;
 	}
@@ -531,6 +557,115 @@ class Privacy_Scan_Importer {
 	}
 
 	/**
+	 * Map a leak/finding signal to a catalog service + suggested admin action.
+	 *
+	 * @param string $type     cookie|script|request|iframe|beacon|….
+	 * @param string $name     Cookie name, host, or URL.
+	 * @param string $provider Optional provider label.
+	 * @return array{service_key: string, service_name: string, action: string, blocking_on: bool}
+	 */
+	public static function remediation_for_signal( $type, $name, $provider = '' ) {
+		$type     = sanitize_key( (string) $type );
+		$name     = sanitize_text_field( (string) $name );
+		$provider = sanitize_text_field( (string) $provider );
+		$registry = Script_Registry::instance();
+		$key      = '';
+		$svc      = null;
+
+		if ( 'cookie' === $type && $name ) {
+			$match = $registry->match_cookie_name( $name );
+			if ( is_array( $match ) && ! empty( $match['service'] ) ) {
+				$key = sanitize_key( (string) $match['service'] );
+			}
+		}
+
+		if ( ! $key ) {
+			$key = self::resolve_service_key( $provider, $name );
+		}
+
+		if ( $key ) {
+			$svc = $registry->get_service( $key );
+			if ( ! is_array( $svc ) ) {
+				// resolve_service_key may return a sanitized provider slug that is not a catalog key.
+				$key = '';
+			}
+		}
+
+		$blocking_on = false;
+		$action      = 'review';
+		$service_name = '';
+
+		if ( $key && is_array( $svc ) ) {
+			$service_name = isset( $svc['name'] ) ? (string) $svc['name'] : $key;
+			$treatment    = isset( $svc['treatment'] ) ? (string) $svc['treatment'] : 'consent';
+			$blocking_on  = ! empty( $svc['default_blocking'] ) && 'ignore' !== $treatment && 'necessary' !== $treatment;
+			if ( ! $blocking_on ) {
+				$action = 'enable_blocking';
+			} elseif ( empty( $svc['default_blocking'] ) ) {
+				$action = 'enable_blocking';
+			} else {
+				$action = 'verify';
+			}
+		} elseif ( $name && in_array( $type, array( 'request', 'script', 'iframe', 'beacon', 'pixel' ), true ) ) {
+			$action = 'catalog_suggestion';
+		}
+
+		return array(
+			'service_key'  => $key,
+			'service_name' => $service_name,
+			'action'       => $action,
+			'blocking_on'  => $blocking_on,
+		);
+	}
+
+	/**
+	 * Compare new Playwright verify metrics vs the previous stored scan.
+	 *
+	 * @param array $current  New payload fields.
+	 * @param array $previous Prior last scan.
+	 * @return array
+	 */
+	public static function build_verify_delta( array $current, array $previous ) {
+		$prev_leaks = ! empty( $previous['consent_leaks'] ) && is_array( $previous['consent_leaks'] )
+			? count( $previous['consent_leaks'] )
+			: 0;
+		$cur_leaks  = ! empty( $current['consent_leaks'] ) && is_array( $current['consent_leaks'] )
+			? count( $current['consent_leaks'] )
+			: 0;
+
+		$prev_fail = 0;
+		if ( ! empty( $previous['findings_summary']['fail'] ) ) {
+			$prev_fail = (int) $previous['findings_summary']['fail'];
+		}
+		$cur_fail = 0;
+		if ( ! empty( $current['findings_summary']['fail'] ) ) {
+			$cur_fail = (int) $current['findings_summary']['fail'];
+		}
+
+		$prev_score = isset( $previous['compliance_score']['total'] ) ? (int) $previous['compliance_score']['total'] : null;
+		$cur_score  = isset( $current['compliance_score']['total'] ) ? (int) $current['compliance_score']['total'] : null;
+
+		$has_previous = $prev_leaks > 0
+			|| $prev_fail > 0
+			|| null !== $prev_score
+			|| ( ! empty( $previous['source'] ) && 'playwright' === $previous['source'] )
+			|| ! empty( $previous['findings_summary'] );
+
+		return array(
+			'has_previous'    => (bool) $has_previous,
+			'previous_leaks'  => $prev_leaks,
+			'current_leaks'   => $cur_leaks,
+			'leaks_delta'     => $cur_leaks - $prev_leaks,
+			'previous_fail'   => $prev_fail,
+			'current_fail'    => $cur_fail,
+			'fail_delta'      => $cur_fail - $prev_fail,
+			'previous_score'  => $prev_score,
+			'current_score'   => $cur_score,
+			'score_delta'     => ( null !== $prev_score && null !== $cur_score ) ? ( $cur_score - $prev_score ) : null,
+		);
+	}
+
+	/**
 	 * Resolve a provider label or URL to a catalog service key.
 	 *
 	 * @param string $provider Provider name.
@@ -543,13 +678,27 @@ class Privacy_Scan_Importer {
 		$hay      = strtolower( $provider . ' ' . $url );
 
 		$aliases = array(
-			'google_analytics_4'       => array( 'google analytics', 'ga4', 'google tag', 'gt-', 'googletagmanager.com/gtag', 'google-analytics.com', 'analytics.google.com' ),
-			'google_tag_manager'       => array( 'google tag manager', 'gtm-', 'googletagmanager.com/gtm', 'gtm.js' ),
+			'google_analytics_4'       => array( 'google analytics', 'ga4', 'google tag', 'gt-', 'googletagmanager.com/gtag', 'google-analytics.com', 'analytics.google.com', 'g/collect' ),
+			'google_tag_manager'       => array( 'google tag manager', 'gtm-', 'googletagmanager.com/gtm', 'gtm.js', 'googletagmanager.com' ),
+			'google_ads'               => array( 'google ads', 'google advertising', 'doubleclick', 'googleads.g.doubleclick.net', 'static.doubleclick.net' ),
+			'youtube'                  => array( 'youtube', 'youtu.be', 'youtube.com', 'ytimg.com', 'i.ytimg.com', 'ysc', 'visitor_info1_live' ),
+			'mailchimp'                => array( 'mailchimp', 'chimpstatic.com', 'list-manage.com', 'mailchimp-for-woocommerce' ),
+			'paypal'                   => array( 'paypal', 'paypalobjects.com', 'c.paypal.com', 'b.stats.paypal.com' ),
+			'calendly'                 => array( 'calendly', 'assets.calendly.com' ),
+			'constant_contact'         => array( 'constant contact', 'ctctcdn.com', 'listgrowth.ctctcdn.com' ),
+			'woocommerce_order_attribution' => array( 'sourcebuster', 'sbjs_', 'order attribution', 'order-attribution' ),
+			'cloudflare_web_analytics' => array( 'cloudflareinsights', 'static.cloudflareinsights.com', 'cloudflare web analytics' ),
 			'cloudflare'               => array( 'cloudflare', 'cf_clearance', '__cf_bm', 'cloudflareinsights', 'static.cloudflareinsights.com' ),
+			'cloudflare_turnstile'     => array( 'cloudflare turnstile', 'challenges.cloudflare.com', 'turnstile', 'simple-cloudflare-turnstile' ),
+			'hcaptcha'                 => array( 'hcaptcha', 'hcaptcha.com' ),
+			'google_fonts'             => array( 'google fonts', 'fonts.googleapis.com', 'fonts.gstatic.com' ),
+			'adobe_fonts'              => array( 'typekit', 'adobe fonts', 'use.typekit.net', 'p.typekit.net' ),
+			'userway'                  => array( 'userway', 'cdn.userway.org', 'api.userway.org' ),
+			'jotform'                  => array( 'jotform', 'jotfor.ms', 'cdn.jotfor.ms' ),
 			'elementor'                => array( 'elementor' ),
-			'google_maps'              => array( 'wp go maps', 'wp google maps', 'wpgmza', 'wp-google-maps', 'google maps' ),
+			'google_maps'              => array( 'wp go maps', 'wp google maps', 'wpgmza', 'wp-google-maps', 'google maps', 'mapster' ),
 			'wp_consent_api'           => array( 'wp consent api', 'wp_consent_' ),
-			'adobe_fonts'              => array( 'typekit', 'adobe fonts', 'use.typekit.net' ),
+			'magnite'                  => array( 'magnite', 'rubicon' ),
 		);
 
 		foreach ( Script_Registry::instance()->get_services() as $key => $service ) {
@@ -616,22 +765,62 @@ class Privacy_Scan_Importer {
 	 * @return array
 	 */
 	private static function summarize_signal_list( $rows ) {
-		$out = array();
+		$out  = array();
+		$seen = array();
 		if ( ! is_array( $rows ) ) {
 			return $out;
 		}
-		foreach ( array_slice( $rows, 0, 100 ) as $row ) {
+		foreach ( $rows as $row ) {
 			if ( ! is_array( $row ) ) {
 				continue;
 			}
+			$url  = isset( $row['url'] ) ? (string) $row['url'] : '';
+			$host = isset( $row['host'] ) ? (string) $row['host'] : '';
+			if ( '' === $host && '' !== $url ) {
+				$host = $url;
+			}
+			if ( Scan_Noise_Filter::should_omit_signal( $host ) || Scan_Noise_Filter::should_omit_signal( $url ) ) {
+				continue;
+			}
+			$host = Scan_Noise_Filter::collapse_signal_host( $host ? $host : $url );
+			if ( '' === $host || Scan_Noise_Filter::should_omit_signal( $host ) ) {
+				continue;
+			}
+
+			$provider = isset( $row['provider'] ) ? sanitize_text_field( $row['provider'] ) : '';
+			$category = isset( $row['category'] ) ? sanitize_key( $row['category'] ) : '';
+			if ( '' === $provider || '' === $category || 'unclassified' === $category ) {
+				$svc_key = self::resolve_service_key( $provider, $host );
+				if ( $svc_key ) {
+					$svc = Script_Registry::instance()->get_service( $svc_key );
+					if ( is_array( $svc ) ) {
+						if ( '' === $provider && ! empty( $svc['name'] ) ) {
+							$provider = (string) $svc['name'];
+						}
+						if ( ( '' === $category || 'unclassified' === $category ) && ! empty( $svc['category'] ) ) {
+							$category = sanitize_key( (string) $svc['category'] );
+						}
+					}
+				}
+			}
+
+			$dedupe = strtolower( ( $provider ? $provider : $host ) . '|' . $category );
+			if ( isset( $seen[ $dedupe ] ) ) {
+				continue;
+			}
+			$seen[ $dedupe ] = true;
+
 			$out[] = array(
-				'url'        => isset( $row['url'] ) ? esc_url_raw( $row['url'] ) : '',
-				'host'       => isset( $row['host'] ) ? sanitize_text_field( $row['host'] ) : '',
-				'provider'   => isset( $row['provider'] ) ? sanitize_text_field( $row['provider'] ) : '',
-				'category'   => isset( $row['category'] ) ? sanitize_key( $row['category'] ) : '',
+				'url'        => $url ? esc_url_raw( $url ) : '',
+				'host'       => sanitize_text_field( $host ),
+				'provider'   => $provider,
+				'category'   => $category,
 				'treatment'  => isset( $row['treatment'] ) ? sanitize_key( $row['treatment'] ) : '',
 				'importance' => isset( $row['importance'] ) ? sanitize_key( $row['importance'] ) : '',
 			);
+			if ( count( $out ) >= 100 ) {
+				break;
+			}
 		}
 		return $out;
 	}
@@ -726,10 +915,27 @@ class Privacy_Scan_Importer {
 			if ( is_array( $data ) && ! empty( $data['hint'] ) ) {
 				$msg .= ' ' . sanitize_text_field( (string) $data['hint'] );
 			}
-			if ( 429 === $code ) {
-				$msg = __( 'Scanner is busy or rate-limited. Stop the previous scan (or restart the scanner service), wait a few seconds, then try again.', 'universal-consent-privacy-framework' );
+			if ( 503 === $code || ( is_array( $data ) && ! empty( $data['error'] ) && false !== stripos( (string) $data['error'], 'queue is full' ) ) ) {
+				$msg = __( 'Scanner queue is full. Wait and retry — do not cancel other sites’ jobs on a shared scanner.', 'universal-consent-privacy-framework' );
+				if ( is_array( $data ) && ! empty( $data['retry_after'] ) ) {
+					$msg .= ' ' . sprintf(
+						/* translators: %d: seconds */
+						__( 'Retry after about %d seconds.', 'universal-consent-privacy-framework' ),
+						(int) $data['retry_after']
+					);
+				}
+			} elseif ( 429 === $code ) {
+				$msg = __( 'Scanner is busy or this API key already has a job running/queued. Wait for your job to finish, then try again.', 'universal-consent-privacy-framework' );
 			}
-			return new \WP_Error( 'ucpf_scanner_http', $msg, array( 'status' => $code ? $code : 502 ) );
+			return new \WP_Error(
+				'ucpf_scanner_http',
+				$msg,
+				array(
+					'status'      => $code ? $code : 502,
+					'retry_after' => is_array( $data ) && isset( $data['retry_after'] ) ? (int) $data['retry_after'] : 0,
+					'position'    => is_array( $data ) && isset( $data['position'] ) ? (int) $data['position'] : 0,
+				)
+			);
 		}
 
 		return $data;
@@ -901,15 +1107,22 @@ class Privacy_Scan_Importer {
 			if ( Scan_Noise_Filter::should_ignore_leak( $type, $name ) ) {
 				continue;
 			}
-			$out[] = array(
-				'type'     => $type,
-				'name'     => $name,
-				'provider' => isset( $row['provider'] ) ? sanitize_text_field( $row['provider'] ) : '',
-				'category' => isset( $row['category'] ) ? sanitize_key( $row['category'] ) : '',
-				'finding'  => $finding,
-				'severity'=> isset( $row['severity'] ) ? sanitize_key( $row['severity'] ) : 'info',
-				'sessions' => isset( $row['sessions'] ) && is_array( $row['sessions'] ) ? array_map( 'sanitize_key', $row['sessions'] ) : array(),
-				'reason'   => isset( $row['reason'] ) ? sanitize_text_field( $row['reason'] ) : '',
+			$out[] = array_merge(
+				array(
+					'type'     => $type,
+					'name'     => $name,
+					'provider' => isset( $row['provider'] ) ? sanitize_text_field( $row['provider'] ) : '',
+					'category' => isset( $row['category'] ) ? sanitize_key( $row['category'] ) : '',
+					'finding'  => $finding,
+					'severity'=> isset( $row['severity'] ) ? sanitize_key( $row['severity'] ) : 'info',
+					'sessions' => isset( $row['sessions'] ) && is_array( $row['sessions'] ) ? array_map( 'sanitize_key', $row['sessions'] ) : array(),
+					'reason'   => isset( $row['reason'] ) ? sanitize_text_field( $row['reason'] ) : '',
+				),
+				self::remediation_for_signal(
+					$type,
+					$name,
+					isset( $row['provider'] ) ? (string) $row['provider'] : ''
+				)
 			);
 		}
 		return $out;

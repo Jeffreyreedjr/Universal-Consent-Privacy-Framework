@@ -340,9 +340,10 @@ class Page_Generator {
 				'business_address'  => Settings::get( 'business_address' ),
 				'last_updated'      => mysql2date( 'F j, Y', $last, true ),
 				'retention_days'    => (int) Settings::get( 'legal_retention_days', 365 ),
-				'cookie_policy_url' => $this->get_page_url( 'cookie_policy' ),
-				'data_request_url'  => $this->get_rights_url( 'data_request' ),
-				'dns_url'           => $this->get_rights_url( 'do_not_sell' ),
+				'cookie_policy_url'   => $this->get_page_url( 'cookie_policy' ),
+				'privacy_policy_url'  => $this->get_page_url( 'privacy_policy' ),
+				'data_request_url'    => $this->get_rights_url( 'data_request' ),
+				'dns_url'             => $this->get_rights_url( 'do_not_sell' ),
 			)
 		);
 

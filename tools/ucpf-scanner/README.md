@@ -54,6 +54,14 @@ Auth: header `X-UCPF-Scanner-Key` or `Authorization: Bearer …`. Required off-l
 2. **Self-hosted:** Advanced → Scanner API URL + key ([SCANNER-SERVER.md](../../docs/SCANNER-SERVER.md)).
 3. **Registry mode:** `local` (default) | `agency` | `community` | `disabled` — community requires Remote registry enabled (double gate).
 
+## Time budget
+
+`UCPF_SCANNER_BROWSER_TIMEOUT_MS` (default **1800000** / 30m) is the preferred whole-job Chromium budget. It is divided by the **actual** session count for the profile; each session also gets a **floor** from page count × estimated page cost so selected URLs can finish. If a session still stops early, the log shows `stopped at page N/M (session time budget)` — raise the env var for huge lists (Deep × 40+ pages often needs 3600000+).
+
+## Multi-site queue
+
+Shared scanners **queue** overflow jobs (`UCPF_SCANNER_MAX_QUEUE`, default 200) instead of rejecting immediately. Per-key caps (`MAX_RUNNING_PER_KEY` / `MAX_QUEUED_PER_KEY`) keep one site from monopolizing the node. Prefer **one API key per WordPress site**. Jobs persist under `data/` (SQLite or JSON). See [SCANNER-SERVER.md](../../docs/SCANNER-SERVER.md) §5b for 300+ sizing.
+
 ## Package
 
 npm name: `ucpf-scanner` (private companion tool).

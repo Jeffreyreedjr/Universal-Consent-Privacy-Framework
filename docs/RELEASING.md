@@ -5,9 +5,17 @@ Trusted updates without a phone-home updater:
 1. **WordPress.org** — primary (Dashboard updates via WordPress core)
 2. **GitHub Releases** — secondary (zip + SHA256)
 
+## Version scheme
+
+UCPF is **pre-1.0 / Alpha** until a deliberate stable release.
+
+- Current line: `0.1.0-alpha`, then `0.1.1-alpha`, `0.2.0-alpha`, etc.
+- Historical `1.4.x` tags were development iterations, not a stable 1.x product line.
+- Prefer `0.x.y-alpha` (or later `-beta`) in the plugin header and `UCPF_VERSION` until ready for `1.0.0`.
+
 ## Version bump checklist
 
-1. `universal-consent-privacy-framework.php` — header `Version` + `UCPF_VERSION`
+1. `universal-consent-privacy-framework.php` — header `Version` + `UCPF_VERSION` (and Alpha in Plugin Name / Description while pre-1.0)
 2. `readme.txt` — `Stable tag` + changelog section
 3. `CHANGELOG.md` — user-facing notes
 4. Ensure no secrets, `.env`, or `tools/ucpf-scanner/report*.json` are staged
@@ -33,7 +41,7 @@ Get-FileHash dist\universal-consent-privacy-framework.zip -Algorithm SHA256
 ## GitHub Release
 
 1. Merge to `main`
-2. Tag: `git tag -a v1.1.0 -m "v1.1.0"` && `git push origin v1.1.0`
+2. Tag: `git tag -a v0.1.0-alpha -m "v0.1.0-alpha"` && `git push origin v0.1.0-alpha`
 3. Workflow `.github/workflows/release.yml` builds the zip, publishes a Release, and writes SHA256 into the notes
 4. Until WordPress.org is approved, distribute that Release zip
 

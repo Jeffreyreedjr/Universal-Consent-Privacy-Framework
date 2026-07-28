@@ -16,8 +16,10 @@ class Scheduled_Scan {
 
 	const HOOK_START = 'ucpf_scheduled_scan_start';
 	const HOOK_POLL  = 'ucpf_scheduled_scan_poll';
-	const MAX_POLLS  = 20;
+	/** ~90 × 60s ≈ 90 minutes — covers Deep + shared-scanner queue wait. */
+	const MAX_POLLS  = 90;
 	const POLL_DELAY = 60;
+	const MAX_START_RETRIES = 5;
 
 	/**
 	 * @var Scheduled_Scan|null
@@ -85,8 +87,23 @@ class Scheduled_Scan {
 			return;
 		}
 		if ( ! wp_next_scheduled( self::HOOK_START ) ) {
-			wp_schedule_event( time() + HOUR_IN_SECONDS, $this->cron_recurrence(), self::HOOK_START );
+			wp_schedule_event( time() + $this->stagger_offset_seconds(), $this->cron_recurrence(), self::HOOK_START );
 		}
+	}
+
+	/**
+	 * Spread fleet schedules so 300+ sites do not all enqueue at :00.
+	 *
+	 * @return int Seconds (1h–7h) derived from site URL.
+	 */
+	public function stagger_offset_seconds() {
+		$host = (string) wp_parse_url( home_url( '/' ), PHP_URL_HOST );
+		$sum  = 0;
+		$len  = strlen( $host );
+		for ( $i = 0; $i < $len; $i++ ) {
+			$sum += ord( $host[ $i ] );
+		}
+		return HOUR_IN_SECONDS + ( $sum % ( 6 * HOUR_IN_SECONDS ) );
 	}
 
 	/**
@@ -114,7 +131,7 @@ class Scheduled_Scan {
 			$interval = ( is_array( $new ) && ! empty( $new['scheduled_scan_interval'] ) && 'weekly' === $new['scheduled_scan_interval'] )
 				? 'weekly'
 				: 'ucpf_monthly';
-			wp_schedule_event( time() + HOUR_IN_SECONDS, $interval, self::HOOK_START );
+			wp_schedule_event( time() + $this->stagger_offset_seconds(), $interval, self::HOOK_START );
 		}
 	}
 
@@ -195,8 +212,41 @@ class Scheduled_Scan {
 			return new \WP_Error( 'ucpf_scanner_unconfigured', $err );
 		}
 
+		$status = Settings::get( 'scheduled_scan_last_status', array() );
+		if ( ! is_array( $status ) ) {
+			$status = array();
+		}
+
 		$result = Privacy_Scan_Importer::start_remote_scan( home_url( '/' ), $this->paths() );
 		if ( is_wp_error( $result ) ) {
+			$err_data    = $result->get_error_data();
+			$status_code = is_array( $err_data ) && isset( $err_data['status'] ) ? (int) $err_data['status'] : 0;
+			$retry_after = is_array( $err_data ) && isset( $err_data['retry_after'] ) ? (int) $err_data['retry_after'] : 0;
+			$retries     = isset( $status['start_retries'] ) ? (int) $status['start_retries'] : 0;
+			$busy        = in_array( $status_code, array( 429, 503 ), true )
+				|| false !== stripos( $result->get_error_message(), 'busy' )
+				|| false !== stripos( $result->get_error_message(), 'queue' );
+
+			if ( $busy && $retries < self::MAX_START_RETRIES && ! $manual ) {
+				$delay = $retry_after > 0 ? min( 900, $retry_after ) : min( 900, 60 * ( $retries + 1 ) );
+				$this->set_status(
+					array(
+						'state'         => 'waiting',
+						'started'       => current_time( 'mysql' ),
+						'start_retries' => $retries + 1,
+						'manual'        => false,
+						'message'       => sprintf(
+							/* translators: 1: attempt number, 2: seconds */
+							__( 'Scanner busy/queue full — retry %1$d in %2$d seconds (other sites left alone).', 'universal-consent-privacy-framework' ),
+							$retries + 1,
+							$delay
+						),
+					)
+				);
+				wp_schedule_single_event( time() + $delay, self::HOOK_START );
+				return $result;
+			}
+
 			$this->set_status(
 				array(
 					'state'    => 'failed',
@@ -228,12 +278,19 @@ class Scheduled_Scan {
 
 		$this->set_status(
 			array(
-				'state'      => 'running',
+				'state'      => isset( $result['status'] ) && 'queued' === $result['status'] ? 'queued' : 'running',
 				'job_id'     => $job_id,
 				'started'    => current_time( 'mysql' ),
 				'poll_count' => 0,
+				'position'   => isset( $result['position'] ) ? (int) $result['position'] : 0,
 				'manual'     => (bool) $manual,
-				'message'    => __( 'Scan job started.', 'universal-consent-privacy-framework' ),
+				'message'    => ! empty( $result['estimated_wait_hint'] )
+					? sprintf(
+						/* translators: %s: wait hint */
+						__( 'Scan job accepted (%s).', 'universal-consent-privacy-framework' ),
+						sanitize_text_field( (string) $result['estimated_wait_hint'] )
+					)
+					: __( 'Scan job started.', 'universal-consent-privacy-framework' ),
 			)
 		);
 
@@ -271,6 +328,15 @@ class Scheduled_Scan {
 
 		$job = Privacy_Scan_Importer::get_remote_scan( $job_id );
 		if ( is_wp_error( $job ) ) {
+			$err_data = $job->get_error_data();
+			$code     = is_array( $err_data ) && isset( $err_data['status'] ) ? (int) $err_data['status'] : 0;
+			// Transient scanner blips — keep polling instead of failing the fleet job.
+			if ( in_array( $code, array( 502, 503, 504 ), true ) && $poll_count < self::MAX_POLLS ) {
+				$status['message'] = $job->get_error_message();
+				$this->set_status( $status );
+				wp_schedule_single_event( time() + self::POLL_DELAY, self::HOOK_POLL, array( $job_id ) );
+				return;
+			}
 			$status['state']    = 'failed';
 			$status['finished'] = current_time( 'mysql' );
 			$status['message']  = $job->get_error_message();
@@ -280,9 +346,18 @@ class Scheduled_Scan {
 		}
 
 		$job_state = isset( $job['status'] ) ? sanitize_key( (string) $job['status'] ) : '';
-		if ( in_array( $job_state, array( 'queued', 'running', 'pending', 'processing' ), true ) || ( empty( $job['report'] ) && 'completed' !== $job_state && 'failed' !== $job_state ) ) {
+		if ( ! empty( $job['position'] ) ) {
+			$status['position'] = (int) $job['position'];
+			$status['message']  = sprintf(
+				/* translators: %d: queue position */
+				__( 'Queued on scanner — position %d.', 'universal-consent-privacy-framework' ),
+				(int) $job['position']
+			);
+			$this->set_status( $status );
+		}
+		if ( in_array( $job_state, array( 'queued', 'running', 'pending', 'processing', 'cancelling' ), true ) || ( empty( $job['report'] ) && 'completed' !== $job_state && 'failed' !== $job_state && 'cancelled' !== $job_state ) ) {
 			if ( $poll_count >= self::MAX_POLLS ) {
-				$msg = __( 'Scheduled scan timed out waiting for the remote scanner.', 'universal-consent-privacy-framework' );
+				$msg = __( 'Scheduled scan timed out waiting for the remote scanner (including queue wait).', 'universal-consent-privacy-framework' );
 				$status['state']    = 'failed';
 				$status['finished'] = current_time( 'mysql' );
 				$status['message']  = $msg;

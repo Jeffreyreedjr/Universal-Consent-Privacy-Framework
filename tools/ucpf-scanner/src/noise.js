@@ -91,6 +91,54 @@ export function shouldIgnoreUrlLeak(urlOrHost) {
 }
 
 /**
+ * Whether a request/iframe/script inventory host or URL should be omitted (not just leak-ignored).
+ * @param {string} urlOrHost
+ */
+export function shouldOmitSignal(urlOrHost) {
+  const v = String(urlOrHost || '').trim();
+  if (!v) return true;
+  const lower = v.toLowerCase();
+  const f = getFilters();
+  for (const row of f.signal_omit_schemes || []) {
+    const scheme = String(row.scheme || '').toLowerCase();
+    if (scheme && lower.startsWith(scheme)) return true;
+  }
+  for (const row of f.signal_omit_hosts || []) {
+    const h = String(row.host || '').toLowerCase();
+    if (h && (lower === h || lower.includes(h))) return true;
+  }
+  // Reuse leak host ignores for inventory (about:blank, fonts are classified separately —
+  // only omit true placeholders from leak_ignore that are also in signal_omit).
+  return false;
+}
+
+/**
+ * Collapse ephemeral CDN worker hosts onto a stable parent for inventory dedupe.
+ * @param {string} hostOrUrl
+ * @returns {string}
+ */
+export function collapseSignalHost(hostOrUrl) {
+  let host = String(hostOrUrl || '').trim();
+  if (!host) return '';
+  try {
+    if (host.includes('://')) host = new URL(host).hostname;
+  } catch {
+    host = host.split('/')[0];
+  }
+  host = host.replace(/\.$/, '').toLowerCase();
+  if (!host) return '';
+  const f = getFilters();
+  for (const row of f.signal_host_collapse || []) {
+    const suffix = String(row.suffix || '').toLowerCase();
+    const to = String(row.to || '').toLowerCase();
+    if (suffix && to && (host === suffix.replace(/^\./, '') || host.endsWith(suffix))) {
+      return to;
+    }
+  }
+  return host;
+}
+
+/**
  * @param {string} key
  */
 export function shouldOmitStorageKey(key) {

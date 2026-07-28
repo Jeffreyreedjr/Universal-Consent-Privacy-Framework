@@ -3,6 +3,9 @@
 ## Purpose
 Build and maintain the Universal Consent & Privacy Framework WordPress plugin. Strict GDPR defaults. Never claim guaranteed compliance.
 
+## Release status
+Pre-1.0 / Alpha (`0.x.y-alpha`). Do not market as a stable 1.x product. Prior `1.4.x` tags were development iterations.
+
 ## Rules
 - Namespace: `UCPF\`, text domain: `universal-consent-privacy-framework`
 - Never phone home; remote registry off by default
@@ -25,7 +28,7 @@ Build and maintain the Universal Consent & Privacy Framework WordPress plugin. S
 - `ucpf_loaded`, `ucpf_consent_saved`, `ucpf_consent_withdrawn`
 - `ucpf_register_service`, `ucpf_consent_categories`, `ucpf_service_registry`
 - `ucpf_should_block_script`, `ucpf_should_block_iframe`
-- `ucpf_scan_noise_filters`, `ucpf_is_cookie_scan_noise`
+- `ucpf_scan_noise_filters`, `ucpf_is_cookie_scan_noise`, `ucpf_is_signal_scan_noise`
 - `ucpf_brand_config`, `ucpf_product_name`, `ucpf_theme_tokens`
 
 ## Coding standards
@@ -48,8 +51,12 @@ When changing code, follow these patterns so checks stay green:
 
 ## Cookie descriptions
 - Primary: UCPF service catalog in Script_Registry
+- Site knowledge: option `ucpf_knowledge_entries` (scan/review); export/import packs; fleet hub via opt-in remote registry URL — see `docs/COOKIE-KNOWLEDGE-HUB.md`
+- Community contribute: manual scrubbed pack + GitHub issue only (no POST); `Cookie_Knowledge::contribution_pack`
 - Fallback: bundled Open Cookie Database snapshot (`data/open-cookie-database.min.json`) — attribution to jkwakman/Open-Cookie-Database; offline only; not a compliance guarantee
-- Refresh snapshot: `.\tools\build-ocd.ps1`
+- Lookup order: catalog → knowledge → OCD; never cookiedatabase.org
+- Agency merge: `.\tools\merge-knowledge-hub.ps1` (no hosted DB)
+- Refresh OCD snapshot: `.\tools\build-ocd.ps1`
 
 ## Scanner
 - Deep scan: `tools/ucpf-scanner` (Playwright) — inventory + technical consent score / dark-pattern checks (not a legal determination)

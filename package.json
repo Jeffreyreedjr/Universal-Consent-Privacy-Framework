@@ -1,6 +1,6 @@
 {
   "name": "universal-consent-privacy-framework",
-  "version": "1.2.0",
+  "version": "0.1.7-alpha",
   "private": true,
   "description": "UCPF WordPress plugin admin UI build (React + GSAP). Not published to npm.",
   "license": "GPL-2.0-or-later",

@@ -68,7 +68,7 @@
       "treatment": "consent",
       "description": "Bot protection and spam prevention.",
       "privacy_url": "https://www.hcaptcha.com/privacy",
-      "script_patterns": ["hcaptcha.com"],
+      "script_patterns": ["hcaptcha.com", "newassets.hcaptcha.com", "api.hcaptcha.com", "js.hcaptcha.com"],
       "cookie_patterns": [],
       "cookies": [],
       "iframe_patterns": [],
@@ -200,7 +200,7 @@
           "pattern": "_calendly_session",
           "purpose": "Calendly scheduling session state.",
           "retention": "Session",
-          "category": "preferences",
+          "category": "functional",
           "treatment": "consent",
           "contexts": ["guest", "logged_in"]
         },
@@ -209,7 +209,7 @@
           "pattern": "cal_anonymous_id",
           "purpose": "Anonymous visitor id for Calendly embeds.",
           "retention": "months",
-          "category": "preferences",
+          "category": "functional",
           "treatment": "consent",
           "contexts": ["guest", "logged_in"]
         }

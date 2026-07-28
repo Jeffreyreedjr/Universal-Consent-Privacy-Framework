@@ -43,6 +43,11 @@ class Cookie_Scanner {
 	const DEPTH_DEEP     = 100;
 
 	/**
+	 * Remembered scanner page picks (admin UI).
+	 */
+	const SELECTION_OPTION = 'ucpf_scan_selection';
+
+	/**
 	 * Discover-mode token transient key.
 	 */
 	const DISCOVER_TOKEN_KEY = 'ucpf_discover_token';
@@ -1968,7 +1973,100 @@ class Cookie_Scanner {
 		if ( ! is_array( $data ) || empty( $data ) ) {
 			$data = get_option( 'ucpf_last_scan', array() );
 		}
-		return is_array( $data ) ? $data : array();
+		if ( ! is_array( $data ) ) {
+			return array();
+		}
+		// Promote unknowns that now match the vendor catalog (e.g. after plugin update).
+		if ( ! empty( $data['unknown_cookies'] ) && is_array( $data['unknown_cookies'] ) ) {
+			$before    = count( $data['unknown_cookies'] );
+			$remaining = $this->reconcile_unknown_with_catalog( $data['unknown_cookies'], $data );
+			if ( count( $remaining ) !== $before ) {
+				$fresh = get_option( 'ucpf_last_scan', array() );
+				if ( is_array( $fresh ) && ! empty( $fresh ) ) {
+					set_transient( 'ucpf_last_scan', $fresh, WEEK_IN_SECONDS );
+					return $fresh;
+				}
+			}
+			$data['unknown_cookies'] = $remaining;
+		}
+		return $data;
+	}
+
+	/**
+	 * Remembered page picks + consent coverage for the scanner UI.
+	 *
+	 * @return array{urls: array<string, string>, depth: string, browser_crawl: bool, include_auth: bool, updated: string}
+	 */
+	public function get_saved_selection() {
+		$raw = get_option( self::SELECTION_OPTION, array() );
+		if ( ! is_array( $raw ) ) {
+			$raw = array();
+		}
+		return $this->sanitize_saved_selection( $raw );
+	}
+
+	/**
+	 * Persist scanner page picks for the next visit / scan.
+	 *
+	 * @param array $data Raw selection payload.
+	 * @return array Sanitized selection that was stored.
+	 */
+	public function save_selection( array $data ) {
+		$clean = $this->sanitize_saved_selection( $data );
+		$clean['updated'] = gmdate( 'c' );
+		update_option( self::SELECTION_OPTION, $clean, false );
+		return $clean;
+	}
+
+	/**
+	 * Sanitize remembered selection payload.
+	 *
+	 * @param array $raw Raw.
+	 * @return array{urls: array<string, string>, depth: string, browser_crawl: bool, include_auth: bool, updated: string}
+	 */
+	public function sanitize_saved_selection( array $raw ) {
+		$depth = isset( $raw['depth'] ) ? sanitize_key( (string) $raw['depth'] ) : 'standard';
+		if ( ! in_array( $depth, array( 'quick', 'standard', 'deep' ), true ) ) {
+			$depth = 'standard';
+		}
+
+		$urls = array();
+		if ( ! empty( $raw['urls'] ) && is_array( $raw['urls'] ) ) {
+			$i = 0;
+			foreach ( $raw['urls'] as $key => $value ) {
+				if ( $i >= self::MAX_BROWSER_URLS ) {
+					break;
+				}
+				// Support { url: label } map or list of { url, label } / strings.
+				if ( is_array( $value ) ) {
+					$url   = isset( $value['url'] ) ? (string) $value['url'] : '';
+					$label = isset( $value['label'] ) ? (string) $value['label'] : $url;
+				} elseif ( is_string( $key ) && ! is_numeric( $key ) ) {
+					$url   = (string) $key;
+					$label = is_string( $value ) ? $value : $url;
+				} else {
+					$url   = is_string( $value ) ? $value : '';
+					$label = $url;
+				}
+				$url = esc_url_raw( $url );
+				if ( ! $url ) {
+					continue;
+				}
+				$label         = sanitize_text_field( $label ? $label : $url );
+				$urls[ $url ] = $label;
+				++$i;
+			}
+		}
+
+		$updated = isset( $raw['updated'] ) ? sanitize_text_field( (string) $raw['updated'] ) : '';
+
+		return array(
+			'urls'          => $urls,
+			'depth'         => $depth,
+			'browser_crawl' => ! isset( $raw['browser_crawl'] ) || ! empty( $raw['browser_crawl'] ),
+			'include_auth'  => ! empty( $raw['include_auth'] ),
+			'updated'       => $updated,
+		);
 	}
 
 	/**
@@ -2073,6 +2171,17 @@ class Cookie_Scanner {
 			$o           = $all[ $key ];
 			if ( '' === $o['label'] && '' === $o['purpose'] && 'show' === $o['visibility'] && '' === $o['category'] && '' === $o['treatment'] ) {
 				unset( $all[ $key ] );
+			} else {
+				Cookie_Knowledge::upsert(
+					$key,
+					array(
+						'source'    => 'manual',
+						'category'  => $o['category'],
+						'treatment' => $o['treatment'] ? $o['treatment'] : 'consent',
+						'purpose'   => $o['purpose'],
+						'tags'      => array( 'source_manual_review' ),
+					)
+				);
 			}
 			++$n;
 		}
@@ -2160,16 +2269,26 @@ class Cookie_Scanner {
 			if ( ! is_array( $cookie ) || empty( $cookie['name'] ) ) {
 				continue;
 			}
-			$name = (string) $cookie['name'];
+			$observed = (string) $cookie['name'];
 			// Keep Cookie Policy / public inventory free of lockout & logged-in noise.
-			if ( Scan_Noise_Filter::should_omit_cookie( $name ) ) {
+			if ( Scan_Noise_Filter::should_omit_cookie( $observed ) ) {
 				continue;
 			}
-			$key  = strtolower( $name );
-			$ov   = isset( $overrides[ $key ] ) ? $overrides[ $key ] : array();
 
-			$match   = $registry->match_cookie_name( $name );
+			$match   = $registry->match_cookie_name( $observed );
 			$service = ( $match && ! empty( $match['service'] ) ) ? $registry->get_service( $match['service'] ) : null;
+
+			// Collapse property-/site-specific names (_ga_XXXX, _hjSession_123, …) to catalog patterns.
+			$name = Cookie_Knowledge::policy_cookie_display_name( $observed, is_array( $match ) ? $match : null );
+			if ( '' === $name ) {
+				continue;
+			}
+
+			$key      = strtolower( $name );
+			$ov_obs   = isset( $overrides[ strtolower( $observed ) ] ) ? $overrides[ strtolower( $observed ) ] : array();
+			$ov_disp  = isset( $overrides[ $key ] ) ? $overrides[ $key ] : array();
+			// Prefer exact observed override, then pattern-key override.
+			$ov = ! empty( $ov_obs ) ? $ov_obs : $ov_disp;
 
 			$category = isset( $cookie['category'] ) ? sanitize_key( $cookie['category'] ) : '';
 			if ( ! $category && $match && ! empty( $match['category'] ) ) {
@@ -2345,7 +2464,28 @@ class Cookie_Scanner {
 				if ( '' === $provider && '' === $host ) {
 					continue;
 				}
+				if ( Scan_Noise_Filter::should_omit_signal( $host ) ) {
+					continue;
+				}
+				$host = Scan_Noise_Filter::collapse_signal_host( $host );
+				if ( '' === $host || Scan_Noise_Filter::should_omit_signal( $host ) ) {
+					continue;
+				}
 				$cat = isset( $row['category'] ) ? sanitize_key( $row['category'] ) : '';
+				if ( '' === $provider || '' === $cat || 'unclassified' === $cat ) {
+					$svc_key = Privacy_Scan_Importer::resolve_service_key( $provider, $host );
+					if ( $svc_key ) {
+						$svc = $registry->get_service( $svc_key );
+						if ( is_array( $svc ) ) {
+							if ( '' === $provider && ! empty( $svc['name'] ) ) {
+								$provider = (string) $svc['name'];
+							}
+							if ( ( '' === $cat || 'unclassified' === $cat ) && ! empty( $svc['category'] ) ) {
+								$cat = sanitize_key( (string) $svc['category'] );
+							}
+						}
+					}
+				}
 				// Skip pure first-party WordPress/UCPF chrome noise for the public policy.
 				if ( in_array( $provider, array( 'WordPress Core', 'UCPF', 'First-party site', 'Hello Elementor theme' ), true ) ) {
 					continue;
@@ -2359,11 +2499,11 @@ class Cookie_Scanner {
 				}
 				$seen_tech[ $dedupe ] = true;
 				$technologies[]       = array(
-					'name'           => $provider ? $provider : $host,
-					'category'       => $cat,
-					'category_label' => ( $cat && isset( $categories[ $cat ]['label'] ) ) ? $categories[ $cat ]['label'] : ( $cat ? $cat : __( 'Unclassified', 'universal-consent-privacy-framework' ) ),
-					'type'           => $group,
-					'host'           => $host,
+					'name'             => $provider ? $provider : $host,
+					'category'         => $cat,
+					'category_label'   => ( $cat && isset( $categories[ $cat ]['label'] ) ) ? $categories[ $cat ]['label'] : ( $cat ? $cat : __( 'Unclassified', 'universal-consent-privacy-framework' ) ),
+					'type'             => $group,
+					'host'             => $host,
 					'consent_required' => ( 'necessary' !== $cat && '' !== $cat ),
 				);
 			}
@@ -2535,7 +2675,7 @@ class Cookie_Scanner {
 				isset( $row['host'] ) ? $row['host'] : '',
 				isset( $row['category'] ) ? $row['category'] : '',
 				'',
-				__( 'Scripts, pixels, beacons, or embeds observed during a privacy scan of this website.', 'universal-consent-privacy-framework' )
+				__( 'Observed during a privacy scan of this website.', 'universal-consent-privacy-framework' )
 			);
 		}
 
@@ -2615,6 +2755,7 @@ class Cookie_Scanner {
 
 	/**
 	 * Get unknown cookies pending review.
+	 * Auto-promotes rows that now match the UCPF vendor catalog (not OCD-only).
 	 *
 	 * @return array
 	 */
@@ -2623,7 +2764,79 @@ class Cookie_Scanner {
 		if ( ! is_array( $data ) ) {
 			return array();
 		}
-		return Scan_Noise_Filter::filter_cookie_rows( $data );
+		$data = Scan_Noise_Filter::filter_cookie_rows( $data );
+		return $this->reconcile_unknown_with_catalog( $data );
+	}
+
+	/**
+	 * Move unknowns that match bundled/site catalog into known inventory.
+	 *
+	 * @param array      $unknown Unknown rows.
+	 * @param array|null $scan    Optional scan payload (avoids get_last_scan recursion).
+	 * @return array Remaining unknowns.
+	 */
+	private function reconcile_unknown_with_catalog( array $unknown, $scan = null ) {
+		if ( empty( $unknown ) ) {
+			return array();
+		}
+		$registry  = Script_Registry::instance();
+		$remaining = array();
+		$changed   = false;
+		if ( ! is_array( $scan ) ) {
+			$scan = get_option( 'ucpf_last_scan', array() );
+			if ( ! is_array( $scan ) ) {
+				$scan = array();
+			}
+		}
+		$known = ( ! empty( $scan['cookies'] ) && is_array( $scan['cookies'] ) ) ? $scan['cookies'] : array();
+
+		foreach ( $unknown as $row ) {
+			if ( ! is_array( $row ) || empty( $row['name'] ) ) {
+				continue;
+			}
+			$name   = (string) $row['name'];
+			$domain = isset( $row['domain'] ) ? (string) $row['domain'] : '';
+			$match  = $registry->match_cookie_name( $name, $domain );
+			$is_ucpf = $match && ( empty( $match['source'] ) || 'ucpf' === $match['source'] || ! empty( $match['service'] ) );
+			$from_ocd_only = $match && ! empty( $match['source'] ) && 'open_cookie_database' === $match['source'] && empty( $match['service'] );
+			if ( ! $match || $from_ocd_only || ! $is_ucpf ) {
+				// Strip stale/ambiguous OCD suggestions (e.g. bare "c" → Magnite).
+				if ( strlen( $name ) < 3 && ! empty( $row['description_source'] ) && 'open_cookie_database' === $row['description_source'] ) {
+					$row['description_source'] = '';
+					$row['purpose']            = '';
+					$row['service_name']       = '';
+					$row['category']           = '';
+					$row['provider']           = '';
+					$changed                   = true;
+				}
+				$remaining[] = $row;
+				continue;
+			}
+			$service = ! empty( $match['service'] ) ? $registry->get_service( $match['service'] ) : null;
+			$known[] = $this->format_cookie_finding(
+				$match,
+				$service ? $service : array(
+					'name' => isset( $match['service_name'] ) ? $match['service_name'] : $name,
+					'key'  => isset( $match['service'] ) ? $match['service'] : '',
+				),
+				isset( $row['page_url'] ) ? $row['page_url'] : home_url( '/' ),
+				isset( $row['context'] ) ? $row['context'] : 'reconcile',
+				isset( $row['source'] ) ? $row['source'] : 'catalog',
+				$name
+			);
+			$changed = true;
+		}
+
+		if ( ! $changed ) {
+			return $remaining;
+		}
+
+		update_option( 'ucpf_unknown_cookies', $remaining, false );
+		$scan['cookies']         = $known;
+		$scan['unknown_cookies'] = $remaining;
+		update_option( 'ucpf_last_scan', $scan, false );
+		set_transient( 'ucpf_last_scan', $scan, WEEK_IN_SECONDS );
+		return $remaining;
 	}
 
 	/**
@@ -2747,6 +2960,18 @@ class Cookie_Scanner {
 			'treatment'  => $treatment,
 		);
 		self::save_display_override( $name, $disp );
+
+		Cookie_Knowledge::upsert(
+			$name,
+			array(
+				'source'    => 'manual',
+				'category'  => $category,
+				'treatment' => $treatment,
+				'purpose'   => isset( $disp['purpose'] ) ? $disp['purpose'] : '',
+				'provider'  => isset( $known['provider'] ) ? $known['provider'] : '',
+				'tags'      => array( 'source_manual_review' ),
+			)
+		);
 
 		return true;
 	}

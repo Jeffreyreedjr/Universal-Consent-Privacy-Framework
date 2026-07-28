@@ -54,7 +54,12 @@ UCPF_SCANNER_API_KEYS=generate-a-long-random-secret-here
 | `UCPF_SCANNER_API_KEYS` | Comma-separated API keys. **Required** for any non-loopback client (including WordPress on another host). |
 | `UCPF_SCANNER_ALLOW_LOCAL=1` | Optional. Allows **unauthenticated** calls from loopback only. Do not use this as a substitute for keys on a public API. |
 | `UCPF_SCANNER_MAX_PAGES` | Cap pages per job (default 100) |
-| `UCPF_SCANNER_MAX_CONCURRENT` | Parallel scans (default 2) |
+| `UCPF_SCANNER_MAX_CONCURRENT` | Parallel Chromium jobs (default 2). Budget ~1–2 GB RAM each. |
+| `UCPF_SCANNER_MAX_QUEUE` | Waiting jobs when slots are full (default **200**) |
+| `UCPF_SCANNER_MAX_RUNNING_PER_KEY` | Max running jobs per API key (default **1**) |
+| `UCPF_SCANNER_MAX_QUEUED_PER_KEY` | Max queued jobs per API key (default **2**) |
+| `UCPF_SCANNER_ADMIN_KEYS` | Keys allowed to `cancel-all` (default: first key in `API_KEYS`) |
+| `UCPF_SCANNER_DATA_DIR` | Durable queue/job store (SQLite on Node 22+, else JSON) |
 
 Generate a key (example):
 
@@ -143,12 +148,12 @@ server {
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_read_timeout 600s;
+    proxy_read_timeout 3600s;
   }
 }
 ```
 
-Long timeouts matter — deep scans can run several minutes.
+Long timeouts matter — Standard/Deep re-walk selected URLs **per consent session**, so large page lists need headroom (often 30–60+ minutes). Set `UCPF_SCANNER_BROWSER_TIMEOUT_MS` on the scanner host (default 1800000); raise further for Deep × many pages. Session budgets use that value ÷ session count, with a page-count floor so selected URLs can finish when the overall timeout allows.
 
 ---
 
@@ -158,7 +163,7 @@ In WP admin:
 
 1. **Privacy Consent → Advanced**
 2. **Scanner API URL:** `https://scanner.yourdomain.com` (no trailing path required; plugin appends API routes)
-3. **Scanner API key:** same value as in `UCPF_SCANNER_API_KEYS`
+3. **Scanner API key:** same value as in `UCPF_SCANNER_API_KEYS` — **prefer one unique key per site** on agency fleets (list all keys comma-separated on the scanner, or shard sites across scanner nodes)
 4. Save
 
 Optional `wp-config.php` overrides (if your install supports them via brand/constants — prefer Advanced UI):
@@ -169,13 +174,39 @@ Then use **Cookie Scanner** flows that call the remote API (or scheduled deep sc
 
 ---
 
+## 5b. Agency fleets (100–300+ sites)
+
+The scanner is **dummy-proof for shared hosts**:
+
+1. Jobs **wait in a queue** when Chromium slots are full (not hard-fail for the first overflow).
+2. **Per-key caps** stop one chatty site from filling the node (`MAX_RUNNING_PER_KEY` / `MAX_QUEUED_PER_KEY`).
+3. WordPress **never auto cancel-all** on busy — that used to kill every tenant’s job.
+4. Jobs persist under `UCPF_SCANNER_DATA_DIR` (SQLite on Node 22+, else JSON) so a restart re-queues work.
+5. `cancel-all` requires an **admin key** (`UCPF_SCANNER_ADMIN_KEYS` or the first API key).
+
+### Sizing cheat sheet
+
+| Concurrent Chromium | Rough RAM | Jobs/hour if Deep ≈ 20 min |
+|---------------------|-----------|----------------------------|
+| 2 | ~2–4 GB | ~6 |
+| 4 | ~4–8 GB | ~12 |
+| 8 | ~8–16 GB | ~24 |
+
+**300 nightly Deep scans** at concurrency 4 ≈ **25 hours** on one node — use **staggered WP-Cron** (plugin spreads first run 1–7h by hostname) and/or **multiple scanner nodes** with site cohorts (each site’s Advanced → Scanner API URL points at its node).
+
+Raise `UCPF_SCANNER_MAX_QUEUE` for large scheduled waves. When the queue is full, the API returns **503 + Retry-After** (sites retry; they do not cancel others).
+
+---
+
 ## 6. API surface (reference)
 
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
-| GET | `/health` | No | Liveness |
-| GET | `/v1/node` | Yes* | Node metadata |
-| POST | `/v1/scans` | Yes* | Start scan job |
+| GET | `/health` | No | Liveness + queue depth |
+| GET | `/v1/node` | Yes* | Node metadata + capacity |
+| POST | `/v1/scans` | Yes* | Start or enqueue scan (202 + `position`) |
+| POST | `/v1/scans/:id/cancel` | Yes* | Cancel **your** job (ownership by API key) |
+| POST | `/v1/scans/cancel-all` | Admin* | Emergency cancel all (admin key only) |
 | POST | `/v1/drift` | Yes* | Baseline compare |
 | POST | `/v1/verify-domain` | Yes* | Domain ownership challenge |
 
@@ -206,12 +237,14 @@ Import `report.json` under **Privacy Consent → Cookie Scanner → Import scan 
 
 ## Security checklist
 
-- [ ] Strong `UCPF_SCANNER_API_KEYS`
+- [ ] Strong `UCPF_SCANNER_API_KEYS` (one key per site on fleets)
 - [ ] TLS on the public hostname
 - [ ] Process binds to localhost behind the proxy when possible
 - [ ] `.env` not in git / not world-readable
 - [ ] Firewall: do not expose `3847` to the internet
 - [ ] Treat scan reports as sensitive (client hosts, inventory)
+- [ ] Size `MAX_CONCURRENT` to RAM; use queue + multi-node for 300+ nightly scans
+- [ ] Restrict `cancel-all` to admin keys only
 
 ---
 

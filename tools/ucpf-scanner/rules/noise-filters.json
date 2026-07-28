@@ -62,5 +62,19 @@
   ],
   "storage_omit": [
     { "key": "wpEmojiSettingsSupports", "reason": "WP emoji capability probe" }
+  ],
+  "signal_omit_hosts": [
+    { "host": "about:blank", "reason": "Blank placeholder frame, not a tracker" },
+    { "host": "example.invalid", "reason": "Scanner host-rewrite artifact" }
+  ],
+  "signal_omit_schemes": [
+    { "scheme": "about:", "reason": "Browser placeholder schemes" },
+    { "scheme": "blob:", "reason": "Ephemeral blob URL, not a third-party host" },
+    { "scheme": "data:", "reason": "Inline data URL, not a third-party host" },
+    { "scheme": "javascript:", "reason": "Script URL scheme noise" }
+  ],
+  "signal_host_collapse": [
+    { "suffix": ".w.hcaptcha.com", "to": "hcaptcha.com", "reason": "Ephemeral hCaptcha worker hosts" },
+    { "suffix": ".challenges.cloudflare.com", "to": "challenges.cloudflare.com", "reason": "Regional CF challenge edges" }
   ]
 }

@@ -103,20 +103,25 @@ class Theme_Manager {
 			UCPF_VERSION
 		);
 
-		$preset = $this->resolve_preset();
-		$file   = $this->presets[ $preset ];
-
-		wp_enqueue_style(
-			'ucpf-theme',
-			UCPF_PLUGIN_URL . 'public/css/themes/' . $file,
-			array( 'ucpf-tokens' ),
-			UCPF_VERSION
-		);
+		// Load every preset so admin preview + cached markup can switch class without a missing stylesheet.
+		$theme_deps = array( 'ucpf-tokens' );
+		$last_handle = 'ucpf-tokens';
+		foreach ( $this->presets as $key => $file ) {
+			$handle = 'ucpf-theme-' . $key;
+			wp_enqueue_style(
+				$handle,
+				UCPF_PLUGIN_URL . 'public/css/themes/' . $file,
+				array( $last_handle ),
+				UCPF_VERSION
+			);
+			$last_handle = $handle;
+			$theme_deps[] = $handle;
+		}
 
 		wp_enqueue_style(
 			'ucpf-banner',
 			UCPF_PLUGIN_URL . 'public/css/banner.css',
-			array( 'ucpf-theme' ),
+			$theme_deps,
 			UCPF_VERSION
 		);
 
@@ -419,7 +424,12 @@ class Theme_Manager {
 
 		$css = '';
 		if ( $root ) {
-			$css .= '#ucpf-root{' . implode( ';', $root ) . '}';
+			// Match theme-class specificity so explicit custom colors override presets.
+			$selectors = array( '#ucpf-root' );
+			foreach ( $this->get_preset_keys() as $key ) {
+				$selectors[] = '#ucpf-root.ucpf-theme-' . sanitize_key( $key );
+			}
+			$css .= implode( ',', $selectors ) . '{' . implode( ';', $root ) . '}';
 		}
 		if ( $legal ) {
 			$css .= '.ucpf-legal-page,.ucpf-legal-shell,#ucpf-legal-shell{' . implode( ';', $legal ) . '}';

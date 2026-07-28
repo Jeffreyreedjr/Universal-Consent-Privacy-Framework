@@ -171,6 +171,49 @@
       "treatment": "consent",
       "importance": "non_essential"
     },
+    "essential-addons-for-elementor-lite": {
+      "provider": "Essential Addons for Elementor",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "Elementor companion widgets — review which features load for visitors."
+    },
+    "essential-addons-for-elementor": {
+      "provider": "Essential Addons for Elementor",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "mapster-wp-maps": {
+      "provider": "Mapster WP Maps",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "mapster-wp-maps-premium": {
+      "provider": "Mapster WP Maps",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "modern-events-calendar-lite": {
+      "provider": "Modern Events Calendar",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "modern-events-calendar": {
+      "provider": "Modern Events Calendar",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "userway-accessibility-widget": {
+      "provider": "UserWay",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
     "complianz-gdpr": {
       "provider": "Complianz (rival CMP)",
       "category": "necessary",

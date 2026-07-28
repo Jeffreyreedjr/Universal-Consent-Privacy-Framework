@@ -49,7 +49,7 @@ if ( '' === $sched_email ) {
 		<input type="hidden" name="<?php echo esc_attr( $option_key ); ?>[_ucpf_advanced_form]" value="1" />
 		<table class="form-table" role="presentation">
 			<tr>
-				<th scope="row"><?php esc_html_e( 'Deep privacy scanner', 'universal-consent-privacy-framework' ); ?></th>
+				<th scope="row"><?php esc_html_e( 'Playwright scanner (API)', 'universal-consent-privacy-framework' ); ?></th>
 				<td>
 					<p>
 						<label for="ucpf-scanner-api-url"><?php esc_html_e( 'Scanner API URL', 'universal-consent-privacy-framework' ); ?></label><br />
@@ -59,7 +59,7 @@ if ( '' === $sched_email ) {
 						<label for="ucpf-scanner-api-key"><?php esc_html_e( 'Scanner API key', 'universal-consent-privacy-framework' ); ?></label><br />
 						<input type="password" class="regular-text" id="ucpf-scanner-api-key" name="<?php echo esc_attr( $option_key ); ?>[scanner_api_key]" value="<?php echo esc_attr( $scanner_key ); ?>" autocomplete="new-password" />
 					</p>
-					<p class="description"><?php esc_html_e( 'Optional self-hosted Playwright scanner (HTTPS JSON only — no remote executable code). Leave blank to use local CLI import instead. Prefer defining UCPF_SCANNER_API_KEY in wp-config.php on production.', 'universal-consent-privacy-framework' ); ?></p>
+					<p class="description"><?php esc_html_e( 'Required to use “Run Playwright scan” on the Cookie Scanner screen (self-hosted Chromium service — HTTPS JSON only, no remote executable code). Leave blank to use the WordPress helper scan or local CLI + Import report instead. Prefer defining UCPF_SCANNER_API_KEY in wp-config.php on production.', 'universal-consent-privacy-framework' ); ?></p>
 					<p class="description">
 						<?php
 						printf(
@@ -70,16 +70,66 @@ if ( '' === $sched_email ) {
 						?>
 					</p>
 					<p class="description"><?php esc_html_e( 'Cookie descriptions use the UCPF catalog plus a bundled Open Cookie Database snapshot (offline — no phone-home).', 'universal-consent-privacy-framework' ); ?></p>
+					<p class="description"><?php esc_html_e( 'Agency fleets (many sites): use one API key per site, point cohorts at different scanner nodes if needed, and stagger scheduled scans. Shared scanners queue jobs. Never use cancel-all except the emergency reset below.', 'universal-consent-privacy-framework' ); ?></p>
 					<p>
-						<label for="ucpf-registry-mode"><?php esc_html_e( 'Intelligence registry mode', 'universal-consent-privacy-framework' ); ?></label><br />
+						<button type="button" class="button" id="ucpf-scanner-reset-all"><?php esc_html_e( 'Emergency: reset all scanner jobs', 'universal-consent-privacy-framework' ); ?></button>
+						<span id="ucpf-scanner-reset-status" class="description" style="margin-left:8px;" aria-live="polite"></span>
+					</p>
+					<p class="description"><?php esc_html_e( 'Admin only. Cancels every job on the scanner host and resets concurrency slots. Affects every site sharing that scanner.', 'universal-consent-privacy-framework' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Agency knowledge hub', 'universal-consent-privacy-framework' ); ?></th>
+				<td>
+					<?php
+					$hub_status = \UCPF\Script_Registry::get_remote_registry_status();
+					$hub_mode   = \UCPF\Community_Registry::mode();
+					$hub_ok     = ! empty( $hub_status['ok'] );
+					?>
+					<p class="description"><?php esc_html_e( 'Shared cookie intelligence via a Git/CDN registry.json (no hosted DB, no phone-home). Requires all three: mode Agency (or Community), enable sync, and a raw JSON URL.', 'universal-consent-privacy-framework' ); ?></p>
+					<p>
+						<label for="ucpf-registry-mode"><strong><?php esc_html_e( '1. Registry mode', 'universal-consent-privacy-framework' ); ?></strong></label><br />
 						<select id="ucpf-registry-mode" name="<?php echo esc_attr( $option_key ); ?>[registry_mode]">
-							<option value="local" <?php selected( $registry_mode, 'local' ); ?>><?php esc_html_e( 'Local only (default)', 'universal-consent-privacy-framework' ); ?></option>
-							<option value="agency" <?php selected( $registry_mode, 'agency' ); ?>><?php esc_html_e( 'Agency (private URL)', 'universal-consent-privacy-framework' ); ?></option>
-							<option value="community" <?php selected( $registry_mode, 'community' ); ?>><?php esc_html_e( 'Community (requires enable below)', 'universal-consent-privacy-framework' ); ?></option>
+							<option value="local" <?php selected( $registry_mode, 'local' ); ?>><?php esc_html_e( 'Local only (default — no remote pull)', 'universal-consent-privacy-framework' ); ?></option>
+							<option value="agency" <?php selected( $registry_mode, 'agency' ); ?>><?php esc_html_e( 'Agency — private GitHub/CDN registry.json', 'universal-consent-privacy-framework' ); ?></option>
+							<option value="community" <?php selected( $registry_mode, 'community' ); ?>><?php esc_html_e( 'Community — double opt-in only', 'universal-consent-privacy-framework' ); ?></option>
 							<option value="disabled" <?php selected( $registry_mode, 'disabled' ); ?>><?php esc_html_e( 'Disabled', 'universal-consent-privacy-framework' ); ?></option>
 						</select>
 					</p>
-					<p class="description"><?php esc_html_e( 'Override with UCPF_REGISTRY_MODE in wp-config.php. Community never phones home unless Remote registry is also enabled. Catalogs are data/rules only — never remote executable code.', 'universal-consent-privacy-framework' ); ?></p>
+					<p class="description"><?php esc_html_e( 'Override with UCPF_REGISTRY_MODE in wp-config.php. Catalogs are metadata only — never remote executable code.', 'universal-consent-privacy-framework' ); ?></p>
+					<p>
+						<label>
+							<input type="checkbox" name="<?php echo esc_attr( $option_key ); ?>[remote_registry_enabled]" value="1" <?php checked( $remote_on ); ?> />
+							<strong><?php esc_html_e( '2. Enable remote metadata sync', 'universal-consent-privacy-framework' ); ?></strong>
+						</label>
+					</p>
+					<p>
+						<label for="ucpf-remote-registry-url"><strong><?php esc_html_e( '3. Raw registry.json URL', 'universal-consent-privacy-framework' ); ?></strong></label><br />
+						<input type="url" class="regular-text" id="ucpf-remote-registry-url" name="<?php echo esc_attr( $option_key ); ?>[remote_registry_url]" value="<?php echo esc_attr( $remote_url ); ?>" placeholder="https://raw.githubusercontent.com/org/repo/main/registry.json" />
+					</p>
+					<p>
+						<button type="button" class="button" id="ucpf-registry-refresh"><?php esc_html_e( 'Refresh registry now', 'universal-consent-privacy-framework' ); ?></button>
+						<span id="ucpf-registry-sync-status" class="description" style="margin-left:8px;" aria-live="polite">
+							<?php
+							if ( ! empty( $hub_status['message'] ) ) {
+								echo esc_html(
+									( $hub_ok ? __( 'OK:', 'universal-consent-privacy-framework' ) : __( 'Last sync:', 'universal-consent-privacy-framework' ) ) . ' ' .
+									(string) $hub_status['message'] .
+									( ! empty( $hub_status['at'] ) ? ' (' . (string) $hub_status['at'] . ')' : '' )
+								);
+							} else {
+								echo esc_html(
+									sprintf(
+										/* translators: %s: effective mode */
+										__( 'Effective mode: %s. Save settings, then refresh.', 'universal-consent-privacy-framework' ),
+										$hub_mode
+									)
+								);
+							}
+							?>
+						</span>
+					</p>
+					<p class="description"><?php esc_html_e( 'Pull is cached about one day. Refresh after you push a new registry.json. See docs/COOKIE-KNOWLEDGE-HUB.md and tools/merge-knowledge-hub.ps1.', 'universal-consent-privacy-framework' ); ?></p>
 				</td>
 			</tr>
 			<tr>
@@ -161,7 +211,7 @@ if ( '' === $sched_email ) {
 				<td>
 					<label>
 						<input type="checkbox" name="<?php echo esc_attr( $option_key ); ?>[scheduled_scan_enabled]" value="1" <?php checked( $sched_on ); ?> />
-						<?php esc_html_e( 'Run Deep privacy scan automatically on this site', 'universal-consent-privacy-framework' ); ?>
+						<?php esc_html_e( 'Run Playwright scan automatically on this site (requires Scanner API URL + key above)', 'universal-consent-privacy-framework' ); ?>
 					</label>
 					<p class="description"><?php esc_html_e( 'Uses WP-Cron. Low-traffic sites should ping wp-cron.php via real server cron so scans are not delayed. Technical inventory only — not a compliance guarantee.', 'universal-consent-privacy-framework' ); ?></p>
 					<p>
@@ -220,19 +270,6 @@ if ( '' === $sched_email ) {
 						<?php esc_html_e( 'Safe iframe mode: when OB is on, only rewrite known embed hosts (YouTube, Vimeo, Google Maps)', 'universal-consent-privacy-framework' ); ?>
 					</label>
 				</td>
-				</td>
-			</tr>
-			<tr>
-				<th scope="row"><?php esc_html_e( 'Remote registry', 'universal-consent-privacy-framework' ); ?></th>
-				<td>
-					<label>
-						<input type="checkbox" name="<?php echo esc_attr( $option_key ); ?>[remote_registry_enabled]" value="1" <?php checked( $remote_on ); ?> />
-						<?php esc_html_e( 'Enable optional remote metadata sync (admin opt-in)', 'universal-consent-privacy-framework' ); ?>
-					</label>
-					<p class="description"><?php esc_html_e( 'Leave off unless you intentionally sync a remote JSON catalog. Local catalog updates ship in the plugin zip.', 'universal-consent-privacy-framework' ); ?></p>
-					<p>
-						<input type="url" class="regular-text" name="<?php echo esc_attr( $option_key ); ?>[remote_registry_url]" value="<?php echo esc_attr( $remote_url ); ?>" placeholder="https://example.com/registry.json" />
-					</p>
 				</td>
 			</tr>
 			<tr>

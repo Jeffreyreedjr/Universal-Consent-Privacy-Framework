@@ -45,8 +45,19 @@ Coding standards (also in `AGENTS.md`):
 | Vendor catalog | `assets/vendor-catalog/` |
 | Open Cookie Database rebuild | `tools/build-ocd.ps1` |
 | Scanner classify rules | `tools/ucpf-scanner/src/` |
+| Cookie knowledge (from a live site) | Cookie Scanner → **Contribute cookie knowledge** |
 | Translations | `languages/` |
 | Docs / examples | `docs/`, `README.md` |
+
+### Cookie knowledge from WordPress admin
+
+1. Review cookies on a site (Scanner / Cookie Review) so `ucpf_knowledge_entries` has useful metadata.
+2. Open **Cookie Scanner → Contribute cookie knowledge**.
+3. Check the confirmation (no values / secrets / forbidden domains; GPL offer).
+4. **Download contribution pack** (`ucpf-knowledge-contribution.json` — no site URL).
+5. **Open GitHub issue** and attach the file (issue template `cookie-knowledge.yml`).
+
+WordPress never uploads the pack. Maintainers merge useful entries into `assets/vendor-catalog/` or the public hub.
 
 ## Pull requests
 

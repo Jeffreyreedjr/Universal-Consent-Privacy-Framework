@@ -33,7 +33,13 @@ add_action( 'ucpf_loaded', function () {
 
 UCPF ships a local catalog in `assets/vendor-catalog/*.json`. This is the source of truth for known cookies/services (WordPress, WooCommerce, GA4, Meta, Clarity, embeds, etc.). It grows via plugin updates — no phone-home required.
 
-See `assets/vendor-catalog/README.md` for the schema and contribution workflow.
+See `assets/vendor-catalog/README.md` for the schema, category conventions, and contribution workflow. When a reference site’s Cookie review settles on better defaults (e.g. YouTube → marketing, PayPal facility cookies → necessary), update the JSON there and ship a release so all sites inherit it. Per-site overrides still win until cleared.
+
+**Offline descriptions also use** the bundled [Open Cookie Database](https://github.com/jkwakman/Open-Cookie-Database) snapshot (`data/open-cookie-database.min.json`, MIT). Refresh with `tools/build-ocd.ps1`. Admin **Cookie lookup** on Cookie Scanner searches catalog → site knowledge → OCD.
+
+**Fleet knowledge hub** (optional): export/import knowledge packs and point Advanced → remote registry at your GitHub JSON. See [`docs/COOKIE-KNOWLEDGE-HUB.md`](COOKIE-KNOWLEDGE-HUB.md). Does not use cookiedatabase.org.
+
+**Public contribute:** Cookie Scanner → Contribute cookie knowledge downloads a scrubbed pack (`GET /ucpf/v1/knowledge/contribute`) and opens a GitHub issue — no upload from WordPress.
 
 Site owners can override category/treatment per service in the Setup Wizard (Cookie review). Overrides are stored in `service_overrides` settings.
 

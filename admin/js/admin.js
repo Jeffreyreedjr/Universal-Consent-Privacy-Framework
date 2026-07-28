@@ -112,6 +112,53 @@
     $el.toggleClass('is-error', !!isError);
   }
 
+  function setStatusHtml(selector, html, isError) {
+    var $el = $(selector);
+    if (!$el.length) {
+      return;
+    }
+    $el.prop('hidden', false).html(html);
+    $el.toggleClass('is-error', !!isError);
+  }
+
+  function showReverifyPrompt(selector, message) {
+    var $wrap = $('<span></span>').text(message + ' ');
+    if (ucpfAdmin && ucpfAdmin.scannerConfigured) {
+      $wrap.append(
+        $('<button type="button" class="button button-primary" id="ucpf-reverify-playwright"></button>')
+          .text('Re-verify with Playwright scan')
+      );
+    } else {
+      var adv = (ucpfAdmin && ucpfAdmin.advancedSettingsUrl) ? ucpfAdmin.advancedSettingsUrl : '';
+      $wrap.append(document.createTextNode('Configure the Scanner API under Advanced Settings to re-verify, or import a Playwright report. '));
+      if (adv) {
+        $wrap.append($('<a></a>').attr('href', adv).text('Open Advanced Settings'));
+      }
+    }
+    setStatusHtml(selector, $wrap, false);
+  }
+
+  function enableServiceBlocking(keys) {
+    var list = (keys || []).filter(Boolean);
+    if (!list.length) {
+      return Promise.resolve({ count: 0 });
+    }
+    var overrides = {};
+    list.forEach(function (key) {
+      var $row = $('#ucpf-service-' + key);
+      var category = $row.find('.ucpf-service-override-category').val() || '';
+      overrides[key] = {
+        category: category,
+        treatment: 'consent',
+        default_blocking: true,
+      };
+      if ($row.length) {
+        $row.find('.ucpf-service-override-treatment').val('consent');
+      }
+    });
+    return restPost('services/overrides', { overrides: overrides });
+  }
+
   function ensureScanProgressBox($status) {
     var $box = $('#ucpf-scan-progress');
     if ($box.length) {
@@ -161,7 +208,7 @@
         stepLabel += ' · page ' + p.page_index + '/' + p.pages_total;
       }
     } else if (p.sessions_total && p.pages_total) {
-      stepLabel = p.sessions_total + ' sessions × ' + p.pages_total + ' pages';
+      stepLabel = p.sessions_total + ' sessions × ' + p.pages_total + ' pages (per session)';
     }
     if (attempt != null) {
       stepLabel = (stepLabel ? stepLabel + ' · ' : '') + 'poll ' + (attempt + 1);
@@ -248,6 +295,9 @@
     depth: 'standard',
     presets: { quick: 10, standard: 40, deep: 80 },
     ready: false,
+    remembered: false,
+    rememberedUpdated: '',
+    saveTimer: null,
   };
 
   var SCAN_GROUP_ORDER = [
@@ -296,6 +346,10 @@
     opts = opts || {};
     var prevSelected = scanPickerState.selected || {};
     var hadSelection = Object.keys(prevSelected).length > 0;
+    var saved = (payload && payload.saved_selection) ? payload.saved_selection : null;
+    var savedUrls = (saved && saved.urls && typeof saved.urls === 'object') ? saved.urls : {};
+    var savedCount = Object.keys(savedUrls).length;
+
     scanPickerState.available = (payload && payload.available) ? payload.available : ((payload && payload.urls) || []);
     // Client-side dedupe by normalized URL (query variants of / used to flood the list).
     (function () {
@@ -328,7 +382,6 @@
     scanPickerState.groups = (payload && payload.groups) ? payload.groups : scanPickerState.groups;
     scanPickerState.maxCrawl = (payload && payload.max_crawl) ? payload.max_crawl : scanPickerState.maxCrawl;
     scanPickerState.maxServer = (payload && payload.max_server) ? payload.max_server : scanPickerState.maxServer;
-    scanPickerState.depth = (payload && payload.depth) ? payload.depth : scanPickerState.depth;
     if (payload && payload.presets) {
       scanPickerState.presets = payload.presets;
     }
@@ -336,9 +389,46 @@
       scanPickerState.homeUrl = payload.home_url;
     }
 
-    if (opts.resetSelection || !hadSelection) {
+    // Prefer remembered coverage on first load; otherwise honor the select / request.
+    var depthFromPayload = (payload && payload.depth) ? payload.depth : '';
+    var depthFromSaved = (saved && saved.depth) ? saved.depth : '';
+    var depth = depthFromPayload || depthFromSaved || scanPickerState.depth || 'standard';
+    if (opts.preferSaved && depthFromSaved) {
+      depth = depthFromSaved;
+    }
+    if (depth !== 'quick' && depth !== 'standard' && depth !== 'deep') {
+      depth = 'standard';
+    }
+    scanPickerState.depth = depth;
+    if ($('#ucpf-scan-depth').length && $('#ucpf-scan-depth').val() !== depth) {
+      $('#ucpf-scan-depth').val(depth);
+    }
+
+    if (saved && typeof saved.browser_crawl === 'boolean' && $('#ucpf-scan-browser').length) {
+      $('#ucpf-scan-browser').prop('checked', !!saved.browser_crawl);
+    }
+    if (saved && typeof saved.include_auth === 'boolean' && $('#ucpf-scan-auth').length) {
+      $('#ucpf-scan-auth').prop('checked', !!saved.include_auth);
+    }
+
+    if (opts.resetSelection) {
       scanPickerState.selected = defaultScanSelection(scanPickerState.available);
-    } else {
+      scanPickerState.remembered = false;
+      scanPickerState.rememberedUpdated = '';
+    } else if (opts.preferSaved && savedCount) {
+      var restored = {};
+      Object.keys(savedUrls).forEach(function (rawUrl) {
+        var url = normalizeSiteUrl(rawUrl);
+        if (url) {
+          restored[url] = savedUrls[rawUrl] || url;
+        }
+      });
+      scanPickerState.selected = Object.keys(restored).length
+        ? restored
+        : defaultScanSelection(scanPickerState.available);
+      scanPickerState.remembered = Object.keys(restored).length > 0;
+      scanPickerState.rememberedUpdated = saved.updated || '';
+    } else if (hadSelection) {
       // Keep prior picks that still exist; do not wipe when rediscovering.
       var next = {};
       (scanPickerState.available || []).forEach(function (item) {
@@ -346,13 +436,29 @@
           next[item.url] = prevSelected[item.url] || item.label || item.url;
         }
       });
-      // Also keep custom URLs the user added that may not be in catalog.
       Object.keys(prevSelected).forEach(function (url) {
         if (prevSelected[url] && !next[url]) {
           next[url] = prevSelected[url];
         }
       });
       scanPickerState.selected = Object.keys(next).length ? next : defaultScanSelection(scanPickerState.available);
+    } else if (savedCount) {
+      var fromSaved = {};
+      Object.keys(savedUrls).forEach(function (rawUrl) {
+        var url = normalizeSiteUrl(rawUrl);
+        if (url) {
+          fromSaved[url] = savedUrls[rawUrl] || url;
+        }
+      });
+      scanPickerState.selected = Object.keys(fromSaved).length
+        ? fromSaved
+        : defaultScanSelection(scanPickerState.available);
+      scanPickerState.remembered = Object.keys(fromSaved).length > 0;
+      scanPickerState.rememberedUpdated = saved.updated || '';
+    } else {
+      scanPickerState.selected = defaultScanSelection(scanPickerState.available);
+      scanPickerState.remembered = false;
+      scanPickerState.rememberedUpdated = '';
     }
 
     if (!Object.keys(scanPickerState.selected).length && scanPickerState.homeUrl) {
@@ -362,6 +468,66 @@
     renderScanChips();
     renderScanPages();
     updateSelectionHint();
+    updateRememberedHint();
+  }
+
+  function updateRememberedHint() {
+    var $el = $('#ucpf-scan-remembered');
+    if (!$el.length) {
+      return;
+    }
+    var n = selectedCount();
+    if (scanPickerState.remembered && n) {
+      var msg = 'Remembered selection restored (' + n + ' page' + (n === 1 ? '' : 's') + '). Changes save automatically.';
+      if (scanPickerState.rememberedUpdated) {
+        msg += ' Last saved: ' + String(scanPickerState.rememberedUpdated).replace('T', ' ').replace(/\.\d+Z$/, ' UTC').replace(/Z$/, ' UTC');
+      }
+      $el.text(msg).prop('hidden', false);
+    } else if (n) {
+      $el.text('Page picks are saved on this site for the next scan.').prop('hidden', false);
+    } else {
+      $el.prop('hidden', true).text('');
+    }
+  }
+
+  function selectionPayload() {
+    return {
+      urls: scanPickerState.selected || {},
+      depth: currentScanDepth(),
+      browser_crawl: $('#ucpf-scan-browser').is(':checked'),
+      include_auth: $('#ucpf-scan-auth').is(':checked'),
+    };
+  }
+
+  function persistScanSelection(immediate) {
+    if (!$('#ucpf-scanner-picker').length || !scanPickerState.ready) {
+      return Promise.resolve(null);
+    }
+    if (scanPickerState.saveTimer) {
+      window.clearTimeout(scanPickerState.saveTimer);
+      scanPickerState.saveTimer = null;
+    }
+    var run = function () {
+      return restPost('scan/selection', selectionPayload()).then(function (data) {
+        if (data && data.selection) {
+          scanPickerState.remembered = Object.keys(scanPickerState.selected || {}).length > 0;
+          scanPickerState.rememberedUpdated = data.selection.updated || '';
+          updateRememberedHint();
+        }
+        return data;
+      }).catch(function () {
+        return null;
+      });
+    };
+    if (immediate) {
+      return run();
+    }
+    return new Promise(function (resolve) {
+      scanPickerState.saveTimer = window.setTimeout(function () {
+        scanPickerState.saveTimer = null;
+        run().then(resolve);
+      }, 450);
+    });
   }
 
   function loadScanUrls(depth, opts) {
@@ -398,9 +564,11 @@
     var n = selectedCount();
     var max = scanPickerState.maxCrawl || 80;
     var depth = scanPickerState.depth || 'standard';
-    var msg = n + ' page(s) selected · up to ' + max + ' scanned · intensity: ' + depth;
+    var sessions = depth === 'quick' ? 2 : (depth === 'deep' ? 10 : 6);
+    var coverage = depth === 'quick' ? 'Light' : (depth === 'deep' ? 'Thorough' : 'Standard');
+    var msg = n + ' page(s) selected · ' + coverage + ' coverage · ' + sessions + ' consent sessions × those pages · up to ' + max + ' per session';
     if (suggested) {
-      msg += ' (typical pick ~' + suggested + ')';
+      msg += ' · typical pick ~' + suggested;
     }
     if (n > max) {
       msg += ' — extras beyond ' + max + ' are ignored.';
@@ -630,13 +798,15 @@
     renderScanChips();
     renderScanPages();
     updateSelectionHint();
+    updateRememberedHint();
+    persistScanSelection(false);
   }
 
   function initScanPicker() {
     if (!$('#ucpf-scanner-picker').length) {
       return;
     }
-    loadScanUrls(currentScanDepth(), { resetSelection: true }).catch(function () {
+    loadScanUrls(currentScanDepth(), { preferSaved: true }).catch(function () {
       $('#ucpf-scanner-pages').html('<p class="description">Could not load page list.</p>');
       $('#ucpf-scanner-chips').empty();
     });
@@ -644,12 +814,18 @@
 
   $(document).on('change', '#ucpf-scan-depth', function () {
     applyDepthCapsOnly();
+    persistScanSelection(false);
+  });
+
+  $(document).on('change', '#ucpf-scan-browser, #ucpf-scan-auth', function () {
+    persistScanSelection(false);
   });
 
   $('#ucpf-scan-rediscover').on('click', function () {
     loadScanUrls(currentScanDepth(), { resetSelection: false }).then(function (payload) {
       var n = payload && payload.count ? payload.count : 0;
       setStatus('#ucpf-scan-status', 'Discovered ' + n + ' page(s) (full catalog). Selection preserved where possible.');
+      persistScanSelection(true);
     }).catch(function () {
       setStatus('#ucpf-scan-status', 'Page discovery failed.', true);
     });
@@ -671,6 +847,8 @@
     renderScanChips();
     renderScanPages();
     updateSelectionHint();
+    updateRememberedHint();
+    persistScanSelection(false);
   });
 
   $('#ucpf-scan-clear').on('click', function () {
@@ -682,6 +860,8 @@
     renderScanChips();
     renderScanPages();
     updateSelectionHint();
+    updateRememberedHint();
+    persistScanSelection(false);
   });
 
   $(document).on('click', '.ucpf-scanner-group__select', function () {
@@ -698,6 +878,8 @@
     renderScanChips();
     renderScanPages();
     updateSelectionHint();
+    updateRememberedHint();
+    persistScanSelection(false);
   });
 
   $(document).on('click', '.ucpf-scanner-chip', function () {
@@ -902,8 +1084,19 @@
     var body = {};
     if (scanRuntime.deepJobId) {
       body.job_id = scanRuntime.deepJobId;
-    } else {
-      body.cancel_all = true;
+    }
+    // Without a job id, do NOT cancel_all on a shared agency scanner (kills every site).
+
+    if (!body.job_id) {
+      setScanBusy(false);
+      hideScanProgress();
+      setStatus(
+        $status || '#ucpf-scan-status',
+        'Scan stopped locally. No job id was known — other sites’ Chromium jobs were not cancelled. If this site’s browser is still running, restart the scanner host or use Reset scanner (admin) on Advanced.',
+        true
+      );
+      scanRuntime.deepJobId = null;
+      return Promise.resolve();
     }
 
     return restPost('scan/cancel', body).then(function (data) {
@@ -926,7 +1119,7 @@
     }).catch(function () {
       setScanBusy(false);
       hideScanProgress();
-      setStatus($status || '#ucpf-scan-status', 'Scan stopped locally. If Chromium is still running on the scanner host, restart npm or POST /v1/scans/cancel-all.', true);
+      setStatus($status || '#ucpf-scan-status', 'Scan stopped locally. If this site’s Chromium is still running, use Stop again with a known job id, or Advanced → Emergency reset (admin only — affects all sites on that scanner).', true);
       scanRuntime.deepJobId = null;
     });
   }
@@ -961,6 +1154,7 @@
     scanRuntime.abortController = (typeof AbortController !== 'undefined') ? new AbortController() : null;
     var signal = scanRuntime.abortController ? scanRuntime.abortController.signal : null;
     setScanBusy(true);
+    persistScanSelection(true);
 
     var urlsPromise = scanPickerState.ready
       ? Promise.resolve(selectedUrlDefs())
@@ -968,7 +1162,7 @@
           return (urlPayload && urlPayload.urls) ? urlPayload.urls : [];
         });
 
-    setStatus($status, 'Preparing guest scan…');
+    setStatus($status, 'Preparing WordPress helper scan…');
 
     return urlsPromise.then(function (urls) {
       if (scanRuntime.cancelled) {
@@ -1071,12 +1265,12 @@
       setStatus($status, 'Scan stopped.');
       return;
     }
-    // ~4s × 225 ≈ 15 min — deep Playwright scans often exceed the old ~6 min cap.
-    if (attempt > 225) {
+    // ~4s × 900 ≈ 60 min — covers Deep + queue wait on shared agency scanners.
+    if (attempt > 900) {
       setScanBusy(false);
       setStatus(
         $status,
-        'WordPress poll timed out after ~15 minutes. Cancelling remote Chromium and importing whatever finished…',
+        'WordPress poll timed out after ~60 minutes. Cancelling this site’s remote job and importing whatever finished…',
         true
       );
       cancelRemoteAndImport($status, jobId, 'Poll timed out').finally(function () {
@@ -1139,6 +1333,35 @@
         }, 2000);
         return;
       }
+      if (job.status === 'queued') {
+        var qPos = job.position || (job.progress && job.progress.queue_position) || 0;
+        var qLen = job.queue_length || (job.progress && job.progress.queue_length) || 0;
+        var qHint = job.estimated_wait_hint || '';
+        var qMsg = 'Queued on shared scanner';
+        if (qPos) {
+          qMsg += ' — position ' + qPos + (qLen ? ' of ' + qLen : '');
+        }
+        if (qHint) {
+          qMsg += ' (' + qHint + ')';
+        }
+        if (job.progress && job.progress.message) {
+          qMsg += '\n' + job.progress.message;
+        }
+        setStatus($status, qMsg);
+        showScanProgress(
+          Object.assign({}, job.progress || {}, {
+            phase: 'queued',
+            message: qMsg,
+            percent: typeof (job.progress && job.progress.percent) === 'number' ? job.progress.percent : 0,
+          }),
+          attempt,
+          $status
+        );
+        scanRuntime.deepPollTimer = window.setTimeout(function () {
+          pollDeepScan(jobId, $status, attempt + 1);
+        }, 4000);
+        return;
+      }
       var head = 'Deep scan ' + (job.status || 'running');
       if (job.progress && typeof job.progress.percent === 'number') {
         head += ' — ' + Math.round(job.progress.percent) + '%';
@@ -1194,6 +1417,17 @@
   }
 
   function runDeepScan($status) {
+    if (!ucpfAdmin || !ucpfAdmin.scannerConfigured) {
+      var adv = (ucpfAdmin && ucpfAdmin.advancedSettingsUrl) ? ucpfAdmin.advancedSettingsUrl : '';
+      setStatus(
+        $status,
+        'Playwright scan needs a Scanner API URL under Advanced Settings' +
+          (adv ? ' (' + adv + ')' : '') +
+          '. Or import a local CLI report JSON.',
+        true
+      );
+      return;
+    }
     scanRuntime.cancelled = false;
     scanRuntime.deepFailStreak = 0;
     scanRuntime.deepJobId = null;
@@ -1201,15 +1435,19 @@
     var signal = scanRuntime.abortController ? scanRuntime.abortController.signal : null;
     setScanBusy(true);
     var depth = currentScanDepth();
-    var profileHint = depth === 'quick' ? 'quick (2 sessions)' : (depth === 'deep' ? 'compliance (full)' : 'standard');
+    var sessionsHint = depth === 'quick' ? 2 : (depth === 'deep' ? 10 : 6);
+    var coverageLabel = depth === 'quick' ? 'Light' : (depth === 'deep' ? 'Thorough' : 'Standard');
+    var profileHint = coverageLabel + ' coverage · ' + sessionsHint + ' sessions × selected pages';
+    persistScanSelection(true);
     setStatus($status, 'Starting Playwright scan (' + profileHint + ')…');
     showScanProgress({
       percent: 0,
       step: 0,
       total: 0,
       phase: 'starting',
-      message: 'Starting Playwright scan (' + profileHint + ')…',
+      message: 'Starting Playwright scan (' + profileHint + '). Each session re-walks the URL list; unfinished pages mean time budget.',
       log: [],
+      sessions_total: sessionsHint,
     }, 0, $status);
 
     var urlsPromise = scanPickerState.ready
@@ -1263,20 +1501,28 @@
     }, signal).catch(function (err) {
       var msg = (err && err.message) ? String(err.message) : '';
       var status = err && err.status;
-      // Stuck Chromium from a previous run blocks new jobs — clear slots once and retry.
-      if (retry < 1 && (status === 429 || /concurrent|rate limit/i.test(msg))) {
-        setStatus('#ucpf-scan-status', 'Scanner busy — cancelling stuck jobs, then retrying…', true);
-        return restPost('scan/cancel', { cancel_all: true }).then(function () {
-          return new Promise(function (resolve) {
-            window.setTimeout(resolve, 1500);
-          });
+      // Queue full / busy — backoff and retry once. Never cancel_all (kills other sites).
+      if (retry < 1 && (status === 429 || status === 503 || /queue is full|per-key|concurrent|rate limit|busy/i.test(msg))) {
+        var waitMs = status === 503 ? 8000 : 4000;
+        setStatus(
+          '#ucpf-scan-status',
+          'Scanner busy or queue full — waiting ' + Math.round(waitMs / 1000) + 's then retrying (other sites’ jobs are left alone)…',
+          true
+        );
+        return new Promise(function (resolve) {
+          window.setTimeout(resolve, waitMs);
         }).then(function () {
           return startDeepScanJob(urls, depth, signal, retry + 1);
         });
       }
-      if (status === 429 || /concurrent/i.test(msg)) {
+      if (status === 503 || /queue is full/i.test(msg)) {
         throw new Error(
-          'Scanner is busy (another Chromium job is still running). Press Stop scan, wait a few seconds, or restart npm on the scanner host — then try again.'
+          'Scanner queue is full. Wait a few minutes and try again, or ask your host to raise UCPF_SCANNER_MAX_QUEUE / add another scanner node. Do not use cancel-all on a shared scanner.'
+        );
+      }
+      if (status === 429 || /concurrent|per-key|busy/i.test(msg)) {
+        throw new Error(
+          'Scanner is busy (your key may already have a job running/queued). Wait for it to finish, press Stop on your own job if stuck, then try again.'
         );
       }
       if (/rate limit/i.test(msg)) {
@@ -1489,14 +1735,73 @@
           msg += '; ' + ov.count + ' service treatment' + (ov.count === 1 ? '' : 's') + ' updated';
         }
         msg += '. Policy pages refreshed.';
-        setStatus('#ucpf-cookie-review-status', msg);
-        setStatus('#ucpf-scan-status', msg);
+        showReverifyPrompt('#ucpf-cookie-review-status', msg);
+        showReverifyPrompt('#ucpf-scan-status', msg);
         $btn.prop('disabled', false);
       })
       .catch(function (err) {
         $btn.prop('disabled', false);
         setStatus('#ucpf-cookie-review-status', (err && err.message) ? err.message : 'Save failed.', true);
       });
+  });
+
+  $(document).on('click', '#ucpf-reverify-playwright', function (e) {
+    e.preventDefault();
+    var $run = $('#ucpf-scanner-run');
+    if ($run.length) {
+      $('html, body').animate({ scrollTop: Math.max(0, $run.offset().top - 48) }, 200);
+    }
+    runDeepScan('#ucpf-scan-status');
+  });
+
+  $(document).on('click', '#ucpf-scroll-import', function (e) {
+    e.preventDefault();
+    var $box = $('.ucpf-import-box').first();
+    if ($box.length) {
+      $('html, body').animate({ scrollTop: Math.max(0, $box.offset().top - 48) }, 200);
+      $('#ucpf-import-scan-json-text').trigger('focus');
+    }
+  });
+
+  $(document).on('click', '.ucpf-enable-blocking', function () {
+    var key = $(this).attr('data-service');
+    var $btn = $(this).prop('disabled', true);
+    enableServiceBlocking([key]).then(function (data) {
+      var n = data && data.count ? data.count : 0;
+      showReverifyPrompt(
+        '#ucpf-scan-status',
+        n ? ('Blocking enabled for ' + key + '.') : ('Could not enable blocking for ' + key + '.')
+      );
+      $btn.prop('disabled', false).text('Enabled');
+    }).catch(function (err) {
+      $btn.prop('disabled', false);
+      setStatus('#ucpf-scan-status', (err && err.message) ? err.message : 'Enable blocking failed.', true);
+    });
+  });
+
+  $(document).on('click', '#ucpf-enable-leak-blocking', function () {
+    var raw = $(this).attr('data-services') || '[]';
+    var keys = [];
+    try {
+      keys = JSON.parse(raw);
+    } catch (e) {
+      keys = [];
+    }
+    if (!Array.isArray(keys) || !keys.length) {
+      return;
+    }
+    var $btn = $(this).prop('disabled', true);
+    enableServiceBlocking(keys).then(function (data) {
+      var n = data && data.count ? data.count : 0;
+      showReverifyPrompt(
+        '#ucpf-scan-status',
+        'Enabled blocking for ' + n + ' service(s). Re-verify with Playwright to confirm leaks clear.'
+      );
+      $btn.prop('disabled', false);
+    }).catch(function (err) {
+      $btn.prop('disabled', false);
+      setStatus('#ucpf-scan-status', (err && err.message) ? err.message : 'Bulk enable failed.', true);
+    });
   });
 
   $('#ucpf-run-scan, #ucpf-wizard-run-scan').on('click', function () {
@@ -1574,6 +1879,177 @@
     }).catch(function (err) {
       alert((err && err.message) ? err.message : 'Export failed');
     });
+  });
+
+  function downloadJson(filename, data) {
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+  }
+
+  function exportKnowledgePack() {
+    restGet('knowledge/export').then(function (data) {
+      var n = (data && data.knowledge_count) ? data.knowledge_count : ((data && data.cookies) ? data.cookies.length : 0);
+      downloadJson('ucpf-knowledge-export.json', data);
+      if (window.console && console.info) {
+        console.info('UCPF knowledge export:', n, 'cookie(s)');
+      }
+    }).catch(function (err) {
+      alert((err && err.message) ? err.message : 'Knowledge export failed');
+    });
+  }
+
+  $('#ucpf-knowledge-export, #ucpf-knowledge-export-toolbar').on('click', exportKnowledgePack);
+
+  function syncContributeButtons() {
+    var on = $('#ucpf-contribute-consent').is(':checked');
+    $('#ucpf-contribute-download, #ucpf-contribute-github').prop('disabled', !on);
+  }
+
+  $('#ucpf-contribute-consent').on('change', syncContributeButtons);
+
+  $('#ucpf-contribute-download').on('click', function () {
+    if (!$('#ucpf-contribute-consent').is(':checked')) {
+      return;
+    }
+    var status = $('#ucpf-contribute-status');
+    status.text('Preparing pack…');
+    restGet('knowledge/contribute').then(function (data) {
+      var n = (data && data.cookie_count) ? data.cookie_count : 0;
+      downloadJson('ucpf-knowledge-contribution.json', data);
+      status.text(
+        n
+          ? ('Downloaded ' + n + ' cookie(s). Next: Open GitHub issue and attach the file.')
+          : 'Pack downloaded (empty or fully scrubbed). Add reviews first, or open an issue describing the cookies.'
+      );
+    }).catch(function (err) {
+      status.text((err && err.message) ? err.message : 'Contribution pack failed');
+    });
+  });
+
+  $('#ucpf-contribute-github').on('click', function () {
+    if (!$('#ucpf-contribute-consent').is(':checked')) {
+      return;
+    }
+    var url = (ucpfAdmin && ucpfAdmin.contributeIssueUrl) ? ucpfAdmin.contributeIssueUrl : '';
+    if (!url) {
+      $('#ucpf-contribute-status').text('GitHub issue URL is not configured.');
+      return;
+    }
+    window.open(url, '_blank', 'noopener,noreferrer');
+    $('#ucpf-contribute-status').text('GitHub opened — attach ucpf-knowledge-contribution.json to the issue.');
+  });
+
+  $('#ucpf-knowledge-import').on('click', function () {
+    $('#ucpf-knowledge-import-file').trigger('click');
+  });
+
+  $('#ucpf-knowledge-import-file').on('change', function () {
+    var file = this.files && this.files[0];
+    if (!file) {
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var pack = JSON.parse(String(reader.result || ''));
+        restPost('knowledge/import', pack).then(function (res) {
+          alert((res && res.message) ? res.message : 'Imported knowledge pack.');
+          window.location.reload();
+        }).catch(function (err) {
+          alert((err && err.message) ? err.message : 'Import failed');
+        });
+      } catch (e) {
+        alert('Invalid JSON');
+      }
+    };
+    reader.readAsText(file);
+    this.value = '';
+  });
+
+  function sourceLabel(src) {
+    if (src === 'ucpf') {
+      return 'Vendor catalog';
+    }
+    if (src === 'knowledge') {
+      return 'Site knowledge';
+    }
+    if (src === 'open_cookie_database') {
+      return 'Open Cookie Database';
+    }
+    return src || '—';
+  }
+
+  function runCookieLookup() {
+    var q = String($('#ucpf-cookie-lookup-q').val() || '').trim();
+    var status = $('#ucpf-cookie-lookup-status');
+    var table = $('#ucpf-cookie-lookup-table');
+    var tbody = table.find('tbody');
+    if (q.length < 2) {
+      status.text('Enter at least 2 characters.');
+      table.attr('hidden', 'hidden');
+      return;
+    }
+    status.text('Searching…');
+    tbody.empty();
+    restGet('cookies/lookup?q=' + encodeURIComponent(q) + '&limit=25').then(function (data) {
+      var rows = (data && data.results) ? data.results : [];
+      if (!rows.length) {
+        status.text('No local matches. Add via Cookie Review, then export knowledge for your hub.');
+        table.attr('hidden', 'hidden');
+        return;
+      }
+      status.text((data && data.note) ? data.note : (rows.length + ' result(s).'));
+      rows.forEach(function (row) {
+        var name = row.name || '';
+        var cat = row.category || '';
+        var purpose = row.purpose || '';
+        var tr = $('<tr/>');
+        tr.append($('<td/>').text(name));
+        tr.append($('<td/>').text(sourceLabel(row.source)));
+        tr.append($('<td/>').text(row.provider || row.service_name || '—'));
+        tr.append($('<td/>').text(cat || '—'));
+        tr.append($('<td/>').text(purpose ? purpose.slice(0, 160) : '—'));
+        var actions = $('<td/>');
+        if (cat) {
+          var btn = $('<button type="button" class="button button-small"/>').text('Save to knowledge');
+          btn.on('click', function () {
+            var map = {};
+            map[name] = {
+              purpose: purpose,
+              category: cat,
+              treatment: row.treatment || 'consent',
+              visibility: 'show',
+              label: row.provider || row.service_name || name
+            };
+            restPost('cookies/overrides', { overrides: map }).then(function () {
+              status.text('Saved “' + name + '” to site knowledge.');
+            }).catch(function (err) {
+              alert((err && err.message) ? err.message : 'Could not save');
+            });
+          });
+          actions.append(btn);
+        } else {
+          actions.append($('<span class="description"/>').text('Assign category in Cookie Review'));
+        }
+        tr.append(actions);
+        tbody.append(tr);
+      });
+      table.removeAttr('hidden');
+    }).catch(function (err) {
+      status.text((err && err.message) ? err.message : 'Lookup failed');
+      table.attr('hidden', 'hidden');
+    });
+  }
+
+  $('#ucpf-cookie-lookup-go').on('click', runCookieLookup);
+  $('#ucpf-cookie-lookup-q').on('keydown', function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      runCookieLookup();
+    }
   });
 
   $('#ucpf-import-registry').on('click', function () {
@@ -1776,6 +2252,36 @@
       }
     );
   }
+  $(document).on('click', '#ucpf-registry-refresh', function () {
+    var $st = $('#ucpf-registry-sync-status');
+    $st.text('Refreshing registry…');
+    restPost('registry/refresh', {}).then(function (data) {
+      var msg = (data && data.message) ? data.message : 'Done.';
+      if (data && data.status && data.status.at) {
+        msg += ' (' + data.status.at + ')';
+      }
+      $st.text(msg);
+    }).catch(function (err) {
+      $st.text((err && err.message) ? err.message : 'Refresh failed.');
+    });
+  });
+
+  $(document).on('click', '#ucpf-scanner-reset-all', function () {
+    var ok = window.confirm(
+      'Cancel ALL jobs on the shared scanner and reset slots?\n\nThis affects every WordPress site using this scanner host. Prefer Stop scan (your job only) unless Chromium is stuck.'
+    );
+    if (!ok) {
+      return;
+    }
+    var $st = $('#ucpf-scanner-reset-status');
+    $st.text('Requesting cancel-all…');
+    restPost('scan/cancel', { cancel_all: true, confirm_cancel_all: true }).then(function (data) {
+      $st.text((data && data.message) ? data.message : 'Reset requested.');
+    }).catch(function (err) {
+      $st.text((err && err.message) ? err.message : 'Reset failed.');
+    });
+  });
+
   wrapWideTables();
   if (window.MutationObserver) {
     var mo = new MutationObserver(function (mutations) {

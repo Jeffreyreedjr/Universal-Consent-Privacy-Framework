@@ -245,7 +245,7 @@ $overrides  = \UCPF\Cookie_Scanner::get_display_overrides();
 		</div>
 	<?php endif; ?>
 
-	<h3><?php esc_html_e( 'Service treatments', 'universal-consent-privacy-framework' ); ?></h3>
+	<h3 id="ucpf-service-treatments"><?php esc_html_e( 'Service treatments', 'universal-consent-privacy-framework' ); ?></h3>
 	<p class="description"><?php esc_html_e( 'Ignore = do not gate or block this service’s scripts. Public listing of its cookies is controlled per cookie via Visibility above.', 'universal-consent-privacy-framework' ); ?></p>
 	<div class="ucpf-table-scroll">
 	<table class="widefat striped ucpf-cookie-review__services">
@@ -264,7 +264,7 @@ $overrides  = \UCPF\Cookie_Scanner::get_display_overrides();
 				$scat     = isset( $service['category'] ) ? $service['category'] : '';
 				$streat   = isset( $service['treatment'] ) ? $service['treatment'] : 'consent';
 				?>
-				<tr data-service-key="<?php echo esc_attr( $skey ); ?>">
+				<tr id="ucpf-service-<?php echo esc_attr( $skey ); ?>" data-service-key="<?php echo esc_attr( $skey ); ?>">
 					<td><?php echo esc_html( $sname ); ?>
 						<?php if ( ! $is_scanner ) : ?>
 							<input type="hidden" name="service_overrides[<?php echo esc_attr( $skey ); ?>][key]" value="<?php echo esc_attr( $skey ); ?>" />

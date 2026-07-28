@@ -195,7 +195,7 @@
   {
     "match": ["youtube.com", "youtube-nocookie.com", "ytimg.com"],
     "provider": "YouTube",
-    "category": "preferences",
+    "category": "marketing",
     "treatment": "consent",
     "type": "script_host",
     "importance": "non_essential"
@@ -215,6 +215,56 @@
     "treatment": "necessary",
     "type": "script_host",
     "importance": "required"
+  },
+  {
+    "match": ["hcaptcha.com", "newassets.hcaptcha.com", "js.hcaptcha.com", "api.hcaptcha.com", "imgs.hcaptcha.com"],
+    "provider": "hCaptcha",
+    "category": "security",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential",
+    "note": "Includes ephemeral *.w.hcaptcha.com worker hosts — collapse to one service."
+  },
+  {
+    "match": ["challenges.cloudflare.com", "cdn-cgi/challenge-platform"],
+    "provider": "Cloudflare Turnstile",
+    "category": "necessary",
+    "treatment": "necessary",
+    "type": "script_host",
+    "importance": "required",
+    "note": "Bot / challenge platform — not marketing."
+  },
+  {
+    "match": ["fonts.googleapis.com", "fonts.gstatic.com"],
+    "provider": "Google Fonts",
+    "category": "preferences",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": ["use.typekit.net", "p.typekit.net"],
+    "provider": "Adobe Fonts",
+    "category": "preferences",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": ["cdn.userway.org", "api.userway.org", "userway.org"],
+    "provider": "UserWay",
+    "category": "preferences",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": ["jotform.com", "jotfor.ms", "cdn.jotfor.ms", "events.jotform.com", "api.jotform.com", "pci.jotform.com"],
+    "provider": "Jotform",
+    "category": "preferences",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
   },
   {
     "match": ["maps.google.com", "maps.googleapis.com", "maps.gstatic.com", "openstreetmap.org", "tile.openstreetmap.org"],

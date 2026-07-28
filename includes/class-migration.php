@@ -25,10 +25,29 @@ class Migration {
 		Activator::create_tables();
 
 		$installed = get_option( 'ucpf_db_version', '0' );
-		if ( version_compare( (string) $installed, UCPF_VERSION, '<' ) ) {
+		if ( self::needs_upgrade( (string) $installed ) ) {
 			self::run_safe_mode_fixes();
 			update_option( 'ucpf_db_version', UCPF_VERSION, false );
 		}
+	}
+
+	/**
+	 * Whether stored DB version should run upgrade hooks for the current plugin version.
+	 *
+	 * Handles normal bumps and the intentional reset from 1.x builds to 0.x alpha.
+	 *
+	 * @param string $installed Stored ucpf_db_version.
+	 * @return bool
+	 */
+	private static function needs_upgrade( $installed ) {
+		if ( version_compare( $installed, UCPF_VERSION, '<' ) ) {
+			return true;
+		}
+		// 1.4.x development builds renumbered to 0.1.0-alpha (not a downgrade skip).
+		if ( version_compare( $installed, '1.0.0', '>=' ) && version_compare( UCPF_VERSION, '1.0.0', '<' ) ) {
+			return true;
+		}
+		return false;
 	}
 
 	/**
@@ -48,6 +67,21 @@ class Migration {
 		$known  = Theme_Manager::instance()->get_preset_keys();
 		if ( $theme && ! in_array( (string) $theme, $known, true ) ) {
 			Settings::update( array( 'banner_theme' => 'classic' ) );
+		}
+
+		// Clear factory-default classic colors so theme presets (neon/ocean/light) can show.
+		// Sites that intentionally set a custom hex keep any non-default value.
+		$color_clear = array();
+		$accent      = Settings::get( 'accent_color' );
+		$accent_2    = Settings::get( 'accent_2_color' );
+		if ( is_string( $accent ) && 0 === strcasecmp( trim( $accent ), '#0b5cad' ) ) {
+			$color_clear['accent_color'] = '';
+		}
+		if ( is_string( $accent_2 ) && 0 === strcasecmp( trim( $accent_2 ), '#094a8c' ) ) {
+			$color_clear['accent_2_color'] = '';
+		}
+		if ( $color_clear ) {
+			Settings::update( $color_clear );
 		}
 
 		// Bump previous default retention (180) → 360 and extend existing log expiry.

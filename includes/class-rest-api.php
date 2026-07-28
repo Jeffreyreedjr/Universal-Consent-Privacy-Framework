@@ -148,6 +148,16 @@ class Rest_Api {
 
 		register_rest_route(
 			self::NAMESPACE,
+			'/scan/selection',
+			array(
+				'methods'             => \WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'post_scan_selection' ),
+				'permission_callback' => array( $this, 'admin_permission' ),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
 			'/scan/discover-token',
 			array(
 				array(
@@ -317,6 +327,26 @@ class Rest_Api {
 
 		register_rest_route(
 			self::NAMESPACE,
+			'/registry/refresh',
+			array(
+				'methods'             => \WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'post_registry_refresh' ),
+				'permission_callback' => array( $this, 'admin_permission' ),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/registry/status',
+			array(
+				'methods'             => \WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_registry_status' ),
+				'permission_callback' => array( $this, 'admin_permission' ),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
 			'/registry/import',
 			array(
 				'methods'             => \WP_REST_Server::CREATABLE,
@@ -378,6 +408,58 @@ class Rest_Api {
 			array(
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'post_cookie_review' ),
+				'permission_callback' => array( $this, 'admin_permission' ),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/cookies/lookup',
+			array(
+				'methods'             => \WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_cookie_lookup' ),
+				'permission_callback' => array( $this, 'admin_permission' ),
+				'args'                => array(
+					'q'     => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'limit' => array(
+						'type'              => 'integer',
+						'default'           => 25,
+						'sanitize_callback' => 'absint',
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/knowledge/export',
+			array(
+				'methods'             => \WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_knowledge_export' ),
+				'permission_callback' => array( $this, 'admin_permission' ),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/knowledge/contribute',
+			array(
+				'methods'             => \WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_knowledge_contribute' ),
+				'permission_callback' => array( $this, 'admin_permission' ),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/knowledge/import',
+			array(
+				'methods'             => \WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'post_knowledge_import' ),
 				'permission_callback' => array( $this, 'admin_permission' ),
 			)
 		);
@@ -568,10 +650,14 @@ class Rest_Api {
 	 * @return \WP_REST_Response
 	 */
 	public function get_scan_urls( $request = null ) {
-		$scanner = Cookie_Scanner::instance();
-		$depth   = 'standard';
+		$scanner  = Cookie_Scanner::instance();
+		$saved    = $scanner->get_saved_selection();
+		$depth    = 'standard';
 		if ( $request instanceof \WP_REST_Request ) {
 			$depth = sanitize_key( (string) $request->get_param( 'depth' ) );
+		}
+		if ( ! $depth && ! empty( $saved['depth'] ) ) {
+			$depth = $saved['depth'];
 		}
 		if ( ! in_array( $depth, array( 'quick', 'standard', 'deep' ), true ) ) {
 			$depth = 'standard';
@@ -581,23 +667,23 @@ class Rest_Api {
 		$urls  = $scanner->discover_site_paths( 'deep' );
 		return rest_ensure_response(
 			array(
-				'urls'        => $urls,
-				'available'   => $urls,
-				'chips'       => $scanner->get_scan_chips(),
-				'woo_active'  => $scanner->is_woo_active(),
-				'home_url'    => untrailingslashit( home_url( '/' ) ),
-				'max_crawl'   => Cookie_Scanner::MAX_BROWSER_URLS,
-				'max_server'  => min( Cookie_Scanner::MAX_SERVER_URLS, max( $limit, Cookie_Scanner::DEPTH_STANDARD ) ),
-				'max_browser' => Cookie_Scanner::MAX_BROWSER_URLS,
-				'max_picker'  => Cookie_Scanner::MAX_PICKER_URLS,
-				'depth'       => $depth,
-				'depth_limit' => $limit,
-				'presets'     => array(
+				'urls'             => $urls,
+				'available'        => $urls,
+				'chips'            => $scanner->get_scan_chips(),
+				'woo_active'       => $scanner->is_woo_active(),
+				'home_url'         => untrailingslashit( home_url( '/' ) ),
+				'max_crawl'        => Cookie_Scanner::MAX_BROWSER_URLS,
+				'max_server'       => min( Cookie_Scanner::MAX_SERVER_URLS, max( $limit, Cookie_Scanner::DEPTH_STANDARD ) ),
+				'max_browser'      => Cookie_Scanner::MAX_BROWSER_URLS,
+				'max_picker'       => Cookie_Scanner::MAX_PICKER_URLS,
+				'depth'            => $depth,
+				'depth_limit'      => $limit,
+				'presets'          => array(
 					'quick'    => Cookie_Scanner::DEPTH_QUICK,
 					'standard' => Cookie_Scanner::DEPTH_STANDARD,
 					'deep'     => min( Cookie_Scanner::DEPTH_DEEP, Cookie_Scanner::MAX_BROWSER_URLS ),
 				),
-				'groups'      => array(
+				'groups'           => array(
 					'home'               => __( 'Home', 'universal-consent-privacy-framework' ),
 					'woocommerce'        => __( 'WooCommerce', 'universal-consent-privacy-framework' ),
 					'products'           => __( 'Products', 'universal-consent-privacy-framework' ),
@@ -607,7 +693,29 @@ class Rest_Api {
 					'categories'         => __( 'Blog categories', 'universal-consent-privacy-framework' ),
 					'other'              => __( 'Other / discovered', 'universal-consent-privacy-framework' ),
 				),
-				'count'       => count( $urls ),
+				'count'            => count( $urls ),
+				'saved_selection'  => $saved,
+			)
+		);
+	}
+
+	/**
+	 * POST remember scanner page picks + coverage for next visit.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response
+	 */
+	public function post_scan_selection( $request ) {
+		$body = $request->get_json_params();
+		if ( ! is_array( $body ) ) {
+			$body = array();
+		}
+		$saved = Cookie_Scanner::instance()->save_selection( $body );
+		return rest_ensure_response(
+			array(
+				'saved'     => true,
+				'selection' => $saved,
+				'count'     => count( $saved['urls'] ),
 			)
 		);
 	}
@@ -686,10 +794,25 @@ class Rest_Api {
 				}
 			}
 		} elseif ( ! empty( $body['cancel_all'] ) ) {
+			// Shared agency scanners: require explicit confirm so a busy retry cannot wipe every tenant.
+			if ( empty( $body['confirm_cancel_all'] ) ) {
+				return new \WP_Error(
+					'ucpf_cancel_all_confirm',
+					__( 'Cancel-all on a shared scanner requires confirm_cancel_all=true. Prefer cancelling your own job_id only.', 'universal-consent-privacy-framework' ),
+					array( 'status' => 400 )
+				);
+			}
+			if ( ! current_user_can( 'manage_options' ) ) {
+				return new \WP_Error(
+					'ucpf_forbidden',
+					__( 'Only administrators can reset all scanner jobs.', 'universal-consent-privacy-framework' ),
+					array( 'status' => 403 )
+				);
+			}
 			$remote = Privacy_Scan_Importer::cancel_all_remote_scans( true );
 			if ( ! is_wp_error( $remote ) ) {
 				$out['remote']  = $remote;
-				$out['message'] = __( 'All remote scanner jobs cancel requested; concurrency slots reset.', 'universal-consent-privacy-framework' );
+				$out['message'] = __( 'All remote scanner jobs cancel requested; concurrency slots reset. Use only on a dedicated scanner or as emergency recovery.', 'universal-consent-privacy-framework' );
 			} else {
 				$out['remote_error'] = $remote->get_error_message();
 			}
@@ -1003,6 +1126,80 @@ class Rest_Api {
 	}
 
 	/**
+	 * GET local cookie lookup (catalog + knowledge + OCD).
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function get_cookie_lookup( $request ) {
+		$q = $request->get_param( 'q' );
+		$q = is_string( $q ) ? trim( $q ) : '';
+		if ( strlen( $q ) < 2 ) {
+			return new \WP_Error( 'ucpf_query_short', __( 'Enter at least 2 characters to search.', 'universal-consent-privacy-framework' ), array( 'status' => 400 ) );
+		}
+		$limit = (int) $request->get_param( 'limit' );
+		if ( $limit < 1 ) {
+			$limit = 25;
+		}
+		return rest_ensure_response( Script_Registry::instance()->lookup_cookie( $q, $limit ) );
+	}
+
+	/**
+	 * GET site knowledge export pack (metadata only).
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response
+	 */
+	public function get_knowledge_export( $request ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter
+		return rest_ensure_response( Cookie_Knowledge::export_pack() );
+	}
+
+	/**
+	 * GET scrubbed public contribution pack (no site URL; admin download only).
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response
+	 */
+	public function get_knowledge_contribute( $request ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter
+		return rest_ensure_response( Cookie_Knowledge::contribution_pack() );
+	}
+
+	/**
+	 * POST merge a knowledge / registry pack into site knowledge.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function post_knowledge_import( $request ) {
+		$body = $request->get_json_params();
+		$body = is_array( $body ) ? $body : array();
+		if ( empty( $body['cookies'] ) && empty( $body['services'] ) ) {
+			return new \WP_Error( 'ucpf_empty_pack', __( 'No cookies or services in knowledge pack.', 'universal-consent-privacy-framework' ), array( 'status' => 400 ) );
+		}
+		if ( ! empty( $body['schema'] ) ) {
+			$check = Community_Registry::validate_catalog( $body );
+			if ( is_wp_error( $check ) ) {
+				// Allow sibling packs that only have cookies[].
+				if ( empty( $body['cookies'] ) || ! is_array( $body['cookies'] ) ) {
+					return $check;
+				}
+			}
+		}
+		$count = Cookie_Knowledge::import_pack( $body );
+		return rest_ensure_response(
+			array(
+				'success' => true,
+				'count'   => $count,
+				'message' => sprintf(
+					/* translators: %d: imported count */
+					__( 'Imported %d knowledge cookie(s).', 'universal-consent-privacy-framework' ),
+					$count
+				),
+			)
+		);
+	}
+
+	/**
 	 * POST batch cookie display overrides (known cookies labels / visibility).
 	 *
 	 * @param \WP_REST_Request $request Request.
@@ -1077,6 +1274,15 @@ class Rest_Api {
 
 		Settings::update( array( 'service_overrides' => $existing ) );
 		Script_Registry::instance()->apply_site_overrides();
+
+		// Ensure remediation targets are selected so the blocker/network gate can apply.
+		$selected = Settings::get( 'selected_services', array() );
+		if ( ! is_array( $selected ) ) {
+			$selected = array();
+		}
+		$selected = array_values( array_unique( array_merge( array_map( 'sanitize_key', $selected ), $saved ) ) );
+		Settings::update( array( 'selected_services' => $selected ) );
+
 		Cookie_Scanner::refresh_policy_pages_after_review();
 
 		return rest_ensure_response(
@@ -1252,6 +1458,40 @@ class Rest_Api {
 			array(
 				'success' => true,
 				'jobs'    => Vendor_Connectors::list_jobs(),
+			)
+		);
+	}
+
+	/**
+	 * POST force-refresh remote knowledge hub registry.
+	 *
+	 * @return \WP_REST_Response
+	 */
+	public function post_registry_refresh() {
+		$result = Script_Registry::refresh_remote_registry();
+		$status = Script_Registry::get_remote_registry_status();
+		return rest_ensure_response(
+			array(
+				'success' => ! empty( $result['ok'] ),
+				'message' => isset( $result['message'] ) ? $result['message'] : '',
+				'status'  => $status,
+				'mode'    => Community_Registry::mode(),
+				'count'   => isset( $result['services'] ) && is_array( $result['services'] ) ? count( $result['services'] ) : 0,
+			)
+		);
+	}
+
+	/**
+	 * GET remote registry sync status.
+	 *
+	 * @return \WP_REST_Response
+	 */
+	public function get_registry_status() {
+		return rest_ensure_response(
+			array(
+				'mode'    => Community_Registry::mode(),
+				'allowed' => Community_Registry::remote_catalog_allowed(),
+				'status'  => Script_Registry::get_remote_registry_status(),
 			)
 		);
 	}

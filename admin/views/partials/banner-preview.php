@@ -23,7 +23,7 @@ $theme = \UCPF\Theme_Manager::instance()->resolve_preset( \UCPF\Settings::get( '
 ?>
 <div class="ucpf-admin__preview" id="ucpf-banner-preview">
 	<p class="description" style="position:absolute;top:0.5rem;left:0.75rem;z-index:2;margin:0;color:#ccc;">
-		<?php esc_html_e( 'Preview updates when you change layout, position, or theme (save to apply on the site).', 'universal-consent-privacy-framework' ); ?>
+					<p class="description"><?php esc_html_e( 'Preview updates when you change layout, position, or theme. Save, then hard-refresh the front end (Ctrl+F5). Leave accent colors blank to use the preset’s colors.', 'universal-consent-privacy-framework' ); ?></p>
 	</p>
 	<div id="ucpf-root" class="ucpf-theme-<?php echo esc_attr( $theme ); ?>">
 		<div

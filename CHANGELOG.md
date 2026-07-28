@@ -2,6 +2,58 @@
 
 All notable changes to Universal Consent & Privacy Framework are documented here.
 
+## [0.1.7-alpha] — 2026-07-28
+
+### Added
+- Agency knowledge hub UI (mode + enable + URL), last sync status, Refresh registry now
+- `tools/merge-knowledge-hub.ps1` to merge site exports into Git `registry.json`
+- Sample hub at `docs/examples/agency-registry/registry.json`; COOKIE-KNOWLEDGE-HUB.md fleet checklist
+- Cookie Scanner verify-blocking loop: re-verify CTA, remediation links on consent leaks, leak/score delta vs prior Playwright import
+
+### Changed
+- Knowledge export groups cookies by provider; import/match support `*` patterns
+- Explicit no hosted cookie DB — Git/CDN opt-in pull only
+- Vendor catalog: YouTube service/cookies → `marketing` + consent; PayPal `l7_az` / `sc_f` / `KHcl0EuY7AKSMgfvHl7J5E7hPtK` → `necessary`; Calendly session cookies → `functional`
+- Banner default copy mentions withdraw/manage consent via Cookie Settings
+- Scanner UI clarifies Playwright (verify) vs WordPress helper (inventory); gates Playwright run on Scanner API
+- Cookie Policy collapses property-/site-specific tracker cookies (`_ga_*`, `_gcl_*`, Hotjar `_hj*_*`, …) to catalog patterns; Integration IDs remain admin-only
+- `readme.txt` plugin title matches header `Plugin Name` (…(Alpha)) for Plugin Check `mismatched_plugin_name`
+
+## [0.1.6-alpha] — 2026-07-28
+
+### Added
+- Shared scanner waiting queue (`UCPF_SCANNER_MAX_QUEUE`), per-API-key running/queued caps, job ownership on cancel, durable job store (SQLite/JSON)
+- Admin queue position while waiting; emergency reset-all (confirm + admin only)
+- Scheduled scan stagger + busy/queue backoff; longer poll window for queue wait
+
+### Fixed
+- WordPress no longer calls cancel-all when the scanner is busy (was killing every tenant on a shared host)
+
+### Changed
+- Companion `ucpf-scanner` **1.4.0**; docs for 300+ site sizing / multi-node cohorts
+
+## [0.1.5-alpha] — 2026-07-28
+
+### Fixed
+- Policy / scan inventory no longer lists dozens of ephemeral `*.w.hcaptcha.com` workers or `about:blank` iframes
+- Unclassified hosts for hCaptcha, Google Fonts, Adobe Fonts, UserWay, Jotform, and Cloudflare Turnstile are classified and deduped
+
+### Changed
+- Noise filters gain `signal_omit_*` / `signal_host_collapse`; Playwright classification + plugin-path map expanded; Jotform added to vendor catalog
+
+## [0.1.0-alpha] — 2026-07-27
+
+### Changed
+- **Versioning reset:** project is pre-1.0 / Alpha. Prior `1.4.x` builds were development iterations, not a stable 1.x release line.
+- Plugin header shows **(Alpha)** and an explicit non-production description.
+- Migrations still apply when upgrading from stored `1.x` DB versions onto `0.x-alpha`.
+
+## [1.4.17] — 2026-07-27
+
+### Added
+- Manual **Contribute cookie knowledge** on Cookie Scanner: scrubbed pack (`GET /ucpf/v1/knowledge/contribute`, no site URL) + GitHub issue helper — WordPress does not upload
+- GitHub issue template `cookie-knowledge.yml`
+
 ## [1.3.0] — 2026-07-23
 
 ### Added

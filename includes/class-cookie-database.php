@@ -86,6 +86,12 @@ class Cookie_Database {
 			return null;
 		}
 
+		// Single-/two-char names are too ambiguous (e.g. Magnite "c" vs random `c`).
+		$min_len = (int) apply_filters( 'ucpf_ocd_min_cookie_name_length', 3 );
+		if ( strlen( $cookie_name ) < max( 2, $min_len ) ) {
+			return null;
+		}
+
 		$this->ensure_loaded();
 
 		$key = strtolower( $cookie_name );
@@ -95,6 +101,10 @@ class Cookie_Database {
 			foreach ( $this->wildcards as $wild ) {
 				$prefix = isset( $wild['n'] ) ? (string) $wild['n'] : '';
 				if ( '' === $prefix ) {
+					continue;
+				}
+				// Ignore ultra-short wildcard prefixes (same ambiguity problem).
+				if ( strlen( $prefix ) < max( 2, $min_len ) ) {
 					continue;
 				}
 				if ( 0 === stripos( $cookie_name, $prefix ) ) {
@@ -136,6 +146,57 @@ class Cookie_Database {
 		 * @param array  $row         Raw compact OCD entry.
 		 */
 		return apply_filters( 'ucpf_open_cookie_database_match', $result, $cookie_name, $row );
+	}
+
+	/**
+	 * Search OCD by name substring / prefix (offline).
+	 *
+	 * @param string $query Query (min 2 chars).
+	 * @param int    $limit Max results.
+	 * @return array[] Catalog-shaped rows.
+	 */
+	public function search( $query, $limit = 25 ) {
+		$query = strtolower( trim( (string) $query ) );
+		$limit = max( 1, min( 50, (int) $limit ) );
+		if ( strlen( $query ) < 2 ) {
+			return array();
+		}
+
+		$this->ensure_loaded();
+		$hits = array();
+
+		foreach ( $this->exact as $key => $row ) {
+			if ( false === strpos( $key, $query ) ) {
+				continue;
+			}
+			$name = isset( $row['n'] ) ? (string) $row['n'] : $key;
+			$match = $this->match( $name );
+			if ( $match ) {
+				$hits[] = $match;
+			}
+			if ( count( $hits ) >= $limit ) {
+				return $hits;
+			}
+		}
+
+		foreach ( $this->wildcards as $row ) {
+			$prefix = isset( $row['n'] ) ? strtolower( (string) $row['n'] ) : '';
+			if ( '' === $prefix ) {
+				continue;
+			}
+			if ( false === strpos( $prefix, $query ) && 0 !== strpos( $query, $prefix ) ) {
+				continue;
+			}
+			$match = $this->match( (string) $row['n'] . 'X' );
+			if ( $match ) {
+				$hits[] = $match;
+			}
+			if ( count( $hits ) >= $limit ) {
+				break;
+			}
+		}
+
+		return $hits;
 	}
 
 	/**

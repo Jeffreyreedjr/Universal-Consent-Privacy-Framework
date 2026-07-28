@@ -94,7 +94,7 @@ $logo_url    = isset( $settings['logo_url'] ) ? (string) $settings['logo_url'] :
 						<option value="center" <?php selected( $current_position, 'center' ); ?>><?php esc_html_e( 'Center', 'universal-consent-privacy-framework' ); ?></option>
 						<option value="right" <?php selected( $current_position, 'right' ); ?>><?php esc_html_e( 'Right', 'universal-consent-privacy-framework' ); ?></option>
 					</select>
-					<p class="description"><?php esc_html_e( 'Horizontal placement for bar and corner layouts. Prefer Left when an accessibility widget sits bottom-right. Modal stays centered.', 'universal-consent-privacy-framework' ); ?></p>
+					<p class="description"><?php esc_html_e( 'Horizontal placement for the consent banner and the floating Cookie Settings button (bar and corner layouts). Prefer Left when an accessibility widget sits bottom-right. Modal stays centered.', 'universal-consent-privacy-framework' ); ?></p>
 				</td>
 			</tr>
 			<tr>
@@ -108,7 +108,10 @@ $logo_url    = isset( $settings['logo_url'] ) ? (string) $settings['logo_url'] :
 			</tr>
 			<tr>
 				<th scope="row"><label for="ucpf-accent-color"><?php esc_html_e( 'Accent color', 'universal-consent-privacy-framework' ); ?></label></th>
-				<td><input type="text" id="ucpf-accent-color" name="<?php echo esc_attr( $option_key ); ?>[accent_color]" value="<?php echo esc_attr( $accent ); ?>" placeholder="#0b5cad" /></td>
+				<td>
+					<input type="text" id="ucpf-accent-color" name="<?php echo esc_attr( $option_key ); ?>[accent_color]" value="<?php echo esc_attr( $accent ); ?>" placeholder="#0b5cad" />
+					<p class="description"><?php esc_html_e( 'Optional. Leave blank to use the theme preset accent (e.g. neon green / ocean orange).', 'universal-consent-privacy-framework' ); ?></p>
+				</td>
 			</tr>
 			<tr>
 				<th scope="row"><label for="ucpf-accent-2-color"><?php esc_html_e( 'Accent 2', 'universal-consent-privacy-framework' ); ?></label></th>

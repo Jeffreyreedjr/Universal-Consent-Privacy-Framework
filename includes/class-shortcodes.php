@@ -87,7 +87,7 @@ class Shortcodes {
 						<li>
 							<strong><?php echo esc_html( $cat['label'] ); ?></strong>
 							<?php if ( ! empty( $cat['required'] ) ) : ?>
-								— <?php esc_html_e( 'always on', 'universal-consent-privacy-framework' ); ?>
+								. <?php esc_html_e( 'Always on.', 'universal-consent-privacy-framework' ); ?>
 							<?php endif; ?>
 							<?php if ( ! empty( $cat['description'] ) ) : ?>
 								<br /><span class="description"><?php echo esc_html( $cat['description'] ); ?></span>
@@ -99,7 +99,7 @@ class Shortcodes {
 
 			<p class="ucpf-legal__label"><?php esc_html_e( 'Cookies on this site', 'universal-consent-privacy-framework' ); ?></p>
 			<p class="ucpf-legal__meta"><?php echo esc_html( sprintf( /* translators: %s: scan date */ __( 'Inventory from last privacy scan: %s', 'universal-consent-privacy-framework' ), $scan_date ) ); ?></p>
-			<p><?php esc_html_e( 'This list is built from cookies actually observed on this website (deduplicated). Names, services, and purposes are filled from our catalog when available.', 'universal-consent-privacy-framework' ); ?></p>
+			<p><?php esc_html_e( 'This list is built from cookies actually observed on this website. Names, services, and purposes are filled from our catalog when available.', 'universal-consent-privacy-framework' ); ?></p>
 			<div class="ucpf-cookie-table-wrap">
 				<table class="ucpf-cookie-table">
 					<thead>
@@ -184,7 +184,7 @@ class Shortcodes {
 									<td><?php echo esc_html( $row['name'] ); ?></td>
 									<td><?php echo esc_html( $row['category_label'] ); ?></td>
 									<td><?php echo esc_html( $row['type'] ); ?></td>
-									<td><?php echo ! empty( $row['consent_required'] ) ? esc_html__( 'Yes', 'universal-consent-privacy-framework' ) : esc_html__( 'No / essential', 'universal-consent-privacy-framework' ); ?></td>
+									<td><?php echo ! empty( $row['consent_required'] ) ? esc_html__( 'Yes', 'universal-consent-privacy-framework' ) : esc_html__( 'No or essential', 'universal-consent-privacy-framework' ); ?></td>
 								</tr>
 							<?php endforeach; ?>
 						</tbody>
@@ -193,12 +193,35 @@ class Shortcodes {
 			<?php endif; ?>
 
 			<p class="ucpf-legal__label"><?php esc_html_e( 'How to change your choices', 'universal-consent-privacy-framework' ); ?></p>
-			<p><?php esc_html_e( 'Use Cookie Settings (floating button or Customize on the banner) anytime to accept, reject, or fine-tune optional categories. Your choice is stored in the ucpf_consent cookie on this site only.', 'universal-consent-privacy-framework' ); ?></p>
+			<p><?php esc_html_e( 'Use Cookie Settings anytime to accept, reject, or fine-tune optional categories. You can open it from the floating button or from Customize on the banner. Your choice is stored in the ucpf_consent cookie on this site only.', 'universal-consent-privacy-framework' ); ?></p>
 			<p>
 				<button type="button" class="ucpf-btn ucpf-btn--pill ucpf-btn--primary-tier ucpf-btn--fill" data-ucpf-open-preferences>
 					<?php esc_html_e( 'Open Cookie Settings', 'universal-consent-privacy-framework' ); ?>
 				</button>
 			</p>
+
+			<?php
+			$privacy_url = Page_Generator::instance()->get_page_url( 'privacy_policy' );
+			$data_url    = Page_Generator::instance()->get_rights_url( 'data_request' );
+			$dns_url     = Page_Generator::instance()->get_rights_url( 'do_not_sell' );
+			$email       = Settings::get( 'contact_email' ) ?: get_option( 'admin_email' );
+			?>
+			<p class="ucpf-legal__label"><?php esc_html_e( 'Privacy rights and Do Not Sell or Share', 'universal-consent-privacy-framework' ); ?></p>
+			<p><?php esc_html_e( 'Cookie Settings control optional cookies on this site. Separate privacy rights such as access, deletion, and opting out of sale or sharing of personal information under US state laws are described in our Privacy Policy.', 'universal-consent-privacy-framework' ); ?></p>
+			<ul>
+				<?php if ( $privacy_url ) : ?>
+					<li><a href="<?php echo esc_url( $privacy_url ); ?>"><?php esc_html_e( 'Privacy Policy', 'universal-consent-privacy-framework' ); ?></a></li>
+				<?php endif; ?>
+				<?php if ( $dns_url ) : ?>
+					<li><a href="<?php echo esc_url( $dns_url ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Do Not Sell or Share My Personal Information', 'universal-consent-privacy-framework' ); ?></a></li>
+				<?php endif; ?>
+				<?php if ( $data_url ) : ?>
+					<li><a href="<?php echo esc_url( $data_url ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Submit a privacy or data rights request', 'universal-consent-privacy-framework' ); ?></a></li>
+				<?php endif; ?>
+				<?php if ( $email ) : ?>
+					<li><?php echo esc_html( sprintf( /* translators: %s: email */ __( 'Contact: %s', 'universal-consent-privacy-framework' ), $email ) ); ?></li>
+				<?php endif; ?>
+			</ul>
 		</div>
 		<?php
 		return ob_get_clean();
@@ -240,16 +263,16 @@ class Shortcodes {
 		ob_start();
 		?>
 		<div class="ucpf-legal ucpf-legal--privacy-disclosures">
-			<p class="ucpf-legal__meta"><?php echo esc_html( sprintf( /* translators: %s: date */ __( 'Inventory from last privacy scan / plugin map: %s', 'universal-consent-privacy-framework' ), $scan_date ) ); ?></p>
+			<p class="ucpf-legal__meta"><?php echo esc_html( sprintf( /* translators: %s: date */ __( 'Inventory from last privacy scan and plugin map: %s', 'universal-consent-privacy-framework' ), $scan_date ) ); ?></p>
 
 			<h3><?php esc_html_e( 'Cookies observed on this site', 'universal-consent-privacy-framework' ); ?></h3>
-			<p><?php esc_html_e( 'Names, services, categories, and purposes from the latest scan, enriched with the local vendor catalog.', 'universal-consent-privacy-framework' ); ?></p>
+			<p><?php esc_html_e( 'Names, services, categories, and purposes from the latest scan. Entries are enriched with the local vendor catalog when a match is known.', 'universal-consent-privacy-framework' ); ?></p>
 			<div class="ucpf-cookie-table-wrap">
 				<table class="ucpf-cookie-table">
 					<thead>
 						<tr>
 							<th><?php esc_html_e( 'Cookie', 'universal-consent-privacy-framework' ); ?></th>
-							<th><?php esc_html_e( 'Service / provider', 'universal-consent-privacy-framework' ); ?></th>
+							<th><?php esc_html_e( 'Service or provider', 'universal-consent-privacy-framework' ); ?></th>
 							<th><?php esc_html_e( 'Category', 'universal-consent-privacy-framework' ); ?></th>
 							<th><?php esc_html_e( 'Purpose', 'universal-consent-privacy-framework' ); ?></th>
 							<th><?php esc_html_e( 'Consent', 'universal-consent-privacy-framework' ); ?></th>
@@ -306,7 +329,7 @@ class Shortcodes {
 			<div class="ucpf-cookie-table-wrap">
 				<table class="ucpf-cookie-table ucpf-cookie-table--compact">
 					<thead><tr>
-						<th><?php esc_html_e( 'Name / host', 'universal-consent-privacy-framework' ); ?></th>
+						<th><?php esc_html_e( 'Name or host', 'universal-consent-privacy-framework' ); ?></th>
 						<th><?php esc_html_e( 'Category', 'universal-consent-privacy-framework' ); ?></th>
 						<th><?php esc_html_e( 'Type', 'universal-consent-privacy-framework' ); ?></th>
 						<th><?php esc_html_e( 'Consent', 'universal-consent-privacy-framework' ); ?></th>
@@ -325,7 +348,7 @@ class Shortcodes {
 									</td>
 									<td><?php echo esc_html( $row['category_label'] ); ?></td>
 									<td><?php echo esc_html( $row['type'] ); ?></td>
-									<td><?php echo ! empty( $row['consent_required'] ) ? esc_html__( 'Optional (consent)', 'universal-consent-privacy-framework' ) : esc_html__( 'Essential / unclassified', 'universal-consent-privacy-framework' ); ?></td>
+									<td><?php echo ! empty( $row['consent_required'] ) ? esc_html__( 'Optional (consent)', 'universal-consent-privacy-framework' ) : esc_html__( 'Essential or unclassified', 'universal-consent-privacy-framework' ); ?></td>
 								</tr>
 							<?php endforeach; ?>
 						<?php endif; ?>
@@ -334,11 +357,11 @@ class Shortcodes {
 			</div>
 
 			<h3><?php esc_html_e( 'WordPress plugins that may process data', 'universal-consent-privacy-framework' ); ?></h3>
-			<p><?php esc_html_e( 'Active plugins mapped in our local catalog (forms, builders, analytics, security, commerce, etc.). Unmapped plugins may still process data — review your install inventory with counsel.', 'universal-consent-privacy-framework' ); ?></p>
+			<p><?php esc_html_e( 'Active plugins mapped in our local catalog, including forms, builders, analytics, security, and commerce tools. Unmapped plugins may still process data. Review your install inventory with counsel.', 'universal-consent-privacy-framework' ); ?></p>
 			<div class="ucpf-cookie-table-wrap">
 				<table class="ucpf-cookie-table">
 					<thead><tr>
-						<th><?php esc_html_e( 'Plugin / service', 'universal-consent-privacy-framework' ); ?></th>
+						<th><?php esc_html_e( 'Plugin or service', 'universal-consent-privacy-framework' ); ?></th>
 						<th><?php esc_html_e( 'Provider', 'universal-consent-privacy-framework' ); ?></th>
 						<th><?php esc_html_e( 'Category', 'universal-consent-privacy-framework' ); ?></th>
 						<th><?php esc_html_e( 'What it may do', 'universal-consent-privacy-framework' ); ?></th>
@@ -358,7 +381,7 @@ class Shortcodes {
 										<?php if ( ! empty( $row['privacy_url'] ) ) : ?>
 											<a href="<?php echo esc_url( $row['privacy_url'] ); ?>" rel="noopener noreferrer" target="_blank"><?php esc_html_e( 'Privacy policy', 'universal-consent-privacy-framework' ); ?></a>
 										<?php else : ?>
-											—
+											<?php esc_html_e( 'Not linked', 'universal-consent-privacy-framework' ); ?>
 										<?php endif; ?>
 									</td>
 								</tr>
@@ -368,13 +391,13 @@ class Shortcodes {
 				</table>
 			</div>
 
-			<h3><?php esc_html_e( 'Where data may go (third-party destinations)', 'universal-consent-privacy-framework' ); ?></h3>
-			<p><?php esc_html_e( 'Depending on the tools enabled and your consent choices, information may be processed by the providers below (or their subprocessors). Each provider applies its own privacy terms.', 'universal-consent-privacy-framework' ); ?></p>
+			<h3><?php esc_html_e( 'Where data may go', 'universal-consent-privacy-framework' ); ?></h3>
+			<p><?php esc_html_e( 'Depending on the tools enabled and your consent choices, information may be processed by the providers below or their subprocessors. Each provider applies its own privacy terms.', 'universal-consent-privacy-framework' ); ?></p>
 			<div class="ucpf-cookie-table-wrap">
 				<table class="ucpf-cookie-table">
 					<thead><tr>
 						<th><?php esc_html_e( 'Destination', 'universal-consent-privacy-framework' ); ?></th>
-						<th><?php esc_html_e( 'Host / pattern', 'universal-consent-privacy-framework' ); ?></th>
+						<th><?php esc_html_e( 'Host or pattern', 'universal-consent-privacy-framework' ); ?></th>
 						<th><?php esc_html_e( 'Category', 'universal-consent-privacy-framework' ); ?></th>
 						<th><?php esc_html_e( 'Purpose', 'universal-consent-privacy-framework' ); ?></th>
 						<th><?php esc_html_e( 'More info', 'universal-consent-privacy-framework' ); ?></th>
@@ -393,7 +416,7 @@ class Shortcodes {
 										<?php if ( ! empty( $row['privacy_url'] ) ) : ?>
 											<a href="<?php echo esc_url( $row['privacy_url'] ); ?>" rel="noopener noreferrer" target="_blank"><?php esc_html_e( 'Provider policy', 'universal-consent-privacy-framework' ); ?></a>
 										<?php else : ?>
-											—
+											<?php esc_html_e( 'Not linked', 'universal-consent-privacy-framework' ); ?>
 										<?php endif; ?>
 									</td>
 								</tr>
@@ -405,62 +428,67 @@ class Shortcodes {
 
 			<?php if ( $has( array( 'google_analytics', 'google-analytics', 'gtag', 'site kit' ) ) ) : ?>
 				<h3><?php esc_html_e( 'Google Analytics', 'universal-consent-privacy-framework' ); ?></h3>
-				<p><?php esc_html_e( 'This website may use Google Analytics to understand how visitors find and use the site (pages viewed, device/browser, approximate location, referrers, events, and similar usage data). Google may use cookies or similar technologies. We do not intentionally send names, email addresses, phone numbers, or payment card numbers to Google Analytics. Where required by law, Analytics loads only after appropriate consent.', 'universal-consent-privacy-framework' ); ?></p>
+				<p><?php esc_html_e( 'This website may use Google Analytics to understand how visitors find and use the site. That can include pages viewed, device and browser details, approximate location, referrers, and events. Google may use cookies or similar technologies. We do not intentionally send names, email addresses, phone numbers, or payment card numbers to Google Analytics. Where required by law, Analytics loads only after appropriate consent.', 'universal-consent-privacy-framework' ); ?></p>
 			<?php endif; ?>
 
 			<?php if ( $has( array( 'google_tag_manager', 'tag manager', 'googletagmanager' ) ) ) : ?>
 				<h3><?php esc_html_e( 'Google Tag Manager', 'universal-consent-privacy-framework' ); ?></h3>
-				<p><?php esc_html_e( 'Google Tag Manager may be used to manage tags and integrations (analytics, ads, consent signals). Data collected depends on the tags configured. Where required, tags that load analytics or advertising should respect consent choices before firing.', 'universal-consent-privacy-framework' ); ?></p>
+				<p><?php esc_html_e( 'Google Tag Manager may be used to manage tags and integrations for analytics, ads, and consent signals. Data collected depends on the tags configured. Where required, tags that load analytics or advertising should respect consent choices before firing.', 'universal-consent-privacy-framework' ); ?></p>
 			<?php endif; ?>
 
 			<?php if ( $has( array( 'clarity', 'microsoft' ) ) ) : ?>
-				<h3><?php esc_html_e( 'Microsoft Clarity / Advertising', 'universal-consent-privacy-framework' ); ?></h3>
-				<p><?php esc_html_e( 'Microsoft Clarity or Microsoft Advertising may capture behavioral metrics, heatmaps, clicks, scrolls, session replay, device/browser information, and approximate location to improve usability, security, and (where allowed) advertising. Microsoft processes data under its privacy statement. Where required, these tools load only after consent.', 'universal-consent-privacy-framework' ); ?></p>
+				<h3><?php esc_html_e( 'Microsoft Clarity and Advertising', 'universal-consent-privacy-framework' ); ?></h3>
+				<p><?php esc_html_e( 'Microsoft Clarity or Microsoft Advertising may capture behavioral metrics, heatmaps, clicks, scrolls, and session replay. They may also collect device and browser information and approximate location. These tools help improve usability and security. Where allowed, they may also support advertising. Microsoft processes data under its privacy statement. Where required, these tools load only after consent.', 'universal-consent-privacy-framework' ); ?></p>
 			<?php endif; ?>
 
 			<?php if ( $has( array( 'cloudflare' ) ) ) : ?>
-				<h3><?php esc_html_e( 'Cloudflare (security, CDN, analytics)', 'universal-consent-privacy-framework' ); ?></h3>
-				<p><?php esc_html_e( 'Cloudflare may process technical information (IP addresses, request headers, URLs, security events, bot scores, traffic logs) to deliver, cache, and protect the site. Some Cloudflare security cookies may be treated as strictly necessary for availability and abuse prevention.', 'universal-consent-privacy-framework' ); ?></p>
+				<h3><?php esc_html_e( 'Cloudflare', 'universal-consent-privacy-framework' ); ?></h3>
+				<p><?php esc_html_e( 'Cloudflare may process technical information such as IP addresses, request headers, URLs, security events, bot scores, and traffic logs. This helps deliver, cache, and protect the site. Some Cloudflare security cookies may be treated as strictly necessary for availability and abuse prevention.', 'universal-consent-privacy-framework' ); ?></p>
 			<?php endif; ?>
 
 			<?php if ( $has( array( 'meta_pixel', 'facebook', 'pixel' ) ) ) : ?>
-				<h3><?php esc_html_e( 'Meta / Facebook technologies', 'universal-consent-privacy-framework' ); ?></h3>
-				<p><?php esc_html_e( 'Meta Pixel or related tools may measure conversions, build audiences, or support advertising. These tools typically require marketing consent where GDPR-style rules apply. You may also have opt-out rights under US state privacy laws for sale/sharing.', 'universal-consent-privacy-framework' ); ?></p>
+				<h3><?php esc_html_e( 'Meta and Facebook technologies', 'universal-consent-privacy-framework' ); ?></h3>
+				<p><?php esc_html_e( 'Meta Pixel or related tools may measure conversions, build audiences, or support advertising. These tools typically require marketing consent where GDPR-style rules apply. You may also have opt-out rights under US state privacy laws for sale or sharing.', 'universal-consent-privacy-framework' ); ?></p>
 			<?php endif; ?>
 
 			<h2><?php esc_html_e( 'Forms and user submissions', 'universal-consent-privacy-framework' ); ?></h2>
-			<p><?php esc_html_e( 'If you submit a form, request information, book an appointment, place an order, or contact us, we may use that information to respond, fulfill the request, prevent spam, and keep records. Form data may be processed by form plugins, email/SMTP providers, CRM tools, spam protection, and hosting providers.', 'universal-consent-privacy-framework' ); ?></p>
+			<p><?php esc_html_e( 'If you submit a form, request information, book an appointment, place an order, or contact us, we may use that information to respond, fulfill the request, prevent spam, and keep records. Form data may be processed by form plugins, email or SMTP providers, CRM tools, spam protection, and hosting providers.', 'universal-consent-privacy-framework' ); ?></p>
 
 			<h2><?php esc_html_e( 'Payments, shipping, and email', 'universal-consent-privacy-framework' ); ?></h2>
-			<p><?php esc_html_e( 'If this site offers purchases, donations, subscriptions, or bookings, payment details are typically handled by third-party payment processors. We do not intentionally store full card numbers unless a clearly disclosed compliant system requires it. Shipping/fulfillment data may be shared with carriers and logistics tools. Marketing emails are sent only where allowed; you can unsubscribe from marketing while still receiving transactional messages.', 'universal-consent-privacy-framework' ); ?></p>
+			<p><?php esc_html_e( 'If this site offers purchases, donations, subscriptions, or bookings, payment details are typically handled by third-party payment processors. We do not intentionally store full card numbers unless a clearly disclosed compliant system requires it. Shipping or fulfillment data may be shared with carriers and logistics tools. Marketing emails are sent only where allowed. You can unsubscribe from marketing and still receive transactional messages.', 'universal-consent-privacy-framework' ); ?></p>
 
 			<h2><?php esc_html_e( 'How information is shared', 'universal-consent-privacy-framework' ); ?></h2>
-			<p><?php esc_html_e( 'We may share information with service providers (hosting, CDN, analytics, advertising, payments, email, CRM, security, developers) as needed to operate the site, or when required by law. We do not sell personal information for money in the everyday sense. Some privacy laws define “sale” or “sharing” broadly to include certain advertising or cross-context behavioral advertising — see California rights below.', 'universal-consent-privacy-framework' ); ?></p>
+			<p><?php esc_html_e( 'We may share information with service providers such as hosting, CDN, analytics, advertising, payments, email, CRM, security, and developers as needed to operate the site, or when required by law. We do not sell personal information for money in the everyday sense. Some privacy laws define “sale” or “sharing” broadly to include certain advertising or cross-context behavioral advertising. See California rights below.', 'universal-consent-privacy-framework' ); ?></p>
 
 			<h2><?php esc_html_e( 'International transfers', 'universal-consent-privacy-framework' ); ?></h2>
-			<p><?php esc_html_e( 'Information may be processed or stored outside your state, province, or country (including by US-based providers). Where required, transfers may rely on adequacy decisions, standard contractual clauses, or other lawful mechanisms. Review each provider’s documentation for details.', 'universal-consent-privacy-framework' ); ?></p>
+			<p><?php esc_html_e( 'Information may be processed or stored outside your state, province, or country, including by US-based providers. Where required, transfers may rely on adequacy decisions, standard contractual clauses, or other lawful mechanisms. Review each provider’s documentation for details.', 'universal-consent-privacy-framework' ); ?></p>
 
 			<h2><?php esc_html_e( 'Data retention', 'universal-consent-privacy-framework' ); ?></h2>
 			<p><?php echo esc_html( sprintf(
 				/* translators: %d: days */
-				__( 'We retain information only as long as reasonably necessary for the purposes described here, unless a longer period is required or allowed by law. Configured operational retention for certain privacy records on this site is approximately %d days, and other systems (orders, security logs, analytics) may use different periods.', 'universal-consent-privacy-framework' ),
+				__( 'We retain information only as long as reasonably necessary for the purposes described here, unless a longer period is required or allowed by law. Configured operational retention for certain privacy records on this site is approximately %d days. Other systems such as orders, security logs, and analytics may use different periods.', 'universal-consent-privacy-framework' ),
 				max( 1, $retention )
 			) ); ?></p>
 
 			<h2><?php esc_html_e( 'Security', 'universal-consent-privacy-framework' ); ?></h2>
-			<p><?php esc_html_e( 'We use reasonable technical and organizational measures (such as TLS, access controls, firewalls, malware scanning, and monitoring). No method of transmission or storage is completely secure.', 'universal-consent-privacy-framework' ); ?></p>
+			<p><?php esc_html_e( 'We use reasonable technical and organizational measures such as TLS, access controls, firewalls, malware scanning, and monitoring. No method of transmission or storage is completely secure.', 'universal-consent-privacy-framework' ); ?></p>
 
-			<h2><?php esc_html_e( 'Your privacy rights (global)', 'universal-consent-privacy-framework' ); ?></h2>
-			<p><?php esc_html_e( 'Depending on where you live, you may have rights to access, correct, delete, restrict, or object to processing; withdraw consent; request portability; opt out of certain advertising or sale/sharing; limit use of sensitive personal information; and lodge a complaint with a supervisory authority.', 'universal-consent-privacy-framework' ); ?></p>
+			<h2><?php esc_html_e( 'Your privacy rights', 'universal-consent-privacy-framework' ); ?></h2>
+			<p><?php esc_html_e( 'Depending on where you live, you may have rights to access, correct, delete, restrict, or object to processing. You may also withdraw consent, request portability, opt out of certain advertising or sale or sharing, limit use of sensitive personal information, and lodge a complaint with a supervisory authority.', 'universal-consent-privacy-framework' ); ?></p>
 			<?php if ( $data_url ) : ?>
-				<p><a href="<?php echo esc_url( $data_url ); ?>"><?php esc_html_e( 'Use our data request form', 'universal-consent-privacy-framework' ); ?></a></p>
+				<p><a href="<?php echo esc_url( $data_url ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Submit a privacy or data rights request', 'universal-consent-privacy-framework' ); ?></a></p>
 			<?php endif; ?>
 
-			<h2><?php esc_html_e( 'California privacy rights (CCPA / CPRA)', 'universal-consent-privacy-framework' ); ?></h2>
-			<p><?php esc_html_e( 'California residents may have the right to know what personal information is collected, used, disclosed, sold, or shared; to request deletion or correction; to opt out of sale or sharing; to limit use of sensitive personal information; and to non-discrimination for exercising these rights.', 'universal-consent-privacy-framework' ); ?></p>
-			<p><?php esc_html_e( 'Categories commonly involved on websites like this include identifiers (name, email), commercial information (orders), internet activity (browsing, interactions), and approximate geolocation. Purposes include providing services, security, analytics, and marketing where allowed.', 'universal-consent-privacy-framework' ); ?></p>
+			<h2><?php esc_html_e( 'California privacy rights (CCPA / CPRA). Do Not Sell or Share', 'universal-consent-privacy-framework' ); ?></h2>
+			<p><?php esc_html_e( 'California residents may have the right to know what personal information is collected, used, disclosed, sold, or shared. They may also request deletion or correction, opt out of sale or sharing, limit use of sensitive personal information, and be free from discrimination for exercising these rights.', 'universal-consent-privacy-framework' ); ?></p>
+			<p><?php esc_html_e( 'Categories commonly involved on websites like this include identifiers such as name and email, commercial information such as orders, internet activity such as browsing and interactions, and approximate geolocation. Purposes include providing services, security, analytics, and marketing where allowed.', 'universal-consent-privacy-framework' ); ?></p>
+			<p><strong><?php esc_html_e( 'Do Not Sell or Share.', 'universal-consent-privacy-framework' ); ?></strong>
+				<?php esc_html_e( 'To opt out of sale or sharing of personal information as defined under California law and similar US state laws, use the link below when available, or email us. Cookie Settings alone may not cover every advertising or sharing activity covered by those laws.', 'universal-consent-privacy-framework' ); ?>
+			</p>
 			<?php if ( $dns_url ) : ?>
-				<p><a href="<?php echo esc_url( $dns_url ); ?>"><?php esc_html_e( 'Do Not Sell or Share / Limit Use', 'universal-consent-privacy-framework' ); ?></a></p>
+				<p><a href="<?php echo esc_url( $dns_url ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Do Not Sell or Share My Personal Information', 'universal-consent-privacy-framework' ); ?></a></p>
+			<?php elseif ( $contact_email ) : ?>
+				<p><?php echo esc_html( sprintf( /* translators: %s: email */ __( 'Email your Do Not Sell or Share request to: %s', 'universal-consent-privacy-framework' ), $contact_email ) ); ?></p>
 			<?php endif; ?>
 
 			<h2><?php esc_html_e( 'Other US state privacy laws', 'universal-consent-privacy-framework' ); ?></h2>
@@ -469,14 +497,14 @@ class Shortcodes {
 			<h2><?php esc_html_e( 'European, UK, Swiss, and similar rights', 'universal-consent-privacy-framework' ); ?></h2>
 			<p><?php esc_html_e( 'Where GDPR or UK GDPR applies, you may have the rights listed above, including withdrawing consent for optional tracking. You may also contact your local data protection authority.', 'universal-consent-privacy-framework' ); ?></p>
 
-			<h2><?php esc_html_e( 'Brazil (LGPD), Canada (including Quebec), and other regions', 'universal-consent-privacy-framework' ); ?></h2>
-			<p><?php esc_html_e( 'Other regions grant access, correction, deletion, and consent-related rights. This website’s jurisdiction packs and consent banner help support those workflows technically; local counsel should confirm legal requirements for your organization.', 'universal-consent-privacy-framework' ); ?></p>
+			<h2><?php esc_html_e( 'Brazil, Canada, and other regions', 'universal-consent-privacy-framework' ); ?></h2>
+			<p><?php esc_html_e( 'Other regions grant access, correction, deletion, and consent-related rights. This website’s jurisdiction packs and consent banner help support those workflows technically. Local counsel should confirm legal requirements for your organization.', 'universal-consent-privacy-framework' ); ?></p>
 
 			<h2><?php esc_html_e( 'Sensitive information and children', 'universal-consent-privacy-framework' ); ?></h2>
 			<p><?php esc_html_e( 'Do not submit sensitive personal information through this website unless specifically requested and necessary. This website is not directed to children under the age required by applicable law. We do not knowingly collect personal information from children without appropriate parental consent.', 'universal-consent-privacy-framework' ); ?></p>
 
 			<h2><?php esc_html_e( 'Automated processing and breaches', 'universal-consent-privacy-framework' ); ?></h2>
-			<p><?php esc_html_e( 'We may use automated tools for analytics, spam/fraud detection, security, and performance. We do not intentionally use automated decision-making that produces legal or similarly significant effects without appropriate safeguards. If a personal-data breach occurs, we will investigate and notify individuals or authorities where required by law.', 'universal-consent-privacy-framework' ); ?></p>
+			<p><?php esc_html_e( 'We may use automated tools for analytics, spam and fraud detection, security, and performance. We do not intentionally use automated decision-making that produces legal or similarly significant effects without appropriate safeguards. If a personal data breach occurs, we will investigate and notify individuals or authorities where required by law.', 'universal-consent-privacy-framework' ); ?></p>
 
 			<h2><?php esc_html_e( 'Embedded content and links', 'universal-consent-privacy-framework' ); ?></h2>
 			<p><?php esc_html_e( 'Embedded videos, maps, social posts, or other third-party content may collect data as if you visited those sites directly. Review third-party privacy policies before interacting with embeds or external links.', 'universal-consent-privacy-framework' ); ?></p>
@@ -497,7 +525,7 @@ class Shortcodes {
 				<p><a href="<?php echo esc_url( $cookie_url ); ?>"><?php esc_html_e( 'Cookie Policy', 'universal-consent-privacy-framework' ); ?></a></p>
 			<?php endif; ?>
 
-			<p class="description"><em><?php esc_html_e( 'Generated by Universal Consent & Privacy Framework as a technical aid. Not a compliance certification.', 'universal-consent-privacy-framework' ); ?></em></p>
+			<p class="description"><em><?php esc_html_e( 'Generated by Universal Consent and Privacy Framework as a technical aid. Not a compliance certification.', 'universal-consent-privacy-framework' ); ?></em></p>
 		</div>
 		<?php
 		return ob_get_clean();
@@ -554,7 +582,7 @@ class Shortcodes {
 		ob_start();
 		?>
 		<div class="ucpf-legal">
-			<p><a href="<?php echo esc_url( $url ); ?>"><?php echo esc_html( $label ); ?></a></p>
+			<p><a href="<?php echo esc_url( $url ); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html( $label ); ?></a></p>
 		</div>
 		<?php
 		return ob_get_clean();

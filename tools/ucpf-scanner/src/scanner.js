@@ -18,6 +18,8 @@ import {
   filterStorage,
   shouldIgnoreCookieLeak,
   shouldIgnoreUrlLeak,
+  shouldOmitSignal,
+  collapseSignalHost,
 } from './noise.js';
 import {
   analyzeConsentModal,
@@ -199,7 +201,18 @@ export async function runPrivacyScan(input) {
         screenshots,
         recipeActions,
         storageState: null,
+        sessionCount: sessionProfiles.length,
         shouldCancel: () => shouldCancel(),
+        onLog: (msg) => {
+          logProgress(msg);
+          emitProgress({
+            phase: 'session',
+            session: profile.id,
+            session_label: profile.label,
+            session_index: si + 1,
+            message: msg,
+          });
+        },
         onPageStart: (pageIndex, url) => {
           let path = url;
           try {
@@ -391,8 +404,34 @@ function normalizePaths(paths, max) {
 }
 
 /**
+ * Per-session wall-clock budget so selected pages can finish when the overall
+ * timeout allows. Divides UCPF_SCANNER_BROWSER_TIMEOUT_MS by real session count
+ * (not a hardcoded 6), floors by page count × estimated page cost, and caps so
+ * one stuck session cannot consume the whole job.
+ *
+ * @param {number} sessionCount
+ * @param {number} pageCount
+ * @returns {number}
+ */
+function computeSessionBudgetMs(sessionCount, pageCount) {
+  const sessions = Math.max(1, Math.floor(Number(sessionCount) || 1));
+  const pages = Math.max(1, Math.floor(Number(pageCount) || 1));
+  const totalMs = Math.max(60000, Number(config.browserTimeoutMs) || 600000);
+  const equalShare = Math.floor(totalMs / sessions);
+  const navMs = Math.max(5000, Number(config.navigationTimeoutMs) || 25000);
+  const settleMs = Math.max(1000, Number(config.settleMs) || 4000);
+  const gapMs = Math.max(0, Number(config.pageGapMs) || 1500);
+  // Typical page: goto + settle + consent work + reload + settle + gap (nav often under max).
+  const perPageMs = Math.floor(navMs * 0.55) + settleMs * 2.5 + gapMs + 6000;
+  const pageFloor = Math.ceil(pages * perPageMs);
+  const minBudget = 90000;
+  const hardCap = Math.min(Math.max(pageFloor * 2, equalShare), 45 * 60 * 1000);
+  return Math.min(hardCap, Math.max(equalShare, pageFloor, minBudget));
+}
+
+/**
  * @param {import('playwright').Browser} browser
- * @param {{ profile: import('./profiles.js').SessionProfile, pageUrls: string[], baseHost: string, interact: boolean, screenshots?: boolean, recipeActions?: object[], storageState?: object|null, shouldCancel?: () => boolean, onPageStart?: (pageIndex: number, url: string) => void, onPageDone?: (pageIndex: number, url: string) => void }} opts
+ * @param {{ profile: import('./profiles.js').SessionProfile, pageUrls: string[], baseHost: string, interact: boolean, screenshots?: boolean, recipeActions?: object[], storageState?: object|null, sessionCount?: number, shouldCancel?: () => boolean, onLog?: (msg: string) => void, onPageStart?: (pageIndex: number, url: string) => void, onPageDone?: (pageIndex: number, url: string) => void }} opts
  */
 async function runSession(browser, opts) {
   const profile = opts.profile;
@@ -505,7 +544,11 @@ async function runSession(browser, opts) {
   const cdpNet = await attachNetworkCapture(context, page, buckets);
   await attachSetCookieListener(page, cookieEvents);
 
-  const sessionDeadline = Date.now() + Math.floor(config.browserTimeoutMs / Math.max(3, 6));
+  const sessionBudgetMs = computeSessionBudgetMs(
+    opts.sessionCount != null ? opts.sessionCount : 6,
+    (opts.pageUrls && opts.pageUrls.length) || 1
+  );
+  const sessionDeadline = Date.now() + sessionBudgetMs;
   const interactBudgetMs = Math.min(12000, Math.floor(config.settleMs * 2.5));
   /** @type {object|null} */
   let consentModal = null;
@@ -519,11 +562,15 @@ async function runSession(browser, opts) {
   let recipeLog = [];
   /** @type {Record<string, string>} */
   const shotData = {};
+  let truncatedByBudget = false;
 
   try {
     let pageIndex = 0;
     for (const url of opts.pageUrls) {
-      if (Date.now() > sessionDeadline) break;
+      if (Date.now() > sessionDeadline) {
+        truncatedByBudget = true;
+        break;
+      }
       if (typeof opts.shouldCancel === 'function' && opts.shouldCancel()) {
         break;
       }
@@ -653,7 +700,11 @@ async function runSession(browser, opts) {
       );
       frameSrcs.forEach((src) => {
         try {
-          iframes.add(new URL(src, url).toString().split('?')[0]);
+          if (shouldOmitSignal(src)) return;
+          const abs = new URL(src, url).toString().split('?')[0];
+          if (shouldOmitSignal(abs)) return;
+          const collapsed = collapseSignalHost(abs);
+          iframes.add(collapsed || abs);
         } catch {
           /* ignore */
         }
@@ -669,6 +720,17 @@ async function runSession(browser, opts) {
       const gap = Number(process.env.UCPF_SCANNER_PAGE_GAP_MS || config.pageGapMs || 1500);
       if (gap > 0 && pageIndex < opts.pageUrls.length) {
         await page.waitForTimeout(gap);
+      }
+    }
+
+    if (truncatedByBudget && typeof opts.onLog === 'function') {
+      const totalPages = opts.pageUrls.length;
+      try {
+        opts.onLog(
+          `${profile.label} · stopped at page ${pageIndex}/${totalPages} (session time budget)`
+        );
+      } catch {
+        /* ignore */
       }
     }
 
@@ -1266,7 +1328,12 @@ function buildReport(data) {
   const { cookies, omitted: noise_omitted } = filterCookieInventory(cookiesRaw);
 
   const classifyUrlList = (map, type) =>
-    [...map.values()].map((row) => {
+    [...map.values()]
+      .filter((row) => {
+        const raw = row.url || row.host || row.key || '';
+        return raw && !shouldOmitSignal(raw) && !shouldOmitSignal(safeHost(raw));
+      })
+      .map((row) => {
       const host = safeHost(row.url || row.host || row.key);
       let cls = classifyValue(row.url || row.host || row.key, type);
       if (!cls.matched && data.site_host && host && host.replace(/^www\./, '') === data.site_host.replace(/^www\./, '')) {
@@ -1297,6 +1364,7 @@ function buildReport(data) {
       return {
         ...row,
         host,
+        url: host || row.url,
         provider: cls.provider || '',
         category,
         treatment,
@@ -1585,7 +1653,10 @@ function mergeKey(map, key, kind, sessionName) {
 
 function collectHosts(map, list, sessionName) {
   for (const item of list || []) {
-    const host = String(item).split('/')[0];
+    const raw = String(item || '').trim();
+    if (!raw || shouldOmitSignal(raw)) continue;
+    const host = collapseSignalHost(raw.split('/')[0]);
+    if (!host || shouldOmitSignal(host)) continue;
     const prev = map.get(host) || { host, url: host, contexts: [] };
     if (!prev.contexts.includes(sessionName)) prev.contexts.push(sessionName);
     map.set(host, prev);
@@ -1594,18 +1665,32 @@ function collectHosts(map, list, sessionName) {
 
 function collectUrls(map, list, sessionName) {
   for (const url of list || []) {
-    if (!url) continue;
-    const prev = map.get(url) || { url, contexts: [] };
+    if (!url || shouldOmitSignal(url)) continue;
+    const collapsedHost = collapseSignalHost(url);
+    if (!collapsedHost || shouldOmitSignal(collapsedHost)) continue;
+    // Prefer collapsed parent host as key when ephemeral workers were rewritten.
+    let key = String(url);
+    try {
+      const u = new URL(url.includes('://') ? url : `https://${url}`);
+      if (collapseSignalHost(u.hostname) !== u.hostname.toLowerCase()) {
+        key = collapsedHost;
+      }
+    } catch {
+      key = collapsedHost || key;
+    }
+    const prev = map.get(key) || { url: key, contexts: [] };
     if (!prev.contexts.includes(sessionName)) prev.contexts.push(sessionName);
-    map.set(url, prev);
+    map.set(key, prev);
   }
 }
 
 function safeHost(value) {
   try {
-    if (String(value).includes('://')) return new URL(value).hostname;
+    if (String(value).includes('://')) {
+      return collapseSignalHost(new URL(value).hostname) || new URL(value).hostname;
+    }
   } catch {
     /* ignore */
   }
-  return String(value).split('/')[0];
+  return collapseSignalHost(String(value).split('/')[0]) || String(value).split('/')[0];
 }

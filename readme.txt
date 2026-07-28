@@ -1,10 +1,10 @@
-=== Universal Consent & Privacy Framework ===
+=== Universal Consent & Privacy Framework (Alpha) ===
 Contributors: universalconsent
 Tags: privacy, gdpr, cookies, consent, cookie banner
 Requires at least: 6.3
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.4.7
+Stable tag: 0.1.7-alpha
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -48,7 +48,11 @@ Final legal review is the site owner's responsibility. Generated policies are te
 
 = Does this phone home? =
 
-No. Remote registry sync is disabled by default and requires explicit admin opt-in. There is no custom phone-home updater — updates come from WordPress.org (or GitHub Releases if you installed from zip).
+No. Remote registry sync is disabled by default and requires explicit admin opt-in. There is no custom phone-home updater — updates come from WordPress.org (or GitHub Releases if you installed from zip). Optional **Contribute cookie knowledge** only downloads a scrubbed JSON file for you to attach on GitHub; WordPress does not upload it.
+
+= How do I contribute cookie descriptions? =
+
+Use Cookie Scanner → Contribute cookie knowledge: confirm the checkbox, download the pack, open the GitHub issue template, and attach the file. Metadata only (no cookie values). Maintainers may merge entries into the vendor catalog.
 
 = How do I run a deep privacy scan? =
 
@@ -74,11 +78,75 @@ See the GitHub repository docs (`docs/DEVELOPER.md`).
 
 By default, none. If you enable optional remote registry sync, the plugin fetches signed JSON metadata from an admin-configured URL only.
 
+Optional **Contribute cookie knowledge** opens GitHub in your browser when you click the button; the plugin does not POST contribution data.
+
 Google/Meta/Microsoft scripts load only after consent when you enable service templates and provide IDs.
 
 Optional self-hosted scanner APIs you configure yourself are operator-controlled; the plugin never loads remote executable code from them (JSON reports only).
 
 == Changelog ==
+
+= 0.1.7-alpha =
+* Agency Git knowledge hub: sync status + Refresh now, merge-knowledge-hub.ps1, smarter export grouping, wildcard knowledge match (no hosted DB)
+
+= 0.1.6-alpha =
+* Agency scanner queue: waiting queue + per-key caps, no cancel-all on busy, durable jobs, queue position in admin, scheduled stagger/backoff
+
+= 0.1.5-alpha =
+* Clean inventory noise: collapse hashed *.w.hcaptcha.com workers, drop about:blank, classify hCaptcha / fonts / Jotform / UserWay / CF challenges
+
+= 0.1.4-alpha =
+* Deep scan: session time budget scales with real session count and selected page count; truncation is logged; intensity copy clarifies URLs × sessions
+
+= 0.1.3-alpha =
+* Compact banner actions stack full-width so Accept All stays inside the card (3-up row overflow)
+
+= 0.1.2-alpha =
+* Fix Save Preferences: banner boot no longer swallows the customize save click (Accept/Reject still worked)
+
+= 0.1.1-alpha =
+* Fix compact banner action row: Accept All no longer overflows the card (equal-width grid + compact padding)
+
+= 0.1.0-alpha =
+* Versioning reset: this project is pre-1.0 / Alpha. Prior 1.4.x builds were development iterations, not a stable 1.x release line.
+* Privacy and Cookie Policy copy polish carried forward from the last 1.4.26 work
+
+= 1.4.26 =
+* Privacy and Cookie Policy copy: shorter professional sentences, commas and periods only (no em dashes or semicolons), clearer rights headings
+* Soften generic scan purpose text to “Observed during a privacy scan of this website.”
+
+= 1.4.25 =
+* Prefs / modal action buttons: clearer gaps, no text wrap crush, wider dialog so Reject / Save / Accept stay aligned with breathing room
+
+= 1.4.24 =
+* Banner no longer shows Do Not Sell / Data Request links; those rights are stated clearly on Cookie Policy and Privacy Policy (with links when URLs are set)
+
+= 1.4.23 =
+* Banner UX: Do Not Sell / Data Request links in popup footer (no floating DNS button); quieter Cookie Settings control; aligned modal/prefs buttons
+* Theme presets: load all theme CSS + sync theme class from settings; clear factory classic accent so Neon/Ocean/Light actually apply
+
+= 1.4.22 =
+* Knowledge / contribution packs anonymized: no site URL, no first-party hosts; generalize property-specific cookie ids
+
+= 1.4.21 =
+* Knowledge export syncs last scan + Cookie Review into the pack (was only sparse manual knowledge entries)
+
+= 1.4.20 =
+* Banner / prefs link Data Request and Do Not Sell URLs when set; open in a new tab
+
+= 1.4.19 =
+* Consent remember harden: Accept and Reject persist via cookie + localStorage backup; banner stays hidden on return visits
+
+= 1.4.18 =
+* Cookie Review re-matches unknowns against vendor catalog (e.g. WooCommerce sbjs_*)
+* Reject ambiguous short OCD/catalog hits (bare cookie name "c" ≠ Magnite without host)
+
+= 1.4.17 =
+* Contribute cookie knowledge: scrubbed pack download + GitHub issue helper (no phone-home upload)
+
+= 1.4.16 =
+* Cookie Lookup on Cookie Scanner (catalog → site knowledge → Open Cookie Database)
+* Per-site knowledge log with export/import packs for agency GitHub hub + opt-in remote registry
 
 = 1.4.7 =
 * Removed third-party agency branding; recommended defaults button; classic-only legacy theme remap

@@ -1,0 +1,39 @@
+name: Cookie knowledge contribution
+description: Share scrubbed cookie metadata from Cookie Scanner (names, categories, purposes — never values).
+title: "Cookie knowledge contribution"
+labels: ["cookie-knowledge"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping grow UCPF’s offline catalog. Attach `ucpf-knowledge-contribution.json` from **Cookie Scanner → Contribute cookie knowledge**.
+        Do **not** paste cookie values, emails, auth tokens, or private client domains.
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Confirmation
+      options:
+        - label: This pack has no cookie values, secrets, or domains I am not allowed to share. I offer it under GPL-2.0-or-later.
+          required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Notable cookies / services and why they matter.
+      placeholder: e.g. Calendly booking cookies seen after Accept only; category marketing.
+    validations:
+      required: true
+  - type: input
+    id: plugin_version
+    attributes:
+      label: UCPF plugin version
+      placeholder: "1.4.17"
+    validations:
+      required: false
+  - type: textarea
+    id: notes
+    attributes:
+      label: Extra notes
+      description: Optional context (CMS plugins, known trackers). Still no PII.
+    validations:
+      required: false

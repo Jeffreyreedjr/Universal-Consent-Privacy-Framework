@@ -4,9 +4,9 @@
       "key": "youtube",
       "name": "YouTube Embeds",
       "provider": "Google",
-      "category": "functional",
+      "category": "marketing",
       "treatment": "consent",
-      "description": "Embedded YouTube videos.",
+      "description": "Embedded YouTube videos and related player / view-statistics cookies.",
       "privacy_url": "https://policies.google.com/privacy",
       "script_patterns": ["youtube.com/iframe_api", "www.youtube.com/s", "youtube.com", "youtu.be", "i.ytimg.com", "yt3.ggpht.com", "jnn-pa.googleapis.com"],
       "cookie_patterns": ["VISITOR_INFO1_LIVE", "YSC", "PREF", "VISITOR_PRIVACY_METADATA", "__Secure-YNID", "__Secure-ROLLOUT_TOKEN", "__Secure-YEC"],
@@ -16,7 +16,7 @@
           "pattern": "VISITOR_INFO1_LIVE",
           "purpose": "Estimates user bandwidth on YouTube pages.",
           "retention": "6 months",
-          "category": "functional",
+          "category": "marketing",
           "treatment": "consent",
           "contexts": ["guest", "logged_in"]
         },
@@ -25,7 +25,7 @@
           "pattern": "YSC",
           "purpose": "Registers a unique ID for statistics of which YouTube videos the user has seen.",
           "retention": "Session",
-          "category": "functional",
+          "category": "marketing",
           "treatment": "consent",
           "contexts": ["guest", "logged_in"]
         },
@@ -43,7 +43,7 @@
           "pattern": "__Secure-YNID",
           "purpose": "YouTube player preferences, secure login aids, and spam detection.",
           "retention": "months",
-          "category": "preferences",
+          "category": "marketing",
           "treatment": "consent",
           "contexts": ["guest", "logged_in"]
         },

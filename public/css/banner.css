@@ -90,6 +90,8 @@
   pointer-events: auto !important;
   margin-inline: auto !important;
   width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
   border: 1px solid var(--ucpf-border) !important;
   border-radius: var(--ucpf-radius-soft) !important;
   background: color-mix(in srgb, var(--ucpf-surface) 95%, transparent) !important;
@@ -102,6 +104,15 @@
   font-size: 16px !important;
   line-height: 1.5 !important;
   color: var(--ucpf-cream) !important;
+  overflow: visible !important;
+}
+
+#ucpf-root .ucpf-banner__inner,
+.ucpf-banner__inner {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
 }
 
 .ucpf-banner.ucpf-banner--visible .ucpf-banner__panel {
@@ -166,7 +177,8 @@
 .ucpf-banner--modal .ucpf-banner__panel {
   position: relative;
   z-index: 1;
-  max-width: 40rem;
+  max-width: 42rem;
+  width: min(42rem, calc(100vw - 2rem));
   transform: translateY(1rem) scale(0.98);
 }
 
@@ -204,6 +216,8 @@
 /* Horizontal position — clears ADA widgets (often bottom-right). */
 #ucpf-root .ucpf-banner.ucpf-banner--pos-left,
 .ucpf-banner.ucpf-banner--pos-left {
+  inset: auto auto max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left)) !important;
+  top: auto !important;
   left: max(1rem, env(safe-area-inset-left)) !important;
   right: auto !important;
   transform: none !important;
@@ -211,6 +225,8 @@
 
 #ucpf-root .ucpf-banner.ucpf-banner--pos-right,
 .ucpf-banner.ucpf-banner--pos-right {
+  inset: auto max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) auto !important;
+  top: auto !important;
   left: auto !important;
   right: max(1rem, env(safe-area-inset-right)) !important;
   transform: none !important;
@@ -218,18 +234,20 @@
 
 #ucpf-root .ucpf-banner.ucpf-banner--pos-center:not(.ucpf-banner--modal),
 .ucpf-banner.ucpf-banner--pos-center:not(.ucpf-banner--modal) {
+  inset: auto auto max(1rem, env(safe-area-inset-bottom)) 50% !important;
+  top: auto !important;
   left: 50% !important;
   right: auto !important;
   transform: translateX(-50%) !important;
 }
 
-/* Bar + position: compact bottom card instead of full-bleed when not center-full. */
+/* Bar + position: compact bottom card instead of full-bleed. */
 #ucpf-root .ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-left,
 #ucpf-root .ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-right,
 .ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-left,
 .ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-right {
-  width: min(28rem, calc(100vw - 2rem)) !important;
-  max-width: min(28rem, calc(100vw - 2rem)) !important;
+  width: min(32rem, calc(100vw - 2rem)) !important;
+  max-width: min(32rem, calc(100vw - 2rem)) !important;
   padding: 0 !important;
   bottom: max(1rem, env(safe-area-inset-bottom)) !important;
 }
@@ -273,23 +291,188 @@
 
 #ucpf-root .ucpf-banner__actions,
 .ucpf-banner__actions {
-  display: flex !important;
-  flex-wrap: wrap !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
   gap: 0.625rem !important;
   margin-top: 1.25rem !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  align-items: stretch !important;
+}
+
+#ucpf-root .ucpf-banner__actions .ucpf-btn,
+.ucpf-banner__actions .ucpf-btn {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+}
+
+/* Modal / prefs / compact banner cards: equal columns when there is room */
+#ucpf-root .ucpf-banner--modal .ucpf-banner__actions,
+.ucpf-banner--modal .ucpf-banner__actions,
+#ucpf-root .ucpf-prefs__footer,
+.ucpf-prefs__footer {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 0.75rem !important;
+  width: 100% !important;
+  margin-top: 1.5rem !important;
+  align-items: stretch !important;
+  box-sizing: border-box !important;
+}
+
+#ucpf-root .ucpf-banner--modal .ucpf-banner__actions .ucpf-btn,
+.ucpf-banner--modal .ucpf-banner__actions .ucpf-btn,
+#ucpf-root .ucpf-prefs__footer .ucpf-btn,
+.ucpf-prefs__footer .ucpf-btn {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 3rem !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  padding: 0.75rem 1rem !important;
+  white-space: nowrap !important;
+  letter-spacing: 0.04em !important;
+  font-size: 0.9375rem !important;
+  line-height: 1.25 !important;
+  text-align: center !important;
+}
+
+/* Compact bar / corner cards: stack actions full-width (3-up row overflows "Accept All") */
+#ucpf-root .ucpf-banner--bar .ucpf-banner__actions,
+.ucpf-banner--bar .ucpf-banner__actions,
+#ucpf-root .ucpf-banner--corner .ucpf-banner__actions,
+.ucpf-banner--corner .ucpf-banner__actions {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 0.625rem !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+#ucpf-root .ucpf-banner--bar .ucpf-banner__actions .ucpf-btn,
+.ucpf-banner--bar .ucpf-banner__actions .ucpf-btn,
+#ucpf-root .ucpf-banner--corner .ucpf-banner__actions .ucpf-btn,
+.ucpf-banner--corner .ucpf-banner__actions .ucpf-btn {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  padding: 0.75rem 1rem !important;
+  font-size: 0.875rem !important;
+  letter-spacing: 0.04em !important;
+  white-space: nowrap !important;
+  min-height: 2.75rem !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+/* Wide centered bar only: three equal columns once the panel is roomy enough */
+@media (min-width: 720px) {
+  #ucpf-root .ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-center .ucpf-banner__actions,
+  .ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-center .ucpf-banner__actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 0.625rem !important;
+  }
+
+  #ucpf-root .ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-center .ucpf-banner__actions .ucpf-btn,
+  .ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-center .ucpf-banner__actions .ucpf-btn {
+    padding: 0.7rem 0.5rem !important;
+    font-size: 0.8125rem !important;
+  }
+}
+
+@media (min-width: 560px) {
+  #ucpf-root .ucpf-banner--modal .ucpf-banner__actions,
+  .ucpf-banner--modal .ucpf-banner__actions,
+  #ucpf-root .ucpf-prefs__footer,
+  .ucpf-prefs__footer {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    column-gap: 0.875rem !important;
+    row-gap: 0.75rem !important;
+  }
+}
+
+/* Rights links sit under the action row (not a floating button) */
+#ucpf-root .ucpf-banner__rights,
+.ucpf-banner__rights,
+#ucpf-root .ucpf-prefs__rights,
+.ucpf-prefs__rights {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.65rem 1.15rem !important;
+  margin: 1rem 0 0 !important;
+  padding: 0.85rem 0 0 !important;
+  border-top: 1px solid var(--ucpf-border) !important;
+}
+
+#ucpf-root .ucpf-rights-link,
+.ucpf-rights-link {
+  color: var(--ucpf-muted) !important;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em !important;
+  text-transform: none !important;
+  text-decoration: underline !important;
+  text-underline-offset: 0.15em !important;
+  line-height: 1.35 !important;
+}
+
+#ucpf-root .ucpf-rights-link:hover,
+#ucpf-root .ucpf-rights-link:focus-visible,
+.ucpf-rights-link:hover,
+.ucpf-rights-link:focus-visible {
+  color: var(--ucpf-cream) !important;
+  outline: none !important;
+}
+
+#ucpf-root .ucpf-rights-link:focus-visible,
+.ucpf-rights-link:focus-visible {
+  outline: 2px solid var(--ucpf-focus-ring, #b45309) !important;
+  outline-offset: 2px !important;
 }
 
 @media (min-width: 640px) {
-  .ucpf-banner--bar .ucpf-banner__inner {
+  /* Full-bleed bottom bar only: content + actions can sit side by side */
+  .ucpf-banner--bar:not(.ucpf-banner--pos-left):not(.ucpf-banner--pos-right):not(.ucpf-banner--pos-center) .ucpf-banner__inner {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 1.5rem;
+    flex-wrap: wrap;
   }
 
-  .ucpf-banner--bar .ucpf-banner__actions {
+  .ucpf-banner--bar:not(.ucpf-banner--pos-left):not(.ucpf-banner--pos-right):not(.ucpf-banner--pos-center) .ucpf-banner__actions {
     margin-top: 0;
-    flex-shrink: 0;
+    width: auto !important;
+    max-width: min(28rem, 100%) !important;
+    flex: 1 1 16rem;
+  }
+
+  /* Compact positioned cards: keep a vertical stack so buttons never spill out */
+  #ucpf-root .ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-left .ucpf-banner__inner,
+  #ucpf-root .ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-right .ucpf-banner__inner,
+  #ucpf-root .ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-center .ucpf-banner__inner,
+  .ucpf-banner--corner .ucpf-banner__inner {
+    display: block !important;
+  }
+
+  #ucpf-root .ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-left .ucpf-banner__actions,
+  #ucpf-root .ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-right .ucpf-banner__actions,
+  #ucpf-root .ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-center .ucpf-banner__actions,
+  .ucpf-banner--corner .ucpf-banner__actions {
+    width: 100% !important;
+    margin-top: 1.25rem !important;
+  }
+
+  .ucpf-banner--bar .ucpf-banner__rights {
+    width: 100%;
+    justify-content: flex-start;
   }
 }
 
@@ -324,13 +507,48 @@
   font-size: 1rem !important;
 }
 
+/* Compact banner action row must beat primary-tier padding or Accept All overflows */
+#ucpf-root .ucpf-banner--bar .ucpf-banner__actions .ucpf-btn,
+.ucpf-banner--bar .ucpf-banner__actions .ucpf-btn,
+#ucpf-root .ucpf-banner--corner .ucpf-banner__actions .ucpf-btn,
+.ucpf-banner--corner .ucpf-banner__actions .ucpf-btn,
+#ucpf-root .ucpf-banner--bar .ucpf-banner__actions .ucpf-btn--primary-tier,
+.ucpf-banner--bar .ucpf-banner__actions .ucpf-btn--primary-tier,
+#ucpf-root .ucpf-banner--corner .ucpf-banner__actions .ucpf-btn--primary-tier,
+.ucpf-banner--corner .ucpf-banner__actions .ucpf-btn--primary-tier,
+#ucpf-root .ucpf-banner--bar .ucpf-banner__actions .ucpf-btn--outline,
+#ucpf-root .ucpf-banner--bar .ucpf-banner__actions .ucpf-btn--fill,
+#ucpf-root .ucpf-banner--bar .ucpf-banner__actions .ucpf-btn--ghost,
+#ucpf-root .ucpf-banner--corner .ucpf-banner__actions .ucpf-btn--outline,
+#ucpf-root .ucpf-banner--corner .ucpf-banner__actions .ucpf-btn--fill,
+#ucpf-root .ucpf-banner--corner .ucpf-banner__actions .ucpf-btn--ghost {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  padding: 0.75rem 1rem !important;
+  font-size: 0.875rem !important;
+  letter-spacing: 0.04em !important;
+  min-height: 2.75rem !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+}
+
+#ucpf-root .ucpf-banner--modal .ucpf-banner__actions .ucpf-btn,
+.ucpf-banner--modal .ucpf-banner__actions .ucpf-btn,
+#ucpf-root .ucpf-prefs__footer .ucpf-btn,
+.ucpf-prefs__footer .ucpf-btn {
+  padding: 0.75rem 0.85rem !important;
+  font-size: 0.875rem !important;
+  letter-spacing: 0.04em !important;
+  min-height: 3rem !important;
+}
+
 /* Reject / secondary — high-contrast outline; hover inverts */
 #ucpf-root .ucpf-btn--outline,
 .ucpf-btn--outline {
   border-color: var(--ucpf-cream) !important;
   background: transparent !important;
   color: var(--ucpf-cream) !important;
-  font-size: 1rem !important;
 }
 
 #ucpf-root .ucpf-btn--outline:hover,
@@ -356,7 +574,6 @@
   border-color: var(--ucpf-accent) !important;
   background: var(--ucpf-accent) !important;
   color: var(--ucpf-on-accent, #ffffff) !important;
-  font-size: 1rem !important;
 }
 
 #ucpf-root .ucpf-btn--fill:hover,
@@ -387,7 +604,6 @@
   border-color: var(--ucpf-border) !important;
   color: var(--ucpf-cream) !important;
   background: transparent !important;
-  font-size: 1rem !important;
 }
 
 #ucpf-root .ucpf-btn--ghost:hover,
@@ -434,14 +650,14 @@
 .ucpf-prefs__dialog {
   position: relative;
   z-index: 1;
-  width: min(36rem, 100%);
+  width: min(42rem, 100%);
   max-height: min(90vh, 48rem);
   overflow: auto;
   border: 1px solid var(--ucpf-border);
   border-radius: var(--ucpf-radius-soft);
   background: var(--ucpf-surface);
   color: var(--ucpf-cream);
-  padding: 1.5rem;
+  padding: 1.5rem 1.5rem 1.75rem;
   box-shadow: var(--ucpf-shadow-panel);
 }
 
@@ -593,10 +809,18 @@
 }
 
 .ucpf-prefs__footer {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.625rem;
-  margin-top: 1.25rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 0.25rem;
+}
+
+@media (min-width: 560px) {
+  .ucpf-prefs__footer {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: 0.875rem;
+  }
 }
 
 #ucpf-root .ucpf-banner__logo img,
@@ -622,92 +846,86 @@
   text-decoration: underline;
 }
 
-/* Floating Cookie Settings — inside #ucpf-root so theme tokens apply */
+/* Floating Cookie Settings — quiet secondary control (not a second banner) */
 #ucpf-root .ucpf-fab,
 .ucpf-fab {
   position: fixed !important;
   left: max(1rem, env(safe-area-inset-left)) !important;
+  right: auto !important;
   bottom: max(1rem, env(safe-area-inset-bottom)) !important;
   z-index: 2147482999 !important;
-  border: 2px solid var(--ucpf-cream) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.4rem !important;
+  border: 1px solid var(--ucpf-border) !important;
   border-radius: var(--ucpf-radius-pill) !important;
-  background: var(--ucpf-accent) !important;
-  color: var(--ucpf-on-accent, #ffffff) !important;
-  padding: 0.75rem 1.15rem !important;
-  min-height: 2.75rem !important;
+  background: color-mix(in srgb, var(--ucpf-surface) 92%, transparent) !important;
+  color: var(--ucpf-cream) !important;
+  padding: 0.55rem 0.95rem !important;
+  min-height: 2.4rem !important;
   font-family: var(--ucpf-font-sans) !important;
-  font-size: 0.875rem !important;
-  font-weight: 700 !important;
-  letter-spacing: var(--ucpf-tracking-cta) !important;
-  text-transform: uppercase !important;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em !important;
+  text-transform: none !important;
   line-height: 1.2 !important;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45) !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.28) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
   cursor: pointer !important;
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+#ucpf-root .ucpf-fab__label,
+.ucpf-fab__label {
+  display: inline-block !important;
+}
+
+/* FAB follows Banner position (same setting as consent card). */
+#ucpf-root[data-ucpf-position="right"] .ucpf-fab,
+#ucpf-root .ucpf-fab.ucpf-fab--pos-right,
+.ucpf-fab.ucpf-fab--pos-right {
+  left: auto !important;
+  right: max(1rem, env(safe-area-inset-right)) !important;
+  transform: none !important;
+}
+
+#ucpf-root[data-ucpf-position="center"] .ucpf-fab,
+#ucpf-root .ucpf-fab.ucpf-fab--pos-center,
+.ucpf-fab.ucpf-fab--pos-center {
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+}
+
+#ucpf-root[data-ucpf-position="left"] .ucpf-fab,
+#ucpf-root .ucpf-fab.ucpf-fab--pos-left,
+.ucpf-fab.ucpf-fab--pos-left {
+  left: max(1rem, env(safe-area-inset-left)) !important;
+  right: auto !important;
+  transform: none !important;
 }
 
 #ucpf-root .ucpf-fab:hover,
 #ucpf-root .ucpf-fab:active,
 .ucpf-fab:hover,
 .ucpf-fab:active {
-  background: var(--ucpf-cream) !important;
-  border-color: var(--ucpf-cream) !important;
-  color: var(--ucpf-surface) !important;
-  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.55) !important;
+  background: var(--ucpf-accent) !important;
+  border-color: var(--ucpf-accent) !important;
+  color: var(--ucpf-on-accent, #ffffff) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35) !important;
 }
 
 #ucpf-root .ucpf-fab:focus-visible,
 .ucpf-fab:focus-visible {
   outline: 3px solid var(--ucpf-focus-ring, #b45309) !important;
   outline-offset: 3px !important;
-  background: var(--ucpf-cream) !important;
-  color: var(--ucpf-surface) !important;
 }
 
 #ucpf-root .ucpf-fab[hidden],
 .ucpf-fab[hidden] {
   display: none !important;
-}
-
-/* US / CPRA privacy choices entry (always available when pack enables it) */
-#ucpf-root .ucpf-privacy-choices-fab,
-.ucpf-privacy-choices-fab {
-  position: fixed !important;
-  right: max(1rem, env(safe-area-inset-right)) !important;
-  bottom: max(1rem, env(safe-area-inset-bottom)) !important;
-  z-index: 2147482998 !important;
-  border: 2px solid var(--ucpf-cream, #ffffff) !important;
-  border-radius: var(--ucpf-radius-pill, 999px) !important;
-  background: var(--ucpf-surface, #111111) !important;
-  color: var(--ucpf-cream, #ffffff) !important;
-  padding: 0.65rem 1rem !important;
-  min-height: 2.5rem !important;
-  font-family: var(--ucpf-font-sans, system-ui, sans-serif) !important;
-  font-size: 0.75rem !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.04em !important;
-  text-transform: uppercase !important;
-  text-decoration: none !important;
-  line-height: 1.2 !important;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4) !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  max-width: min(14rem, calc(100vw - 2rem)) !important;
-}
-
-#ucpf-root .ucpf-privacy-choices-fab:hover,
-#ucpf-root .ucpf-privacy-choices-fab:focus-visible,
-.ucpf-privacy-choices-fab:hover,
-.ucpf-privacy-choices-fab:focus-visible {
-  background: var(--ucpf-accent, #0b5cad) !important;
-  color: var(--ucpf-on-accent, #ffffff) !important;
-  outline: 3px solid var(--ucpf-focus-ring, #b45309) !important;
-  outline-offset: 2px !important;
-}
-
-#ucpf-root .ucpf-privacy-choices-link {
-  display: inline-block;
-  margin-left: 0.35rem;
 }
 
 @media (prefers-reduced-motion: reduce) {

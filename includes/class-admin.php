@@ -135,13 +135,15 @@ class Admin {
 			'ucpf-admin',
 			'ucpfAdmin',
 			array(
-				'restUrl'           => rest_url( 'ucpf/v1/' ),
-				'nonce'             => wp_create_nonce( 'wp_rest' ),
-				'homeUrl'           => untrailingslashit( home_url( '/' ) ),
-				'maxCrawl'          => Cookie_Scanner::MAX_BROWSER_URLS,
-				'maxServer'         => Cookie_Scanner::MAX_SERVER_URLS,
-				'scannerApiUrl'     => Privacy_Scan_Importer::api_base(),
-				'scannerConfigured' => (bool) Privacy_Scan_Importer::api_base(),
+				'restUrl'            => rest_url( 'ucpf/v1/' ),
+				'nonce'              => wp_create_nonce( 'wp_rest' ),
+				'homeUrl'            => untrailingslashit( home_url( '/' ) ),
+				'maxCrawl'           => Cookie_Scanner::MAX_BROWSER_URLS,
+				'maxServer'          => Cookie_Scanner::MAX_SERVER_URLS,
+				'scannerApiUrl'      => Privacy_Scan_Importer::api_base(),
+				'scannerConfigured'  => (bool) Privacy_Scan_Importer::api_base(),
+				'advancedSettingsUrl'=> admin_url( 'admin.php?page=ucpf-advanced' ),
+				'contributeIssueUrl' => Cookie_Knowledge::contribute_issue_url(),
 			)
 		);
 

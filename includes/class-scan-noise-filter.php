@@ -182,6 +182,79 @@ class Scan_Noise_Filter {
 	}
 
 	/**
+	 * Whether a network/iframe/script inventory signal should be omitted.
+	 *
+	 * @param string $url_or_host URL or host.
+	 * @return bool
+	 */
+	public static function should_omit_signal( $url_or_host ) {
+		$v = trim( (string) $url_or_host );
+		if ( '' === $v ) {
+			return true;
+		}
+		$lower = strtolower( $v );
+		$rules = self::get_rules();
+
+		foreach ( isset( $rules['signal_omit_schemes'] ) && is_array( $rules['signal_omit_schemes'] ) ? $rules['signal_omit_schemes'] : array() as $row ) {
+			$scheme = isset( $row['scheme'] ) ? strtolower( (string) $row['scheme'] ) : '';
+			if ( $scheme && 0 === strpos( $lower, $scheme ) ) {
+				return true;
+			}
+		}
+		foreach ( isset( $rules['signal_omit_hosts'] ) && is_array( $rules['signal_omit_hosts'] ) ? $rules['signal_omit_hosts'] : array() as $row ) {
+			$host = isset( $row['host'] ) ? strtolower( (string) $row['host'] ) : '';
+			if ( $host && ( $lower === $host || false !== strpos( $lower, $host ) ) ) {
+				return true;
+			}
+		}
+
+		/**
+		 * Filter whether a request/iframe/script host is inventory noise.
+		 *
+		 * @param bool   $omit Whether to omit.
+		 * @param string $v    URL or host.
+		 */
+		return (bool) apply_filters( 'ucpf_is_signal_scan_noise', false, $v );
+	}
+
+	/**
+	 * Collapse ephemeral CDN worker hosts onto a stable parent for inventory dedupe.
+	 *
+	 * @param string $host_or_url Host or URL.
+	 * @return string
+	 */
+	public static function collapse_signal_host( $host_or_url ) {
+		$host = trim( (string) $host_or_url );
+		if ( '' === $host ) {
+			return '';
+		}
+		if ( false !== strpos( $host, '://' ) ) {
+			$parts = wp_parse_url( $host );
+			$host  = isset( $parts['host'] ) ? (string) $parts['host'] : $host;
+		} else {
+			$parts = explode( '/', $host );
+			$host  = (string) $parts[0];
+		}
+		$host  = strtolower( rtrim( (string) $host, '.' ) );
+		$rules = self::get_rules();
+		foreach ( isset( $rules['signal_host_collapse'] ) && is_array( $rules['signal_host_collapse'] ) ? $rules['signal_host_collapse'] : array() as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+			$suffix = isset( $row['suffix'] ) ? strtolower( (string) $row['suffix'] ) : '';
+			$to     = isset( $row['to'] ) ? strtolower( (string) $row['to'] ) : '';
+			if ( '' === $suffix || '' === $to ) {
+				continue;
+			}
+			$bare = ltrim( $suffix, '.' );
+			if ( $host === $bare || substr( $host, -strlen( $suffix ) ) === $suffix ) {
+				return $to;
+			}
+		}
+		return $host;
+	}
+
+	/**
 	 * Filter cookie row arrays (known or unknown) by name.
 	 *
 	 * @param array $rows Cookie rows.

@@ -141,7 +141,7 @@ class Jurisdiction {
 			),
 			'copy'                  => array(
 				'banner_title'           => 'Cookies',
-				'banner_text'            => 'We use essential cookies for security and optional cookies based on your choices. This plugin helps support privacy compliance; review with legal counsel.',
+				'banner_text'            => 'We use essential cookies for security and optional cookies based on your choices. You can withdraw or manage consent later via Cookie Settings. This plugin helps support privacy compliance. Review with legal counsel.',
 				'prefs_title'            => 'Cookie Preferences',
 				'prefs_intro'            => 'Choose which optional cookie categories to allow. Essential cookies stay on.',
 				'fab_label'              => 'Cookie Settings',

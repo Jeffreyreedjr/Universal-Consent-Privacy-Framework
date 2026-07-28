@@ -1,6 +1,6 @@
 {
   "name": "ucpf-scanner",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "private": true,
   "description": "UCPF Playwright privacy-behavior scanner (consent differential, capture v2, CI exit codes). Companion to the WordPress plugin — not a compliance guarantee.",
   "type": "module",

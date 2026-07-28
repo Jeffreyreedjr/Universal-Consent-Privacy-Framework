@@ -22,18 +22,15 @@ if ( ! in_array( $position, array( 'left', 'center', 'right' ), true ) ) {
 $theme  = \UCPF\Theme_Manager::instance()->resolve_preset( Settings::get( 'banner_theme' ) );
 $layout_class = 'ucpf-banner--' . esc_attr( $layout ) . ' ucpf-banner--pos-' . esc_attr( $position );
 $cookie_policy_url = \UCPF\Page_Generator::instance()->get_page_url( 'cookie_policy' );
-$dns_url = \UCPF\Page_Generator::instance()->get_rights_url( 'do_not_sell' );
 $logo_url = Settings::get( 'logo_url' );
 $business_name = Settings::get( 'business_name' );
 $pack = \UCPF\Jurisdiction::instance()->resolve();
 $copy = isset( $pack['copy'] ) && is_array( $pack['copy'] ) ? $pack['copy'] : array();
 $banner_title = ! empty( $copy['banner_title'] ) ? $copy['banner_title'] : __( 'Cookies', 'universal-consent-privacy-framework' );
-$banner_text  = ! empty( $copy['banner_text'] ) ? $copy['banner_text'] : __( 'We use essential cookies for security and optional cookies based on your choices. This plugin helps support privacy compliance; review with legal counsel.', 'universal-consent-privacy-framework' );
+		$banner_text  = ! empty( $copy['banner_text'] ) ? $copy['banner_text'] : __( 'We use essential cookies for security and optional cookies based on your choices. You can withdraw or manage consent later via Cookie Settings. This plugin helps support privacy compliance. Review with legal counsel.', 'universal-consent-privacy-framework' );
 $prefs_title  = ! empty( $copy['prefs_title'] ) ? $copy['prefs_title'] : __( 'Cookie Preferences', 'universal-consent-privacy-framework' );
 $prefs_intro  = ! empty( $copy['prefs_intro'] ) ? $copy['prefs_intro'] : __( 'Choose which optional cookie categories to allow. Essential cookies stay on. Accept All or Save Preferences apply your choice and close. Escape rejects optional cookies (essential only).', 'universal-consent-privacy-framework' );
 $fab_label    = ! empty( $copy['fab_label'] ) ? $copy['fab_label'] : __( 'Cookie Settings', 'universal-consent-privacy-framework' );
-$choices_label = ! empty( $copy['privacy_choices_label'] ) ? $copy['privacy_choices_label'] : __( 'Your Privacy Choices', 'universal-consent-privacy-framework' );
-$show_choices = ! empty( $pack['privacy_choices_link'] ) && $dns_url;
 ?>
 <div id="ucpf-root" class="ucpf-theme-<?php echo esc_attr( $theme ); ?>" data-ucpf-layout="<?php echo esc_attr( $layout ); ?>" data-ucpf-position="<?php echo esc_attr( $position ); ?>" data-ucpf-pack="<?php echo esc_attr( $pack['id'] ); ?>">
 	<div
@@ -61,9 +58,6 @@ $show_choices = ! empty( $pack['privacy_choices_link'] ) && $dns_url;
 						<?php echo esc_html( $banner_text ); ?>
 						<?php if ( $cookie_policy_url ) : ?>
 							<a class="ucpf-policy-link" href="<?php echo esc_url( $cookie_policy_url ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Cookie Policy', 'universal-consent-privacy-framework' ); ?></a>
-						<?php endif; ?>
-						<?php if ( $show_choices ) : ?>
-							<a class="ucpf-policy-link ucpf-privacy-choices-link" href="<?php echo esc_url( $dns_url ); ?>"><?php echo esc_html( $choices_label ); ?></a>
 						<?php endif; ?>
 					</p>
 				</div>
@@ -98,15 +92,10 @@ $show_choices = ! empty( $pack['privacy_choices_link'] ) && $dns_url;
 					<a class="ucpf-policy-link" href="<?php echo esc_url( $cookie_policy_url ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Read our Cookie Policy', 'universal-consent-privacy-framework' ); ?></a>
 				</p>
 			<?php endif; ?>
-			<?php if ( $show_choices ) : ?>
-				<p class="ucpf-prefs__policy">
-					<a class="ucpf-policy-link ucpf-privacy-choices-link" href="<?php echo esc_url( $dns_url ); ?>"><?php echo esc_html( $choices_label ); ?></a>
-				</p>
-			<?php endif; ?>
 			<div id="ucpf-prefs-categories" role="group" aria-label="<?php esc_attr_e( 'Cookie categories', 'universal-consent-privacy-framework' ); ?>"></div>
 			<div class="ucpf-prefs__footer">
 				<button type="button" class="ucpf-btn ucpf-btn--pill ucpf-btn--primary-tier ucpf-btn--outline" data-ucpf-action="reject_all"><?php esc_html_e( 'Reject All', 'universal-consent-privacy-framework' ); ?></button>
-				<button type="button" class="ucpf-btn ucpf-btn--pill ucpf-btn--primary-tier ucpf-btn--fill" data-ucpf-action="save_preferences"><?php esc_html_e( 'Save Preferences', 'universal-consent-privacy-framework' ); ?></button>
+				<button type="button" class="ucpf-btn ucpf-btn--pill ucpf-btn--primary-tier ucpf-btn--ghost" data-ucpf-action="save_preferences"><?php esc_html_e( 'Save Preferences', 'universal-consent-privacy-framework' ); ?></button>
 				<button type="button" class="ucpf-btn ucpf-btn--pill ucpf-btn--primary-tier ucpf-btn--fill" data-ucpf-action="accept_all"><?php esc_html_e( 'Accept All', 'universal-consent-privacy-framework' ); ?></button>
 			</div>
 		</div>
@@ -115,26 +104,17 @@ $show_choices = ! empty( $pack['privacy_choices_link'] ) && $dns_url;
 	<?php if ( Settings::get( 'floating_prefs_button' ) ) : ?>
 		<button
 			type="button"
-			class="ucpf-fab"
+			class="ucpf-fab ucpf-fab--pos-<?php echo esc_attr( $position ); ?>"
 			id="ucpf-fab"
+			data-ucpf-position="<?php echo esc_attr( $position ); ?>"
 			data-ucpf-open-preferences
 			hidden
 			aria-haspopup="dialog"
 			aria-controls="ucpf-prefs"
 			aria-label="<?php echo esc_attr( $fab_label ); ?>"
 		>
-			<?php echo esc_html( $fab_label ); ?>
+			<span class="ucpf-fab__label"><?php echo esc_html( $fab_label ); ?></span>
 		</button>
-	<?php endif; ?>
-	<?php if ( $show_choices ) : ?>
-		<a
-			class="ucpf-privacy-choices-fab"
-			id="ucpf-privacy-choices"
-			href="<?php echo esc_url( $dns_url ); ?>"
-			aria-label="<?php echo esc_attr( $choices_label ); ?>"
-		>
-			<?php echo esc_html( $choices_label ); ?>
-		</a>
 	<?php endif; ?>
 </div>
 <?php
@@ -150,8 +130,45 @@ $show_choices = ! empty( $pack['privacy_choices_link'] ) && $dns_url;
     window.__ucpfConsentDone = true;
   }
 
-  function hasConsentCookie() {
-    return /(?:^|;\s*)ucpf_consent=/.test(document.cookie || '');
+  function parseConsentValue(raw) {
+    if (!raw) return null;
+    try {
+      return JSON.parse(decodeURIComponent(raw));
+    } catch (e1) {
+      try {
+        return JSON.parse(raw);
+      } catch (e2) {
+        return null;
+      }
+    }
+  }
+
+  function readConsentCookie() {
+    var m = (document.cookie || '').match(/(?:^|;\s*)ucpf_consent=([^;]*)/);
+    return m ? parseConsentValue(m[1]) : null;
+  }
+
+  function readConsentBackup() {
+    try {
+      var raw = window.localStorage && localStorage.getItem('ucpf_consent_backup');
+      if (!raw && window.sessionStorage) {
+        raw = sessionStorage.getItem('ucpf_consent_backup');
+      }
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function isRememberedChoice(data) {
+    if (!data || !data.state || data.state === 'unknown') return false;
+    var exp = Number(data.expires || 0);
+    if (exp && exp < Math.floor(Date.now() / 1000)) return false;
+    return true;
+  }
+
+  function hasRememberedConsent() {
+    return isRememberedChoice(readConsentCookie()) || isRememberedChoice(readConsentBackup());
   }
 
   function hideBannerNow() {
@@ -165,8 +182,9 @@ $show_choices = ! empty( $pack['privacy_choices_link'] ) && $dns_url;
 
   function reveal() {
     if (window.__ucpfConsentDone || window.__ucpfDiscover) return false;
-    if (hasConsentCookie()) {
+    if (hasRememberedConsent()) {
       markDone();
+      hideBannerNow();
       return false;
     }
     var banner = document.getElementById('ucpf-banner');
@@ -187,6 +205,16 @@ $show_choices = ! empty( $pack['privacy_choices_link'] ) && $dns_url;
       }
     }
     return true;
+  }
+
+  function cookieDomainAttr() {
+    var d = (window.ucpfConfig && window.ucpfConfig.cookieDomain) ? String(window.ucpfConfig.cookieDomain).trim() : '';
+    if (!d || d === 'localhost') return '';
+    if (d.charAt(0) !== '.') d = '.' + d.replace(/^\./, '');
+    var host = (location.hostname || '').toLowerCase();
+    var bare = d.replace(/^\./, '').toLowerCase();
+    if (host !== bare && host.slice(-(bare.length + 1)) !== '.' + bare) return '';
+    return '; Domain=' + d;
   }
 
   function writeConsent(all) {
@@ -212,7 +240,7 @@ $show_choices = ! empty( $pack['privacy_choices_link'] ) && $dns_url;
     };
     var secure = location.protocol === 'https:' ? '; Secure' : '';
     var encoded = encodeURIComponent(JSON.stringify(payload));
-    document.cookie = 'ucpf_consent=' + encoded + '; Path=/; Max-Age=' + maxAge + '; SameSite=Lax' + secure;
+    document.cookie = 'ucpf_consent=' + encoded + '; Path=/' + cookieDomainAttr() + '; Max-Age=' + maxAge + '; SameSite=Lax' + secure;
     try {
       localStorage.setItem('ucpf_consent_backup', JSON.stringify(payload));
       sessionStorage.setItem('ucpf_consent_backup', JSON.stringify(payload));
@@ -222,12 +250,31 @@ $show_choices = ! empty( $pack['privacy_choices_link'] ) && $dns_url;
   }
 
   function onAction(type, e) {
-    // When consent.js is ready, it owns Accept/Reject — do not write/reload in parallel.
+    // When consent.js is ready, it owns consent actions — do not write/reload in parallel.
     if (window.UCPF) {
-      if (e && e.stopImmediatePropagation) e.stopImmediatePropagation();
-      if (type === 'accept_all') return window.UCPF.acceptAll();
-      if (type === 'reject_all') return window.UCPF.rejectAll();
-      if (type === 'customize' && window.UCPF.openPreferences) return window.UCPF.openPreferences();
+      var handled = false;
+      if (type === 'accept_all' && window.UCPF.acceptAll) {
+        handled = true;
+        window.UCPF.acceptAll();
+      } else if (type === 'reject_all' && window.UCPF.rejectAll) {
+        handled = true;
+        window.UCPF.rejectAll();
+      } else if (type === 'customize' && window.UCPF.openPreferences) {
+        handled = true;
+        window.UCPF.openPreferences();
+      } else if (type === 'save_preferences' && window.UCPF.setConsent) {
+        handled = true;
+        var consent = window.UCPF.getConsent ? window.UCPF.getConsent() : {};
+        window.UCPF.setConsent({
+          state: 'custom',
+          categories: consent.categories || {},
+          services: consent.services || {},
+          uuid: consent.uuid || ''
+        });
+      }
+      if (handled && e && e.stopImmediatePropagation) {
+        e.stopImmediatePropagation();
+      }
       return;
     }
     if (type === 'accept_all' || type === 'reject_all') {

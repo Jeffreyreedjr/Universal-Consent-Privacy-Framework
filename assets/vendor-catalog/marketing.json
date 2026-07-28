@@ -66,24 +66,33 @@
         "lvs.stats.paypal.com",
         "stats.paypal.com"
       ],
-      "cookie_patterns": ["paypal*", "ts*", "enforce_policy", "l7_az", "sc_f", "__paypal*"],
+      "cookie_patterns": ["paypal*", "ts*", "enforce_policy", "l7_az", "sc_f", "KHcl0EuY7AKSMgfvHl7J5E7hPtK", "__paypal*"],
       "cookies": [
         {
           "name": "l7_az",
           "pattern": "l7_az",
-          "purpose": "PayPal login / availability zone routing.",
+          "purpose": "This cookie is necessary for the PayPal login-function on the website.",
           "retention": "Session / short-lived",
-          "category": "preferences",
-          "treatment": "consent",
+          "category": "necessary",
+          "treatment": "necessary",
           "contexts": ["guest", "logged_in", "checkout"]
         },
         {
           "name": "sc_f",
           "pattern": "sc_f",
-          "purpose": "PayPal session / fraud-related cookie.",
+          "purpose": "PayPal session / fraud-related cookie required for purchase facilities.",
           "retention": "varies",
-          "category": "preferences",
-          "treatment": "consent",
+          "category": "necessary",
+          "treatment": "necessary",
+          "contexts": ["guest", "logged_in", "checkout"]
+        },
+        {
+          "name": "KHcl0EuY7AKSMgfvHl7J5E7hPtK",
+          "pattern": "KHcl0EuY7AKSMgfvHl7J5E7hPtK",
+          "purpose": "Used to show PayPal banners and run purchase facilities offered through PayPal.",
+          "retention": "varies",
+          "category": "necessary",
+          "treatment": "necessary",
           "contexts": ["guest", "logged_in", "checkout"]
         }
       ],
@@ -140,6 +149,44 @@
       "cookie_patterns": [],
       "cookies": [],
       "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "magnite",
+      "name": "Magnite (Rubicon)",
+      "provider": "Magnite",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Programmatic advertising / bidstream (formerly Rubicon Project).",
+      "privacy_url": "https://www.magnite.com/legal/privacy-policy/",
+      "script_patterns": [
+        "rubiconproject.com",
+        "magnite.com",
+        "ads.rubiconproject.com",
+        "pixel.rubiconproject.com"
+      ],
+      "cookie_patterns": ["khaos", "audit", "receive-cookie-deprecation"],
+      "cookies": [
+        {
+          "name": "c",
+          "pattern": "c",
+          "purpose": "Magnite/Rubicon advertising cookie (only when set on rubiconproject.com / magnite.com — short name requires host match).",
+          "retention": "months",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "khaos",
+          "pattern": "khaos",
+          "purpose": "Magnite user identifier for advertising.",
+          "retention": "months",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": ["rubiconproject.com"],
       "default_blocking": true
     }
   ]

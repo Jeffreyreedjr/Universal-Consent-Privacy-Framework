@@ -44,6 +44,9 @@ function loadEnvFile() {
 
 loadEnvFile();
 
+const __dirname = path.dirname( fileURLToPath( import.meta.url ) );
+const defaultDataDir = path.join( __dirname, '..', 'data' );
+
 export const config = {
   host: process.env.UCPF_SCANNER_HOST || '0.0.0.0',
   port: Number(process.env.UCPF_SCANNER_PORT || 3847),
@@ -51,20 +54,39 @@ export const config = {
     .split(',')
     .map((k) => k.trim())
     .filter(Boolean),
+  /** Keys allowed to cancel-all / reset slots (comma-separated). Defaults to first API key. */
+  adminKeys: (process.env.UCPF_SCANNER_ADMIN_KEYS || '')
+    .split(',')
+    .map((k) => k.trim())
+    .filter(Boolean),
   /** Allow unauthenticated local use only when no keys configured and bind is loopback-ish. */
   allowUnauthenticatedLocal: process.env.UCPF_SCANNER_ALLOW_LOCAL === '1',
   maxPagesPerScan: Number(process.env.UCPF_SCANNER_MAX_PAGES || 100),
-  maxConcurrentScans: Number(process.env.UCPF_SCANNER_MAX_CONCURRENT || 2),
+  maxConcurrentScans: Math.max(1, Number(process.env.UCPF_SCANNER_MAX_CONCURRENT || 2)),
+  /** Waiting queue depth when all Chromium slots are busy (agency fleets). */
+  maxQueue: Math.max(0, Number(process.env.UCPF_SCANNER_MAX_QUEUE || 200)),
+  /** Max running jobs per API key fingerprint. */
+  maxRunningPerKey: Math.max(1, Number(process.env.UCPF_SCANNER_MAX_RUNNING_PER_KEY || 1)),
+  /** Max queued (waiting) jobs per API key fingerprint. */
+  maxQueuedPerKey: Math.max(0, Number(process.env.UCPF_SCANNER_MAX_QUEUED_PER_KEY || 2)),
   maxRedirects: Number(process.env.UCPF_SCANNER_MAX_REDIRECTS || 5),
   navigationTimeoutMs: Number(process.env.UCPF_SCANNER_NAV_TIMEOUT_MS || 25000),
-  browserTimeoutMs: Number(process.env.UCPF_SCANNER_BROWSER_TIMEOUT_MS || 600000),
+  /** Preferred whole-job Chromium budget (ms). Split across sessions; each session also gets a page-count floor. */
+  browserTimeoutMs: Number(process.env.UCPF_SCANNER_BROWSER_TIMEOUT_MS || 1800000),
   settleMs: Number(process.env.UCPF_SCANNER_SETTLE_MS || 4000),
-  /** Delay between pages (ms) — helps avoid Defender / CF lockouts. */
   pageGapMs: Number(process.env.UCPF_SCANNER_PAGE_GAP_MS || 1500),
   rateLimitWindowMs: Number(process.env.UCPF_SCANNER_RATE_WINDOW_MS || 60000),
-  // WP polls ~every 4s; default of 10/min blocks the next scan. Allow headroom for polls + starts.
   rateLimitMax: Number(process.env.UCPF_SCANNER_RATE_MAX || 180),
-  /** Auto-delete completed job reports after this many ms. */
+  /** Auto-delete finished job reports after this many ms (from completion, not create). */
   reportTtlMs: Number(process.env.UCPF_SCANNER_REPORT_TTL_MS || 3600000),
+  /** Directory for durable job/queue SQLite (or JSON fallback). */
+  dataDir: process.env.UCPF_SCANNER_DATA_DIR || defaultDataDir,
   headless: process.env.UCPF_SCANNER_HEADED !== '1',
 };
+
+/** Effective admin keys: explicit list, else first configured API key. */
+export function getAdminKeys() {
+  if (config.adminKeys.length) return config.adminKeys;
+  if (config.apiKeys.length) return [config.apiKeys[0]];
+  return [];
+}

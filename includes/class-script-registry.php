@@ -90,53 +90,166 @@ class Script_Registry {
 
 	/**
 	 * Optionally fetch remote metadata registry (admin opt-in only).
+	 *
+	 * @param bool $force Bypass transient cache.
 	 */
-	private function maybe_load_remote_registry() {
+	private function maybe_load_remote_registry( $force = false ) {
+		$result = self::sync_remote_registry( $force );
+		if ( empty( $result['services'] ) || ! is_array( $result['services'] ) ) {
+			return;
+		}
+		foreach ( $result['services'] as $service ) {
+			$this->register_service( $service, 'remote_metadata' );
+		}
+	}
+
+	/**
+	 * Fetch / cache remote registry and record sync status for admin UI.
+	 *
+	 * @param bool $force Bypass cache.
+	 * @return array{ok:bool,message:string,services?:array,cached?:bool}
+	 */
+	public static function sync_remote_registry( $force = false ) {
+		$status = array(
+			'ok'         => false,
+			'at'         => gmdate( 'c' ),
+			'message'    => '',
+			'service_count' => 0,
+			'url'        => '',
+			'cached'     => false,
+		);
+
 		if ( ! Community_Registry::remote_catalog_allowed() ) {
-			return;
+			$status['message'] = __( 'Remote registry blocked: set Intelligence registry mode to Agency (or Community), enable remote sync, and paste a raw JSON URL.', 'universal-consent-privacy-framework' );
+			update_option( 'ucpf_remote_registry_status', $status, false );
+			return array( 'ok' => false, 'message' => $status['message'], 'services' => array() );
 		}
 
-		$url = Settings::get( 'remote_registry_url' );
+		$url = (string) Settings::get( 'remote_registry_url' );
+		$status['url'] = $url;
 		if ( ! $url ) {
-			return;
+			$status['message'] = __( 'No remote registry URL configured.', 'universal-consent-privacy-framework' );
+			update_option( 'ucpf_remote_registry_status', $status, false );
+			return array( 'ok' => false, 'message' => $status['message'], 'services' => array() );
 		}
 
-		$cached = get_transient( 'ucpf_remote_registry' );
-		if ( false !== $cached && is_array( $cached ) ) {
-			foreach ( $cached as $service ) {
-				$this->register_service( $service, 'remote_metadata' );
+		if ( ! $force ) {
+			$cached = get_transient( 'ucpf_remote_registry' );
+			if ( false !== $cached && is_array( $cached ) ) {
+				$status['ok']            = true;
+				$status['cached']        = true;
+				$status['service_count'] = count( $cached );
+				$status['message']       = __( 'Using cached remote registry (daily).', 'universal-consent-privacy-framework' );
+				// Do not overwrite a prior successful fetch timestamp on cache hits.
+				$prev = get_option( 'ucpf_remote_registry_status', array() );
+				if ( is_array( $prev ) && ! empty( $prev['ok'] ) && ! empty( $prev['at'] ) ) {
+					$status['at'] = $prev['at'];
+				}
+				update_option( 'ucpf_remote_registry_status', $status, false );
+				return array(
+					'ok'      => true,
+					'message' => $status['message'],
+					'services'=> $cached,
+					'cached'  => true,
+				);
 			}
-			return;
+		} else {
+			delete_transient( 'ucpf_remote_registry' );
 		}
 
-		$response = wp_remote_get( $url, array( 'timeout' => 15 ) );
+		$response = wp_remote_get(
+			$url,
+			array(
+				'timeout' => 15,
+				'headers' => array( 'Accept' => 'application/json' ),
+			)
+		);
 		if ( is_wp_error( $response ) ) {
-			return;
+			$status['message'] = sprintf(
+				/* translators: %s: error message */
+				__( 'Registry fetch failed: %s', 'universal-consent-privacy-framework' ),
+				$response->get_error_message()
+			);
+			update_option( 'ucpf_remote_registry_status', $status, false );
+			return array( 'ok' => false, 'message' => $status['message'], 'services' => array() );
 		}
 
-		$body = json_decode( wp_remote_retrieve_body( $response ), true );
+		$code = (int) wp_remote_retrieve_response_code( $response );
+		$raw  = (string) wp_remote_retrieve_body( $response );
+		$body = json_decode( $raw, true );
+		if ( $code >= 400 || ! is_array( $body ) ) {
+			$status['message'] = sprintf(
+				/* translators: %d: HTTP status */
+				__( 'Registry URL returned HTTP %d or invalid JSON.', 'universal-consent-privacy-framework' ),
+				$code
+			);
+			update_option( 'ucpf_remote_registry_status', $status, false );
+			return array( 'ok' => false, 'message' => $status['message'], 'services' => array() );
+		}
+
 		if ( empty( $body['services'] ) || ! is_array( $body['services'] ) ) {
-			return;
+			$status['message'] = __( 'Registry JSON has no services[] array.', 'universal-consent-privacy-framework' );
+			update_option( 'ucpf_remote_registry_status', $status, false );
+			return array( 'ok' => false, 'message' => $status['message'], 'services' => array() );
 		}
 
-		// Reject catalogs that look like executable payloads.
 		$check = Community_Registry::validate_catalog(
 			isset( $body['schema'] ) ? $body : array_merge( array( 'schema' => 'ucpf-registry-catalog/1.0' ), $body )
 		);
 		if ( is_wp_error( $check ) ) {
-			return;
+			$status['message'] = $check->get_error_message();
+			update_option( 'ucpf_remote_registry_status', $status, false );
+			return array( 'ok' => false, 'message' => $status['message'], 'services' => array() );
 		}
 
-		set_transient( 'ucpf_remote_registry', $body['services'], DAY_IN_SECONDS );
-
+		$services = array();
 		foreach ( $body['services'] as $service ) {
+			if ( ! is_array( $service ) ) {
+				continue;
+			}
 			// Metadata only — never mark necessary from remote alone.
-			if ( is_array( $service ) && isset( $service['category'] ) && 'necessary' === $service['category'] ) {
-				$service['category'] = 'preferences';
+			if ( isset( $service['category'] ) && 'necessary' === $service['category'] ) {
+				$service['category']  = 'preferences';
 				$service['treatment'] = 'consent';
 			}
-			$this->register_service( $service, 'remote_metadata' );
+			$services[] = $service;
 		}
+
+		set_transient( 'ucpf_remote_registry', $services, DAY_IN_SECONDS );
+		$status['ok']            = true;
+		$status['service_count'] = count( $services );
+		$status['message']       = sprintf(
+			/* translators: %d: service count */
+			__( 'Remote registry synced (%d services).', 'universal-consent-privacy-framework' ),
+			count( $services )
+		);
+		update_option( 'ucpf_remote_registry_status', $status, false );
+
+		return array(
+			'ok'       => true,
+			'message'  => $status['message'],
+			'services' => $services,
+			'cached'   => false,
+		);
+	}
+
+	/**
+	 * Last remote registry sync status for admin UI.
+	 *
+	 * @return array
+	 */
+	public static function get_remote_registry_status() {
+		$raw = get_option( 'ucpf_remote_registry_status', array() );
+		return is_array( $raw ) ? $raw : array();
+	}
+
+	/**
+	 * Force refresh remote registry (admin).
+	 *
+	 * @return array
+	 */
+	public static function refresh_remote_registry() {
+		return self::sync_remote_registry( true );
 	}
 
 	/**
@@ -473,8 +586,29 @@ class Script_Registry {
 		$cookies = array();
 		foreach ( $this->services as $key => $service ) {
 			$list = ! empty( $service['cookies'] ) ? $service['cookies'] : array();
-			if ( empty( $list ) && ! empty( $service['cookie_patterns'] ) ) {
+			// Always merge cookie_patterns not already covered by explicit cookies[].
+			// Otherwise patterns like sbjs_* / sbjs_migrations are ignored when a few named cookies exist.
+			if ( ! empty( $service['cookie_patterns'] ) ) {
 				foreach ( (array) $service['cookie_patterns'] as $pattern ) {
+					$pattern = (string) $pattern;
+					if ( '' === $pattern ) {
+						continue;
+					}
+					$covered = false;
+					foreach ( $list as $cookie ) {
+						if ( ! is_array( $cookie ) ) {
+							continue;
+						}
+						$cname = isset( $cookie['name'] ) ? (string) $cookie['name'] : '';
+						$cpat  = isset( $cookie['pattern'] ) ? (string) $cookie['pattern'] : $cname;
+						if ( $cname === $pattern || $cpat === $pattern ) {
+							$covered = true;
+							break;
+						}
+					}
+					if ( $covered ) {
+						continue;
+					}
 					$list[] = array(
 						'name'      => $pattern,
 						'pattern'   => $pattern,
@@ -503,40 +637,188 @@ class Script_Registry {
 	 * on catalog hits, or returns a synthetic match (source=open_cookie_database)
 	 * when the catalog has no hit.
 	 *
+	 * Short / ambiguous patterns (e.g. Magnite `c`) require a matching cookie domain.
+	 *
 	 * @param string $cookie_name Cookie name.
+	 * @param string $domain      Optional Set-Cookie domain / host for disambiguation.
 	 * @return array|null
 	 */
-	public function match_cookie_name( $cookie_name ) {
+	public function match_cookie_name( $cookie_name, $domain = '' ) {
 		$cookie_name = (string) $cookie_name;
+		$domain      = (string) $domain;
 		$ucpf        = null;
 		foreach ( $this->get_all_cookies() as $cookie ) {
 			$pattern = isset( $cookie['pattern'] ) ? $cookie['pattern'] : $cookie['name'];
-			if ( $this->cookie_name_matches( $cookie_name, $pattern ) ) {
-				$ucpf = $cookie;
-				break;
+			if ( ! $this->cookie_name_matches( $cookie_name, $pattern ) ) {
+				continue;
 			}
+			if ( $this->pattern_needs_host_context( $pattern ) ) {
+				$svc = ! empty( $cookie['service'] ) ? $this->get_service( $cookie['service'] ) : null;
+				if ( ! $this->cookie_domain_matches_service( $domain, $svc ) ) {
+					continue;
+				}
+			}
+			$ucpf = $cookie;
+			break;
 		}
 
-		$ocd = Cookie_Database::instance()->match( $cookie_name );
+		$knowledge = Cookie_Knowledge::match_cookie( $cookie_name );
+		$ocd       = Cookie_Database::instance()->match( $cookie_name );
 
 		if ( $ucpf ) {
 			$ucpf['source'] = 'ucpf';
-			if ( $ocd ) {
-				if ( empty( $ucpf['purpose'] ) && ! empty( $ocd['purpose'] ) ) {
-					$ucpf['purpose']             = $ocd['purpose'];
-					$ucpf['description_source']  = 'open_cookie_database';
+			$fill           = $knowledge ? $knowledge : $ocd;
+			if ( $fill ) {
+				if ( empty( $ucpf['purpose'] ) && ! empty( $fill['purpose'] ) ) {
+					$ucpf['purpose']            = $fill['purpose'];
+					$ucpf['description_source'] = isset( $fill['description_source'] ) ? $fill['description_source'] : 'knowledge';
 				}
-				if ( empty( $ucpf['retention'] ) && ! empty( $ocd['retention'] ) ) {
-					$ucpf['retention'] = $ocd['retention'];
+				if ( empty( $ucpf['retention'] ) && ! empty( $fill['retention'] ) ) {
+					$ucpf['retention'] = $fill['retention'];
 				}
-				if ( empty( $ucpf['provider'] ) && ! empty( $ocd['provider'] ) ) {
-					$ucpf['provider'] = $ocd['provider'];
+				if ( empty( $ucpf['provider'] ) && ! empty( $fill['provider'] ) ) {
+					$ucpf['provider'] = $fill['provider'];
 				}
 			}
 			return $ucpf;
 		}
 
+		if ( $knowledge ) {
+			if ( $ocd ) {
+				if ( empty( $knowledge['purpose'] ) && ! empty( $ocd['purpose'] ) ) {
+					$knowledge['purpose']            = $ocd['purpose'];
+					$knowledge['description_source'] = 'open_cookie_database';
+				}
+				if ( empty( $knowledge['retention'] ) && ! empty( $ocd['retention'] ) ) {
+					$knowledge['retention'] = $ocd['retention'];
+				}
+			}
+			return $knowledge;
+		}
+
 		return $ocd;
+	}
+
+	/**
+	 * Whether a cookie pattern is too short to trust without host context.
+	 *
+	 * @param string $pattern Pattern.
+	 * @return bool
+	 */
+	public function pattern_needs_host_context( $pattern ) {
+		$base = str_replace( '*', '', (string) $pattern );
+		$min  = (int) apply_filters( 'ucpf_cookie_pattern_host_context_max_len', 2 );
+		return strlen( $base ) <= max( 1, $min );
+	}
+
+	/**
+	 * Whether a cookie domain belongs to a service (script/iframe host patterns).
+	 *
+	 * @param string     $domain  Cookie domain.
+	 * @param array|null $service Service definition.
+	 * @return bool
+	 */
+	public function cookie_domain_matches_service( $domain, $service ) {
+		if ( ! is_array( $service ) ) {
+			return false;
+		}
+		$domain = strtolower( ltrim( preg_replace( '/:\d+$/', '', (string) $domain ), '.' ) );
+		if ( '' === $domain || false === strpos( $domain, '.' ) ) {
+			return false;
+		}
+		$needles = array_merge(
+			isset( $service['script_patterns'] ) ? (array) $service['script_patterns'] : array(),
+			isset( $service['iframe_patterns'] ) ? (array) $service['iframe_patterns'] : array()
+		);
+		foreach ( $needles as $needle ) {
+			$needle = strtolower( (string) $needle );
+			if ( '' === $needle || false === strpos( $needle, '.' ) ) {
+				continue;
+			}
+			// Host-like pattern (ignore paths / filenames).
+			$host = preg_replace( '#^https?://#', '', $needle );
+			$host = explode( '/', $host )[0];
+			$host = ltrim( $host, '.' );
+			if ( strlen( $host ) < 4 || false === strpos( $host, '.' ) ) {
+				continue;
+			}
+			if ( $domain === $host || substr( $domain, -strlen( '.' . $host ) ) === '.' . $host || false !== strpos( $domain, $host ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Admin cookie lookup: catalog → knowledge → OCD (search + exact).
+	 *
+	 * @param string $query Query string.
+	 * @param int    $limit Max hits.
+	 * @return array{query:string,results:array[]}
+	 */
+	public function lookup_cookie( $query, $limit = 25 ) {
+		$query = trim( (string) $query );
+		$limit = max( 1, min( 50, (int) $limit ) );
+		$out   = array();
+		$seen  = array();
+
+		$add = static function ( $row, $confidence ) use ( &$out, &$seen, $limit ) {
+			if ( ! is_array( $row ) || empty( $row['name'] ) || count( $out ) >= $limit ) {
+				return;
+			}
+			$key = strtolower( (string) $row['name'] ) . '|' . ( isset( $row['source'] ) ? $row['source'] : '' );
+			if ( isset( $seen[ $key ] ) ) {
+				return;
+			}
+			$seen[ $key ]     = true;
+			$row['confidence'] = $confidence;
+			$out[]            = $row;
+		};
+
+		if ( strlen( $query ) >= 2 ) {
+			foreach ( $this->get_all_cookies() as $cookie ) {
+				$name    = isset( $cookie['name'] ) ? (string) $cookie['name'] : '';
+				$pattern = isset( $cookie['pattern'] ) ? (string) $cookie['pattern'] : $name;
+				if ( '' === $name ) {
+					continue;
+				}
+				if ( false === stripos( $name, $query ) && false === stripos( $pattern, $query ) && ! $this->cookie_name_matches( $query, $pattern ) ) {
+					continue;
+				}
+				$row           = $cookie;
+				$row['source'] = 'ucpf';
+				$svc           = ! empty( $cookie['service'] ) ? $this->get_service( $cookie['service'] ) : null;
+				if ( $svc && empty( $row['provider'] ) ) {
+					$row['provider'] = ! empty( $svc['provider'] ) ? $svc['provider'] : $svc['name'];
+				}
+				if ( $svc && empty( $row['service_name'] ) ) {
+					$row['service_name'] = $svc['name'];
+				}
+				$add( $row, 'high' );
+			}
+
+			foreach ( Cookie_Knowledge::search( $query, $limit ) as $row ) {
+				$add( $row, 'high' );
+			}
+
+			foreach ( Cookie_Database::instance()->search( $query, $limit ) as $row ) {
+				$add( $row, 'medium' );
+			}
+		}
+
+		// Exact match path when query looks like a full cookie name.
+		if ( strlen( $query ) >= 2 && preg_match( '/^[A-Za-z0-9_.\-*]+$/', $query ) ) {
+			$exact = $this->match_cookie_name( $query );
+			if ( $exact ) {
+				$add( $exact, 'high' );
+			}
+		}
+
+		return array(
+			'query'   => $query,
+			'results' => array_slice( $out, 0, $limit ),
+			'note'    => __( 'Local lookup only (vendor catalog, site knowledge, Open Cookie Database). Not a legal determination. Does not call cookiedatabase.org.', 'universal-consent-privacy-framework' ),
+		);
 	}
 
 	/**
