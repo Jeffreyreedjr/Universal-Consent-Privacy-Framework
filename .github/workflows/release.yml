@@ -1,0 +1,79 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: package.json
+
+      - name: Install dependencies
+        run: npm install --no-fund --no-audit
+
+      - name: Build and package plugin zip
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          .\package.ps1
+
+          $zipPath = 'dist\universal-consent-privacy-framework.zip'
+          if (-not (Test-Path $zipPath)) {
+            throw "Expected zip not found: $zipPath"
+          }
+
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $archive = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path $zipPath))
+          try {
+            $names = @($archive.Entries | ForEach-Object { $_.FullName })
+            $required = @(
+              'universal-consent-privacy-framework/universal-consent-privacy-framework.php',
+              'universal-consent-privacy-framework/admin/build/index.js'
+            )
+            foreach ($need in $required) {
+              if ($names -notcontains $need) {
+                throw "Zip missing required entry: $need"
+              }
+            }
+          }
+          finally {
+            $archive.Dispose()
+          }
+
+          $hash = (Get-FileHash $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          Set-Content -Path 'dist\SHA256SUMS.txt' -Value "$hash  universal-consent-privacy-framework.zip" -Encoding ascii
+          Write-Host "SHA256: $hash"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/universal-consent-privacy-framework.zip
+            dist/SHA256SUMS.txt
+          generate_release_notes: true
+          body: |
+            ![UCPF](https://raw.githubusercontent.com/Jeffreyreedjr/Universal-Consent-Privacy-Framework/main/.wordpress-org/banner-772x250.png)
+
+            **Install:** download `universal-consent-privacy-framework.zip`, then WordPress → Plugins → Add New → Upload.
+
+            **Verify:** check the SHA-256 in `SHA256SUMS.txt`.
+
+            Does not phone home. Optional Playwright scanner is companion software in `tools/ucpf-scanner` (not in this zip).
+
+            Screenshots and directory assets: [`.wordpress-org/`](https://github.com/Jeffreyreedjr/Universal-Consent-Privacy-Framework/tree/main/.wordpress-org). Version notes: `readme.txt` / `CHANGELOG.md`.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

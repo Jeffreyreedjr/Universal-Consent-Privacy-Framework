@@ -1,0 +1,19 @@
+{
+  "name": "universal-consent-privacy-framework",
+  "version": "0.1.15-alpha",
+  "private": true,
+  "description": "UCPF WordPress plugin admin UI build (React). Not published to npm.",
+  "license": "GPL-2.0-or-later",
+  "author": "Jeffrey Reed Jr.",
+  "scripts": {
+    "build": "wp-scripts build ./admin/src/index.js --output-path=./admin/build --webpack-no-externals",
+    "start": "wp-scripts start ./admin/src/index.js --output-path=./admin/build --webpack-no-externals",
+    "packages-update": "wp-scripts packages-update"
+  },
+  "devDependencies": {
+    "@fontsource/plus-jakarta-sans": "^5.3.0",
+    "@wordpress/scripts": "^30.27.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  }
+}

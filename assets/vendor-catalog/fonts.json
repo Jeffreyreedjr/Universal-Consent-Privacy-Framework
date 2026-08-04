@@ -1,0 +1,57 @@
+{
+  "services": [
+    {
+      "key": "google_fonts",
+      "name": "Google Fonts",
+      "provider": "Google",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Loads web fonts from Google Fonts CDN.",
+      "privacy_url": "https://policies.google.com/privacy",
+      "script_patterns": [
+        "fonts.googleapis.com",
+        "fonts.gstatic.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "adobe_fonts",
+      "name": "Adobe Fonts",
+      "provider": "Adobe",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Loads web fonts from Adobe Fonts (Typekit).",
+      "privacy_url": "https://www.adobe.com/privacy/policy.html",
+      "script_patterns": [
+        "use.typekit.net",
+        "p.typekit.net"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "font_awesome",
+      "name": "Font Awesome",
+      "provider": "Fonticons",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Loads Font Awesome kits or CDN icon fonts from Fonticons.",
+      "privacy_url": "https://fontawesome.com/privacy",
+      "script_patterns": [
+        "kit.fontawesome.com",
+        "ka-f.fontawesome.com",
+        "ka-p.fontawesome.com",
+        "use.fontawesome.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    }
+  ]
+}

@@ -1,0 +1,247 @@
+{
+  "services": [
+    {
+      "key": "youtube",
+      "name": "YouTube Embeds",
+      "provider": "Google",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Embedded YouTube videos and related player / view-statistics cookies.",
+      "privacy_url": "https://policies.google.com/privacy",
+      "script_patterns": ["youtube.com/iframe_api", "www.youtube.com/s", "youtube.com", "youtu.be", "i.ytimg.com", "yt3.ggpht.com", "jnn-pa.googleapis.com"],
+      "cookie_patterns": ["VISITOR_INFO1_LIVE", "YSC", "PREF", "VISITOR_PRIVACY_METADATA", "__Secure-YNID", "__Secure-ROLLOUT_TOKEN", "__Secure-YEC"],
+      "cookies": [
+        {
+          "name": "VISITOR_INFO1_LIVE",
+          "pattern": "VISITOR_INFO1_LIVE",
+          "purpose": "Estimates user bandwidth on YouTube pages.",
+          "retention": "6 months",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "YSC",
+          "pattern": "YSC",
+          "purpose": "Registers a unique ID for statistics of which YouTube videos the user has seen.",
+          "retention": "Session",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "VISITOR_PRIVACY_METADATA",
+          "pattern": "VISITOR_PRIVACY_METADATA",
+          "purpose": "YouTube visitor privacy metadata for embedded players.",
+          "retention": "months",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "__Secure-YNID",
+          "pattern": "__Secure-YNID",
+          "purpose": "YouTube player preferences, secure login aids, and spam detection.",
+          "retention": "months",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "__Secure-ROLLOUT_TOKEN",
+          "pattern": "__Secure-ROLLOUT_TOKEN",
+          "purpose": "Registers a unique ID for YouTube video view statistics / feature rollout.",
+          "retention": "months",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "__Secure-YEC",
+          "pattern": "__Secure-YEC",
+          "purpose": "YouTube embed / experiment cookie set with embedded players.",
+          "retention": "months",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": ["youtube.com/embed", "youtube-nocookie.com/embed"],
+      "default_blocking": true
+    },
+    {
+      "key": "vimeo",
+      "name": "Vimeo Embeds",
+      "provider": "Vimeo",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Embedded Vimeo videos.",
+      "privacy_url": "https://vimeo.com/privacy",
+      "script_patterns": ["player.vimeo.com"],
+      "cookie_patterns": ["vuid"],
+      "cookies": [
+        {
+          "name": "vuid",
+          "pattern": "vuid",
+          "purpose": "Collects data about Vimeo video visits.",
+          "retention": "2 years",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": ["player.vimeo.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "google_maps",
+      "name": "Google Maps",
+      "provider": "Google",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Embedded Google Maps / Places.",
+      "privacy_url": "https://policies.google.com/privacy",
+      "script_patterns": [
+        "maps.googleapis.com",
+        "maps.google.com",
+        "maps.gstatic.com",
+        "google.com/maps",
+        "maps.googleapis.com/maps/api/js",
+        "maps.googleapis.com/maps/api/place",
+        "maps.googleapis.com/maps/api/places"
+      ],
+      "cookie_patterns": ["NID"],
+      "cookies": [],
+      "iframe_patterns": ["google.com/maps", "maps.google.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "openstreetmap",
+      "name": "OpenStreetMap",
+      "provider": "OpenStreetMap Foundation",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Embedded OpenStreetMap tiles, nominatim geocode, or embeds.",
+      "privacy_url": "https://wiki.osmfoundation.org/wiki/Privacy_Policy",
+      "script_patterns": [
+        "openstreetmap.org",
+        "tile.openstreetmap.org",
+        "nominatim.openstreetmap.org"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["openstreetmap.org"],
+      "default_blocking": true
+    },
+    {
+      "key": "mapbox",
+      "name": "Mapbox",
+      "provider": "Mapbox",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Mapbox GL / tiles, events, and API hosts used by map embeds.",
+      "privacy_url": "https://www.mapbox.com/legal/privacy",
+      "script_patterns": [
+        "api.mapbox.com",
+        "events.mapbox.com",
+        "tiles.mapbox.com",
+        "mapbox.com",
+        "mapbox.cn"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["mapbox.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "leaflet",
+      "name": "Leaflet",
+      "provider": "Leaflet",
+      "category": "necessary",
+      "treatment": "necessary",
+      "description": "Local Leaflet JS is site-hosted library code (label/necessary, not gated). External tile and geocode hosts (OSM, Mapbox, etc.) gate separately via their own services.",
+      "privacy_url": "https://leafletjs.com/",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": false
+    },
+    {
+      "key": "bing_maps",
+      "name": "Bing Maps",
+      "provider": "Microsoft",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Bing Maps / Virtual Earth embeds and tile CDN.",
+      "privacy_url": "https://privacy.microsoft.com/privacystatement",
+      "script_patterns": [
+        "bing.com/maps",
+        "www.bing.com/api/maps",
+        "dev.virtualearth.net",
+        "ecn.dev.virtualearth.net"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["bing.com/maps"],
+      "default_blocking": true
+    },
+    {
+      "key": "here_maps",
+      "name": "HERE Maps",
+      "provider": "HERE Technologies",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "HERE Maps JS API and vector / image tiles.",
+      "privacy_url": "https://legal.here.com/privacy",
+      "script_patterns": [
+        "js.api.here.com",
+        "vector.hereapi.com",
+        "maps.ls.hereapi.com",
+        "image.maps.ls.hereapi.com",
+        "hereapi.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "arcgis",
+      "name": "ArcGIS / Esri",
+      "provider": "Esri",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "ArcGIS / Esri basemaps and JS API hosts.",
+      "privacy_url": "https://www.esri.com/en-us/privacy/overview",
+      "script_patterns": [
+        "js.arcgis.com",
+        "www.arcgis.com",
+        "basemaps.arcgis.com",
+        "services.arcgisonline.com",
+        "static.arcgis.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["arcgis.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "tomtom",
+      "name": "TomTom Maps",
+      "provider": "TomTom",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "TomTom Maps API and CDN hosts.",
+      "privacy_url": "https://www.tomtom.com/privacy/",
+      "script_patterns": [
+        "api.tomtom.com",
+        "cdn.tomtom.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    }
+  ]
+}

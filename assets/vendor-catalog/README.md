@@ -1,0 +1,69 @@
+# Vendor catalog
+
+Bundled cookie and service definitions that ship with the plugin zip. This is UCPF’s local “cookie database” — **no phone-home**, **no hosted Docker/DB required**.
+
+Edit JSON under this folder and ship updates in plugin releases. Site Cookie review overrides stay site-local; **fleet-wide defaults live here**.
+
+## Consent gate (any builder / theme)
+
+Services with `treatment: consent` and `default_blocking: true` feed the early **network gate** (`public/js/network-gate.js`) via `__ucpfGateExtra` — by category (`analytics`, `marketing`, `functional`, `security`). Blocking is **URL/pattern-based**, so it applies whether the tag came from Elementor, Divi, Bricks, a theme, Custom HTML, or `wp_enqueue_*`. Stylesheets (`<link>`) and scripts are deferred until that category is granted.
+
+## Classification conventions (UCPF categories)
+
+| Catalog `category` | Admin label | Typical treatment |
+|--------------------|-------------|-------------------|
+| `necessary` | Essential / Necessary | `necessary` (always allow) |
+| `preferences` | Preferences | `consent` |
+| `analytics` | Analytics | `consent` |
+| `marketing` | Marketing | `consent` |
+| `functional` | Embeds & Widgets | `consent` |
+| `security` | Security | `necessary` or `consent` |
+
+Current fleet defaults (keep in sync when reviewing a reference site):
+
+- **YouTube** (`maps.json`): service + player cookies (`YSC`, `VISITOR_*`, `__Secure-Y*`) → `marketing` / `consent`, `default_blocking: true`
+- **Mapbox** (`maps.json`): `api` / `events` / `tiles.mapbox.com` → `functional` / `consent`, `default_blocking: true` (local Leaflet library is necessary / not gated; tiles gate via Mapbox/OSM)
+- **PayPal checkout cookies** (`l7_az`, `sc_f`, `KHcl0EuY7AKSMgfvHl7J5E7hPtK`) → `necessary` / `necessary` (payment facility); PayPal **scripts/iframes** stay `functional` / `consent` + blocked until consent
+- **WooCommerce Order Attribution** (`sbjs_*`) → `analytics` / `consent`, blocked until analytics consent
+- **Calendly** session cookies → `functional` / `consent` (embeds)
+- **Shipping / tax widgets** (`shipping.json`): Shippo, UPS, USPS, FedEx, DHL, EasyPost, ShipStation, Printful, Avalara, TaxJar → `functional` / `consent`, `default_blocking: true` (needed for checkout when rates/address validation run in the browser; only load after Embeds & Widgets + when checkout triggers them)
+- **WordPress Download Manager** (`downloads.json`): `__wpdm_client` → `necessary` / `necessary` (session)
+- **Matomo** (`fleet-services.json`): `_pk_id*`, `_pk_ref*`, `_pk_ses*`, `_pk_cvar*`, `_pk_hsr*` → `analytics` / `consent`
+- **Cookie Law Info / CookieYes leftovers** (`core.json`): `cli_user_preference`, `viewed_cookie_policy`, `cookielawinfo-checkbox-*` → `preferences` / `necessary` (disclosure; plugins stay in `exclude_slugs`)
+- **Magnite `c`** → `marketing` / `consent` (host-context required for short name)
+
+## Public Cookie Policy display
+
+- Property-/site-specific **cookie names** collapse to catalog patterns on the Cookie Policy (e.g. `_ga_TK6Q39VV4F` → `_ga_*`, `_hjSession_1234567` → `_hjSession_*`, `_gcl_au` → `_gcl_*`). Blocking still matches the real observed names.
+- **Integration IDs** (GTM container, Measurement ID, Meta/TikTok pixel ID, Clarity project ID, Hotjar site ID, LinkedIn partner ID) stay in Integrations admin only — they are not cookie names and are never published as Cookie Policy rows.
+- Admin Cookie review and Playwright findings keep raw observed names for operators.
+
+## Scanning
+
+1. Prefer **Playwright scan** (Scanner API or local CLI + import) from Cookie Scanner — inventories cookies (incl. HttpOnly), storage, scripts, iframes, beacons across no-consent / reject / accept.
+2. Or run the built-in WordPress helper for a lighter inventory pass (does not verify blocking).
+3. Review unknowns; refresh Cookie Policy; re-verify with Playwright after changing treatments.
+
+### Infrastructure (not front-end trackers)
+
+- **Cloudflare proxy** — multi-signal: `CF-*` request headers, fetch `cf-ray` / `server: cloudflare`, challenge HTML, CF cookies, and site-host NS (`*.ns.cloudflare.com`). Catalog key `cloudflare` (necessary). Web Analytics / Turnstile stay separate.
+- **Transactional email** — `email.json` umbrella `transactional_email` plus ESP providers. Detected **WordPress-side** via active SMTP plugins (`plugin-map.json`), Gravity SMTP connector slugs/options/constants, and option/host needles (Mailgun, SendGrid, Mandrill, SES, Mailtrap, PHP Mail, …). Playwright deep scans merge this on import — **SMTP is never visible as a visitor-network tracker**. Keep marketing embeds (`mailchimp` forms) separate from `mailchimp_transactional`.
+
+## Files
+
+| File | Role |
+|------|------|
+| `core.json`, `google.json`, `maps.json`, `media-embeds.json`, … | Service + cookie definitions (all folder JSON except `plugin-map` load into Script_Registry) |
+| `email.json` | Transactional SMTP / ESP disclosure services (`smtp.mandrillapp.com` is backend — not a front-end gate) |
+| `plugin-map.json` | Active plugin → service key (detection only) |
+
+See `tools/ucpf-scanner/README.md` and `docs/GETTING-STARTED.md`.
+
+## Fleet growth (agency)
+
+- Prefer expanding these JSON files over applying `local_*` stubs on every site.
+- Scan export (`GET /ucpf/v1/scan/export`) is for human merge into this folder.
+- Known vendor hosts (PayPal, YouTube, UserWay, …) are skipped by Catalog Suggestions — merge patterns here instead.
+- Noise hosts (`example.invalid`, font CDNs, `cdnjs`) belong in `data/noise-filters.json` (mirrored under `tools/ucpf-scanner/rules/`), not this catalog.
+- Site knowledge log + GitHub hub pull: see `docs/COOKIE-KNOWLEDGE-HUB.md` (opt-in remote registry URL).
+- After editing catalog JSON: `.\package.ps1` and deploy the zip so sites pick up new defaults (existing site overrides still win).

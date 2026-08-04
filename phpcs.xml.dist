@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<ruleset name="UCPF">
+	<description>PHPCS rules for Universal Consent &amp; Privacy Framework (Plugin Check–aligned).</description>
+
+	<file>.</file>
+
+	<exclude-pattern>*/node_modules/*</exclude-pattern>
+	<exclude-pattern>*/vendor/*</exclude-pattern>
+	<exclude-pattern>*/admin/build/*</exclude-pattern>
+	<exclude-pattern>*/tools/*</exclude-pattern>
+	<exclude-pattern>*/tests/*</exclude-pattern>
+
+	<arg value="sp"/>
+	<arg name="basepath" value="."/>
+	<arg name="colors"/>
+	<arg name="extensions" value="php"/>
+	<arg name="parallel" value="4"/>
+
+	<config name="minimum_supported_wp_version" value="6.3"/>
+	<config name="testVersion" value="7.4-"/>
+
+	<rule ref="WordPress">
+		<!-- Short arrays are fine in modern PHP. -->
+		<exclude name="Generic.Arrays.DisallowShortArraySyntax"/>
+		<exclude name="Universal.Arrays.DisallowShortArraySyntax"/>
+	</rule>
+
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="universal-consent-privacy-framework"/>
+			</property>
+		</properties>
+	</rule>
+
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="ucpf"/>
+				<element value="UCPF"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!--
+		Included view/template files run in the including scope; local variables are not
+		file-scope globals at runtime. Prefixing every $row/$step is noise and risky.
+	-->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound">
+		<exclude-pattern>*/admin/views/*</exclude-pattern>
+		<exclude-pattern>*/templates/*</exclude-pattern>
+	</rule>
+
+	<!-- WP Consent API compatibility requires unprefixed wp_consent_* hook names. -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound">
+		<exclude-pattern>*/includes/integrations/class-wp-consent-api-shim.php</exclude-pattern>
+	</rule>
+</ruleset>

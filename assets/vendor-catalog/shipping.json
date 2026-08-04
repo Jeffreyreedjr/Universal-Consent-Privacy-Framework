@@ -1,0 +1,185 @@
+{
+  "services": [
+    {
+      "key": "shippo",
+      "name": "Shippo",
+      "provider": "Shippo",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Live shipping rates, address validation, and carrier widgets used at checkout. Required for those checkout steps when enabled, but only loads after Embeds & Widgets consent — when checkout actually requests rates/validation.",
+      "privacy_url": "https://goshippo.com/legal/privacy-policy/",
+      "script_patterns": [
+        "goshippo.com",
+        "api.goshippo.com",
+        "shippo.com",
+        "js.goshippo.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["goshippo.com", "shippo.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "ups",
+      "name": "UPS",
+      "provider": "United Parcel Service",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "UPS live rates, Access Point locators, and related checkout widgets. Gated until Embeds & Widgets; loads when checkout triggers carrier requests.",
+      "privacy_url": "https://www.ups.com/us/en/support/account-help/privacy-notice.page",
+      "script_patterns": [
+        "ups.com",
+        "www.ups.com",
+        "onlinetools.ups.com",
+        "wwwcie.ups.com",
+        "wwwapps.ups.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["ups.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "usps",
+      "name": "USPS",
+      "provider": "United States Postal Service",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "USPS live rates and related checkout widgets. Gated until Embeds & Widgets; loads when checkout triggers carrier requests.",
+      "privacy_url": "https://about.usps.com/who/legal/privacy-policy/",
+      "script_patterns": [
+        "usps.com",
+        "tools.usps.com",
+        "secure.shippingapis.com",
+        "shippingapis.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["usps.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "fedex",
+      "name": "FedEx",
+      "provider": "FedEx",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "FedEx live rates and locator widgets at checkout. Gated until Embeds & Widgets.",
+      "privacy_url": "https://www.fedex.com/en-us/privacy-policy.html",
+      "script_patterns": [
+        "fedex.com",
+        "www.fedex.com",
+        "apis.fedex.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["fedex.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "dhl",
+      "name": "DHL",
+      "provider": "DHL",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "DHL rates and parcel-shop locators at checkout. Gated until Embeds & Widgets.",
+      "privacy_url": "https://www.dhl.com/global-en/home/footer/privacy-notice.html",
+      "script_patterns": [
+        "dhl.com",
+        "dhl.de",
+        "api.dhl.com",
+        "checkout.dhl.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["dhl.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "easypost",
+      "name": "EasyPost",
+      "provider": "EasyPost",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Multi-carrier shipping API / widgets at checkout. Gated until Embeds & Widgets.",
+      "privacy_url": "https://www.easypost.com/privacy",
+      "script_patterns": [
+        "easypost.com",
+        "api.easypost.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["easypost.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "shipstation",
+      "name": "ShipStation",
+      "provider": "Auctane / ShipStation",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "ShipStation browser widgets if loaded at checkout. Admin-only fulfillment sync is inventory only.",
+      "privacy_url": "https://www.shipstation.com/privacy-policy/",
+      "script_patterns": [
+        "shipstation.com",
+        "ss-static.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["shipstation.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "printful",
+      "name": "Printful",
+      "provider": "Printful",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Printful storefront / shipping widgets. Gated until Embeds & Widgets when loaded in the browser.",
+      "privacy_url": "https://www.printful.com/policies/privacy",
+      "script_patterns": [
+        "printful.com",
+        "www.printful.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["printful.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "avalara",
+      "name": "Avalara",
+      "provider": "Avalara",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Tax calculation / address widgets exposed in the browser at checkout. Server-side tax-only integrations may not fire front-end hosts.",
+      "privacy_url": "https://www.avalara.com/us/en/legal/privacy-policy.html",
+      "script_patterns": [
+        "avalara.com",
+        "avatax.avalara.net",
+        "rest.avatax.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["avalara.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "taxjar",
+      "name": "TaxJar",
+      "provider": "TaxJar / Stripe",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "TaxJar browser widgets at checkout when present. Gated until Embeds & Widgets.",
+      "privacy_url": "https://www.taxjar.com/privacy/",
+      "script_patterns": [
+        "taxjar.com",
+        "api.taxjar.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["taxjar.com"],
+      "default_blocking": true
+    }
+  ]
+}

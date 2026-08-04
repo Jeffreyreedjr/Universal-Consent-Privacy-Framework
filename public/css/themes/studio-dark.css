@@ -1,0 +1,19 @@
+/* Alias: Studio Dark follows Classic (WCAG blue defaults) */
+#ucpf-root.ucpf-theme-studio_dark,
+.ucpf-consent-guard.ucpf-theme-studio_dark,
+.ucpf-captcha-guard.ucpf-theme-studio_dark {
+  --ucpf-black: #000000;
+  --ucpf-surface: #111111;
+  --ucpf-cream: #ffffff;
+  --ucpf-muted: #d4d4d4;
+  --ucpf-border: rgba(255, 255, 255, 0.35);
+  --ucpf-accent: #0b5cad;
+  --ucpf-accent-hover: #094a8c;
+  --ucpf-accent-active: #073a6e;
+  --ucpf-accent-2: #094a8c;
+  --ucpf-on-accent: #ffffff;
+  --ucpf-label: #ffffff;
+  --ucpf-focus: #ffffff;
+  --ucpf-focus-ring: #b45309;
+  --ucpf-shadow-panel: 0 12px 40px rgba(0, 0, 0, 0.65);
+}

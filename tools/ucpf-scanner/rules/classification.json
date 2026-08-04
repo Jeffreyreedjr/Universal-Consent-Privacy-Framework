@@ -1,0 +1,978 @@
+[
+  {
+    "match": [
+      "_ga",
+      "_gid",
+      "_gat"
+    ],
+    "provider": "Google Analytics",
+    "category": "analytics",
+    "treatment": "consent",
+    "type": "cookie",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "_ga_"
+    ],
+    "provider": "Google Analytics",
+    "category": "analytics",
+    "treatment": "consent",
+    "type": "cookie",
+    "prefix": true,
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "_gcl_au",
+      "_gcl_aw",
+      "_gcl_"
+    ],
+    "provider": "Google Ads",
+    "category": "advertising",
+    "treatment": "consent",
+    "type": "cookie",
+    "prefix": true,
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "_fbp",
+      "_fbc",
+      "fr"
+    ],
+    "provider": "Meta",
+    "category": "advertising",
+    "treatment": "consent",
+    "type": "cookie",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "_clck",
+      "_clsk",
+      "CLID",
+      "ANONCHK",
+      "MR",
+      "MUID",
+      "SM"
+    ],
+    "provider": "Microsoft Clarity",
+    "category": "analytics",
+    "treatment": "consent",
+    "type": "cookie",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "_hjSession",
+      "_hjSessionUser",
+      "_hjAbsoluteSessionInProgress",
+      "_hjFirstSeen",
+      "_hjIncludedInSessionSample",
+      "_hj"
+    ],
+    "provider": "Hotjar",
+    "category": "analytics",
+    "treatment": "consent",
+    "type": "cookie",
+    "prefix": true,
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "wordpress_logged_in_",
+      "wordpress_sec_",
+      "wordpress_test_cookie"
+    ],
+    "provider": "WordPress",
+    "category": "necessary",
+    "treatment": "necessary",
+    "type": "cookie",
+    "prefix": true,
+    "importance": "required"
+  },
+  {
+    "match": [
+      "wp-settings-",
+      "wp-settings-time-"
+    ],
+    "provider": "WordPress",
+    "category": "necessary",
+    "treatment": "necessary",
+    "type": "cookie",
+    "prefix": true,
+    "importance": "required"
+  },
+  {
+    "match": [
+      "woocommerce_cart_hash",
+      "woocommerce_items_in_cart",
+      "woocommerce_recently_viewed"
+    ],
+    "provider": "WooCommerce",
+    "category": "necessary",
+    "treatment": "necessary",
+    "type": "cookie",
+    "importance": "required"
+  },
+  {
+    "match": [
+      "wp_woocommerce_session_"
+    ],
+    "provider": "WooCommerce",
+    "category": "necessary",
+    "treatment": "necessary",
+    "type": "cookie",
+    "prefix": true,
+    "importance": "required"
+  },
+  {
+    "match": [
+      "ucpf_consent"
+    ],
+    "provider": "UCPF",
+    "category": "necessary",
+    "treatment": "necessary",
+    "type": "cookie",
+    "importance": "required"
+  },
+  {
+    "match": [
+      "__wpdm_client"
+    ],
+    "provider": "WordPress Download Manager",
+    "category": "necessary",
+    "treatment": "necessary",
+    "type": "cookie",
+    "importance": "required"
+  },
+  {
+    "match": [
+      "cli_user_preference",
+      "viewed_cookie_policy",
+      "CookieLawInfoConsent",
+      "cookieyes-consent"
+    ],
+    "provider": "Cookie Law Info / CookieYes",
+    "category": "preferences",
+    "treatment": "necessary",
+    "type": "cookie",
+    "importance": "required"
+  },
+  {
+    "match": [
+      "cookielawinfo-checkbox-"
+    ],
+    "provider": "Cookie Law Info / CookieYes",
+    "category": "preferences",
+    "treatment": "necessary",
+    "type": "cookie",
+    "prefix": true,
+    "importance": "required"
+  },
+  {
+    "match": [
+      "_pk_id",
+      "_pk_ref",
+      "_pk_ses",
+      "_pk_cvar",
+      "_pk_hsr"
+    ],
+    "provider": "Matomo",
+    "category": "analytics",
+    "treatment": "consent",
+    "type": "cookie",
+    "prefix": true,
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "wp_consent_"
+    ],
+    "provider": "WP Consent API",
+    "category": "necessary",
+    "treatment": "necessary",
+    "type": "cookie",
+    "prefix": true,
+    "importance": "required"
+  },
+  {
+    "match": [
+      "__cf_bm",
+      "cf_clearance",
+      "__cfruid",
+      "_cfuvid"
+    ],
+    "provider": "Cloudflare",
+    "category": "necessary",
+    "treatment": "necessary",
+    "type": "cookie",
+    "importance": "required"
+  },
+  {
+    "match": [
+      "PHPSESSID"
+    ],
+    "provider": "PHP Session",
+    "category": "necessary",
+    "treatment": "necessary",
+    "type": "cookie",
+    "importance": "required"
+  },
+  {
+    "match": [
+      "elementor"
+    ],
+    "provider": "Elementor",
+    "category": "necessary",
+    "treatment": "necessary",
+    "type": "cookie",
+    "prefix": true,
+    "importance": "required"
+  },
+  {
+    "match": [
+      "wpgmza",
+      "wpgmaps"
+    ],
+    "provider": "WP Go Maps",
+    "category": "functional",
+    "treatment": "consent",
+    "type": "cookie",
+    "prefix": true,
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "MCPopupClosed",
+      "MCPopupSubscribed",
+      "mailchimp_landing_site",
+      "_mcid"
+    ],
+    "provider": "Mailchimp",
+    "category": "advertising",
+    "treatment": "consent",
+    "type": "cookie",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "googletagmanager.com",
+      "gtm.js",
+      "www.googletagmanager.com"
+    ],
+    "provider": "Google Tag Manager",
+    "category": "analytics",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "google-analytics.com",
+      "googletagmanager.com/gtag",
+      "analytics.google.com",
+      "gtag/js"
+    ],
+    "provider": "Google Analytics",
+    "category": "analytics",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "connect.facebook.net",
+      "facebook.com/tr",
+      "facebook.net"
+    ],
+    "provider": "Meta Pixel",
+    "category": "advertising",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "clarity.ms",
+      "www.clarity.ms",
+      "c.clarity.ms"
+    ],
+    "provider": "Microsoft Clarity",
+    "category": "analytics",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential",
+    "note": "c.clarity.ms is analytics — do not fold into Bing Ads (bat.bing.com)."
+  },
+  {
+    "match": [
+      "static.hotjar.com",
+      "script.hotjar.com",
+      "hotjar.com"
+    ],
+    "provider": "Hotjar",
+    "category": "analytics",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "static.cloudflareinsights.com",
+      "cloudflareinsights.com",
+      "beacon.min.js"
+    ],
+    "provider": "Cloudflare Web Analytics",
+    "category": "analytics",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "youtube.com",
+      "youtube-nocookie.com",
+      "ytimg.com"
+    ],
+    "provider": "YouTube",
+    "category": "marketing",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "player.vimeo.com",
+      "vimeo.com"
+    ],
+    "provider": "Vimeo",
+    "category": "functional",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "google.com/recaptcha",
+      "gstatic.com/recaptcha",
+      "recaptcha.net"
+    ],
+    "provider": "reCAPTCHA",
+    "category": "security",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "hcaptcha.com",
+      "newassets.hcaptcha.com",
+      "js.hcaptcha.com",
+      "api.hcaptcha.com",
+      "imgs.hcaptcha.com"
+    ],
+    "provider": "hCaptcha",
+    "category": "security",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential",
+    "note": "Includes ephemeral *.w.hcaptcha.com worker hosts — collapse to one service."
+  },
+  {
+    "match": [
+      "challenges.cloudflare.com",
+      "cdn-cgi/challenge-platform"
+    ],
+    "provider": "Cloudflare Turnstile",
+    "category": "security",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential",
+    "note": "Bot / challenge platform — security consent, not necessary/marketing."
+  },
+  {
+    "match": [
+      "friendlycaptcha.com",
+      "cdn.jsdelivr.net/npm/friendly-challenge",
+      "unpkg.com/friendly-challenge"
+    ],
+    "provider": "Friendly Captcha",
+    "category": "security",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "fonts.googleapis.com",
+      "fonts.gstatic.com"
+    ],
+    "provider": "Google Fonts",
+    "category": "functional",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "use.typekit.net",
+      "p.typekit.net"
+    ],
+    "provider": "Adobe Fonts",
+    "category": "preferences",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "kit.fontawesome.com",
+      "ka-f.fontawesome.com",
+      "ka-p.fontawesome.com",
+      "use.fontawesome.com"
+    ],
+    "provider": "Font Awesome",
+    "category": "preferences",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "trackcmp.net",
+      "activehosted.com",
+      "lusrprx.com"
+    ],
+    "provider": "ActiveCampaign",
+    "category": "marketing",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "convertkit.com",
+      "ck.page",
+      "cdn.convertkit.com"
+    ],
+    "provider": "ConvertKit",
+    "category": "marketing",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "getdrip.com",
+      "tag.getdrip.com"
+    ],
+    "provider": "Drip",
+    "category": "marketing",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "getresponse.com",
+      "web-in.getresponse.com"
+    ],
+    "provider": "GetResponse",
+    "category": "marketing",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "mailerlite.com",
+      "assets.mlcdn.com",
+      "static.mailerlite.com"
+    ],
+    "provider": "MailerLite",
+    "category": "marketing",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "list-manage.com",
+      "chimpstatic.com",
+      "downloads.mailchimp.com",
+      "cdn-images.mailchimp.com",
+      "mailchimp-for-woocommerce",
+      "mailchimp-woocommerce",
+      "mcjs-connected"
+    ],
+    "provider": "Mailchimp",
+    "category": "marketing",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "static.klaviyo.com",
+      "static-forms.klaviyo.com",
+      "klaviyo.com/onsite"
+    ],
+    "provider": "Klaviyo",
+    "category": "marketing",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "js.hs-scripts.com",
+      "js.hubspot.com",
+      "js.hs-analytics.net",
+      "js.hscollectedforms.net",
+      "js.hsforms.net",
+      "js.hs-banner.com"
+    ],
+    "provider": "HubSpot",
+    "category": "marketing",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "cdn.userway.org",
+      "api.userway.org",
+      "userway.org"
+    ],
+    "provider": "UserWay",
+    "category": "preferences",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "jotform.com",
+      "jotfor.ms",
+      "cdn.jotfor.ms",
+      "events.jotform.com",
+      "api.jotform.com",
+      "pci.jotform.com"
+    ],
+    "provider": "Jotform",
+    "category": "preferences",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "maps.google.com",
+      "maps.googleapis.com",
+      "maps.gstatic.com",
+      "google.com/maps",
+      "openstreetmap.org",
+      "tile.openstreetmap.org",
+      "nominatim.openstreetmap.org"
+    ],
+    "provider": "Maps",
+    "category": "functional",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "api.mapbox.com",
+      "events.mapbox.com",
+      "tiles.mapbox.com",
+      "mapbox.com",
+      "mapbox.cn"
+    ],
+    "provider": "Mapbox",
+    "category": "functional",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "unpkg.com/leaflet",
+      "cdn.jsdelivr.net/npm/leaflet",
+      "cdnjs.cloudflare.com/ajax/libs/leaflet"
+    ],
+    "provider": "Leaflet CDN",
+    "category": "functional",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential",
+    "note": "Local Leaflet library is not gated; tile/geocode hosts (OSM, Mapbox, etc.) gate separately. unpkg Leaflet still loads tiles via OSM/Mapbox patterns."
+  },
+  {
+    "match": [
+      "bing.com/maps",
+      "www.bing.com/api/maps",
+      "dev.virtualearth.net",
+      "ecn.dev.virtualearth.net",
+      "r.bing.com"
+    ],
+    "provider": "Bing Maps",
+    "category": "functional",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "js.api.here.com",
+      "vector.hereapi.com",
+      "maps.ls.hereapi.com",
+      "image.maps.ls.hereapi.com",
+      "hereapi.com"
+    ],
+    "provider": "HERE Maps",
+    "category": "functional",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "js.arcgis.com",
+      "www.arcgis.com",
+      "basemaps.arcgis.com",
+      "services.arcgisonline.com",
+      "static.arcgis.com",
+      "esri.com"
+    ],
+    "provider": "ArcGIS / Esri",
+    "category": "functional",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "api.tomtom.com",
+      "api.tomtom.com/maps",
+      "cdn.tomtom.com"
+    ],
+    "provider": "TomTom Maps",
+    "category": "functional",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "docs.google.com",
+      "drive.google.com"
+    ],
+    "provider": "Google Docs / Drive embeds",
+    "category": "functional",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "wistia.com",
+      "fast.wistia.com",
+      "fast.wistia.net",
+      "embedwistia-a.akamaihd.net"
+    ],
+    "provider": "Wistia",
+    "category": "functional",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential",
+    "note": "Prefer functional for player embeds; ad pixels would be marketing separately."
+  },
+  {
+    "match": [
+      "open.spotify.com",
+      "embed.spotify.com",
+      "spoti.fi"
+    ],
+    "provider": "Spotify",
+    "category": "functional",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "w.soundcloud.com",
+      "soundcloud.com",
+      "api.soundcloud.com"
+    ],
+    "provider": "SoundCloud",
+    "category": "functional",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "zoom.us/wc",
+      "zoom.us/j",
+      "applications.zoom.us"
+    ],
+    "provider": "Zoom embeds",
+    "category": "functional",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "embed.tawk.to",
+      "tawk.to",
+      "code.tidio.co",
+      "tidio.co",
+      "client.crisp.chat",
+      "crisp.chat",
+      "widget.intercom.io",
+      "js.intercomcdn.com",
+      "js.driftt.com",
+      "drift.com",
+      "static.zdassets.com",
+      "ekr.zdassets.com",
+      "zendesk.com"
+    ],
+    "provider": "Chat widget",
+    "category": "preferences",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "adnxs.com",
+      "acdn.adnxs.com",
+      "ib.adnxs.com",
+      "secure.adnxs.com"
+    ],
+    "provider": "AppNexus / Xandr",
+    "category": "advertising",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "bat.bing.com",
+      "ads.bing.com"
+    ],
+    "provider": "Microsoft Advertising",
+    "category": "advertising",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential",
+    "note": "Bing Ads UET only — c.clarity.ms stays analytics."
+  },
+  {
+    "match": [
+      "cdn.taboola.com",
+      "trc.taboola.com",
+      "taboola.com"
+    ],
+    "provider": "Taboola",
+    "category": "advertising",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "widgets.outbrain.com",
+      "outbrain.com",
+      "odb.outbrain.com"
+    ],
+    "provider": "Outbrain",
+    "category": "advertising",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "static.criteo.net",
+      "bidder.criteo.com",
+      "criteo.com",
+      "sslwidget.criteo.com"
+    ],
+    "provider": "Criteo",
+    "category": "advertising",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "ads.thetradedesk.com",
+      "insight.adsrvr.org",
+      "adsrvr.org",
+      "thetradedesk.com"
+    ],
+    "provider": "The Trade Desk",
+    "category": "advertising",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "doubleclick.net",
+      "googlesyndication.com",
+      "googleadservices.com",
+      "adservice.google"
+    ],
+    "provider": "Google Advertising",
+    "category": "advertising",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "unpkg.com"
+    ],
+    "provider": "unpkg CDN",
+    "category": "preferences",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential",
+    "note": "Generic CDN fallback; prefer more specific unpkg.com/leaflet (and similar) rules above when applicable."
+  },
+  {
+    "match": [
+      "wp-includes/js/jquery",
+      "wp-includes/js/jquery/jquery"
+    ],
+    "provider": "WordPress Core",
+    "category": "necessary",
+    "treatment": "necessary",
+    "type": "script_host",
+    "importance": "required"
+  },
+  {
+    "match": [
+      "wp-emoji-release",
+      "s.w.org/images/core/emoji"
+    ],
+    "provider": "WordPress Emoji",
+    "category": "necessary",
+    "treatment": "necessary",
+    "type": "script_host",
+    "importance": "required"
+  },
+  {
+    "match": [
+      "goshippo.com",
+      "api.goshippo.com",
+      "shippo.com",
+      "js.goshippo.com"
+    ],
+    "provider": "Shippo",
+    "category": "functional",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential",
+    "note": "Checkout rates/address validation — Embeds & Widgets."
+  },
+  {
+    "match": [
+      "onlinetools.ups.com",
+      "wwwapps.ups.com",
+      "ups.com/assets"
+    ],
+    "provider": "UPS",
+    "category": "functional",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "tools.usps.com",
+      "shippingapis.com",
+      "usps.com"
+    ],
+    "provider": "USPS",
+    "category": "functional",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "apis.fedex.com",
+      "fedex.com"
+    ],
+    "provider": "FedEx",
+    "category": "functional",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "api.dhl.com",
+      "checkout.dhl.com",
+      "dhl.com"
+    ],
+    "provider": "DHL",
+    "category": "functional",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "api.easypost.com",
+      "easypost.com"
+    ],
+    "provider": "EasyPost",
+    "category": "functional",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "shipstation.com",
+      "ss-static.com"
+    ],
+    "provider": "ShipStation",
+    "category": "functional",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "avalara.com",
+      "avatax.avalara.net",
+      "rest.avatax.com"
+    ],
+    "provider": "Avalara",
+    "category": "functional",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  },
+  {
+    "match": [
+      "api.taxjar.com",
+      "taxjar.com"
+    ],
+    "provider": "TaxJar",
+    "category": "functional",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential"
+  }
+]

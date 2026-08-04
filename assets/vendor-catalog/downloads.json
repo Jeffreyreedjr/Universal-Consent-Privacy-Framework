@@ -1,0 +1,32 @@
+{
+  "services": [
+    {
+      "key": "wordpress_download_manager",
+      "name": "WordPress Download Manager",
+      "provider": "WordPress Download Manager",
+      "category": "necessary",
+      "treatment": "necessary",
+      "description": "Session cookie used by WordPress Download Manager so downloads and protected file pages work during the browsing session.",
+      "privacy_url": "https://www.wpdownloadmanager.com/",
+      "script_patterns": [
+        "/wp-content/plugins/download-manager/"
+      ],
+      "cookie_patterns": [
+        "__wpdm_client"
+      ],
+      "cookies": [
+        {
+          "name": "__wpdm_client",
+          "pattern": "__wpdm_client",
+          "purpose": "Randomly generated string used to enable the website to function and be displayed properly during your browsing session.",
+          "retention": "Session",
+          "category": "necessary",
+          "treatment": "necessary",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": false
+    }
+  ]
+}

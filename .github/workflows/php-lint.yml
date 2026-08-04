@@ -1,0 +1,45 @@
+name: PHP lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  php-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+          tools: none
+
+      - name: Lint plugin PHP
+        run: |
+          set -euo pipefail
+          mapfile -d '' files < <(
+            find . -type f -name '*.php' \
+              -not -path './.git/*' \
+              -not -path './node_modules/*' \
+              -not -path './vendor/*' \
+              -not -path './dist/*' \
+              -not -path './.wp-env/*' \
+              -not -path './tools/*/node_modules/*' \
+              -print0
+          )
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No PHP files found."
+            exit 1
+          fi
+          echo "Linting ${#files[@]} PHP files..."
+          for f in "${files[@]}"; do
+            php -l "$f"
+          done

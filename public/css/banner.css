@@ -1,0 +1,1381 @@
+#ucpf-root {
+  font-family: var(--ucpf-font-sans) !important;
+  font-size: 16px !important;
+  line-height: 1.5 !important;
+  color: var(--ucpf-cream) !important;
+  -webkit-font-smoothing: antialiased !important;
+}
+
+#ucpf-root *,
+#ucpf-root *::before,
+#ucpf-root *::after {
+  box-sizing: border-box !important;
+}
+
+#ucpf-root button,
+#ucpf-root .ucpf-btn,
+#ucpf-root .ucpf-fab,
+#ucpf-root .ucpf-toggle {
+  font-family: var(--ucpf-font-sans) !important;
+  cursor: pointer !important;
+  letter-spacing: normal;
+}
+
+/* Visually hidden helper (keyboard / SR labels) */
+#ucpf-root .screen-reader-text {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+#ucpf-root a {
+  color: var(--ucpf-cream) !important;
+  text-decoration: underline !important;
+  text-underline-offset: 2px !important;
+  font-size: inherit !important;
+}
+
+#ucpf-root a:hover,
+#ucpf-root a:focus-visible {
+  color: var(--ucpf-cream, #ffffff) !important;
+  text-decoration-thickness: 2px !important;
+}
+
+#ucpf-root a:focus-visible {
+  outline: 3px solid var(--ucpf-focus-ring, #b45309) !important;
+  outline-offset: 2px !important;
+}
+
+.ucpf-banner {
+  position: fixed !important;
+  z-index: 2147483000 !important;
+  pointer-events: none;
+}
+
+.ucpf-banner[hidden],
+.ucpf-banner.ucpf-banner--hidden {
+  display: none !important;
+}
+
+/* Force visible banner even if theme/optimizer fights display/opacity */
+#ucpf-root .ucpf-banner.ucpf-banner--visible,
+.ucpf-banner.ucpf-banner--visible {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: none !important;
+}
+
+#ucpf-root .ucpf-banner.ucpf-banner--visible.ucpf-banner--modal,
+.ucpf-banner.ucpf-banner--visible.ucpf-banner--modal {
+  display: flex !important;
+}
+
+#ucpf-root .ucpf-banner.ucpf-banner--visible .ucpf-banner__panel,
+.ucpf-banner.ucpf-banner--visible .ucpf-banner__panel {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transform: none !important;
+}
+
+#ucpf-root .ucpf-banner__panel,
+.ucpf-banner__panel {
+  pointer-events: auto !important;
+  margin-inline: auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  border: 1px solid var(--ucpf-border) !important;
+  border-radius: var(--ucpf-radius-soft) !important;
+  background: color-mix(in srgb, var(--ucpf-surface) 95%, transparent) !important;
+  backdrop-filter: blur(12px);
+  box-shadow: var(--ucpf-shadow-panel) !important;
+  padding: 1.25rem 1.5rem !important;
+  opacity: 0;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease;
+  font-family: var(--ucpf-font-sans) !important;
+  font-size: 16px !important;
+  line-height: 1.5 !important;
+  color: var(--ucpf-cream) !important;
+  overflow: visible !important;
+}
+
+#ucpf-root .ucpf-banner__inner,
+.ucpf-banner__inner {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.ucpf-banner.ucpf-banner--visible .ucpf-banner__panel {
+  opacity: 1 !important;
+}
+
+.ucpf-modal__overlay {
+  display: none;
+}
+
+/* Bottom bar */
+.ucpf-banner--bar {
+  inset: auto 0 0 0 !important;
+  top: auto !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  width: auto !important;
+  max-width: none !important;
+  padding: 0.75rem 1rem max(1.25rem, env(safe-area-inset-bottom)) !important;
+  display: block !important;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+.ucpf-banner--bar .ucpf-banner__panel {
+  max-width: 72rem;
+  transform: translateY(100%);
+}
+
+.ucpf-banner--bar.ucpf-banner--visible .ucpf-banner__panel {
+  transform: translateY(0);
+}
+
+.ucpf-banner--bar .ucpf-modal__overlay {
+  display: none !important;
+}
+
+/* Center modal */
+.ucpf-banner--modal {
+  inset: 0 !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  width: auto !important;
+  max-width: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 1rem !important;
+}
+
+.ucpf-banner--modal .ucpf-modal__overlay {
+  display: block !important;
+  position: fixed !important;
+  inset: 0 !important;
+  background: rgba(0, 0, 0, 0.72);
+  pointer-events: auto;
+}
+
+.ucpf-banner--modal .ucpf-banner__panel {
+  position: relative;
+  z-index: 1;
+  max-width: 42rem;
+  width: min(42rem, calc(100vw - 2rem));
+  transform: translateY(1rem) scale(0.98);
+}
+
+.ucpf-banner--modal.ucpf-banner--visible .ucpf-banner__panel {
+  transform: translateY(0) scale(1);
+}
+
+/* Corner card (default before position modifiers) */
+.ucpf-banner--corner {
+  top: auto !important;
+  left: auto !important;
+  right: 1rem !important;
+  bottom: max(1rem, env(safe-area-inset-bottom)) !important;
+  width: min(22rem, calc(100vw - 2rem)) !important;
+  max-width: min(22rem, calc(100vw - 2rem)) !important;
+  padding: 0 !important;
+  display: block !important;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+.ucpf-banner--corner .ucpf-banner__panel {
+  max-width: none;
+  max-height: min(70vh, calc(100dvh - 2rem - env(safe-area-inset-bottom, 0px)));
+  overflow-x: hidden;
+  overflow-y: auto;
+  transform: translateY(1.25rem);
+}
+
+.ucpf-banner--corner.ucpf-banner--visible .ucpf-banner__panel {
+  transform: translateY(0);
+}
+
+.ucpf-banner--corner .ucpf-modal__overlay {
+  display: none !important;
+}
+
+/* Horizontal position — clears ADA widgets (often bottom-right). */
+#ucpf-root .ucpf-banner.ucpf-banner--pos-left,
+.ucpf-banner.ucpf-banner--pos-left {
+  inset: auto auto max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left)) !important;
+  top: auto !important;
+  left: max(1rem, env(safe-area-inset-left)) !important;
+  right: auto !important;
+  transform: none !important;
+}
+
+#ucpf-root .ucpf-banner.ucpf-banner--pos-right,
+.ucpf-banner.ucpf-banner--pos-right {
+  inset: auto max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) auto !important;
+  top: auto !important;
+  left: auto !important;
+  right: max(1rem, env(safe-area-inset-right)) !important;
+  transform: none !important;
+}
+
+#ucpf-root .ucpf-banner.ucpf-banner--pos-center:not(.ucpf-banner--modal),
+.ucpf-banner.ucpf-banner--pos-center:not(.ucpf-banner--modal) {
+  inset: auto auto max(1rem, env(safe-area-inset-bottom)) 50% !important;
+  top: auto !important;
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+}
+
+/* Bar + position: compact bottom card instead of full-bleed. */
+#ucpf-root .ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-left,
+#ucpf-root .ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-right,
+.ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-left,
+.ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-right {
+  width: min(32rem, calc(100vw - 2rem)) !important;
+  max-width: min(32rem, calc(100vw - 2rem)) !important;
+  padding: 0 !important;
+  bottom: max(1rem, env(safe-area-inset-bottom)) !important;
+}
+
+#ucpf-root .ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-center,
+.ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-center {
+  width: min(36rem, calc(100vw - 2rem)) !important;
+  max-width: min(36rem, calc(100vw - 2rem)) !important;
+  padding: 0 !important;
+  bottom: max(1rem, env(safe-area-inset-bottom)) !important;
+}
+
+/* Modal ignores left/right — stay viewport-centered. */
+#ucpf-root .ucpf-banner.ucpf-banner--modal,
+.ucpf-banner.ucpf-banner--modal {
+  left: 0 !important;
+  right: 0 !important;
+  transform: none !important;
+}
+
+#ucpf-root .ucpf-banner__label,
+.ucpf-banner__label {
+  margin: 0 !important;
+  font-size: 0.9375rem !important;
+  font-weight: 700 !important;
+  letter-spacing: var(--ucpf-tracking-label) !important;
+  text-transform: uppercase !important;
+  line-height: 1.3 !important;
+  color: var(--ucpf-label, var(--ucpf-cream)) !important;
+}
+
+#ucpf-root .ucpf-banner__text,
+.ucpf-banner__text {
+  margin: 0.5rem 0 0 !important;
+  font-size: var(--ucpf-text-body, 1.0625rem) !important;
+  font-weight: 400 !important;
+  line-height: 1.55 !important;
+  color: var(--ucpf-muted) !important;
+  max-width: 48rem !important;
+}
+
+#ucpf-root .ucpf-banner__actions,
+.ucpf-banner__actions {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 0.625rem !important;
+  margin-top: 1.25rem !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  align-items: stretch !important;
+}
+
+#ucpf-root .ucpf-banner__actions .ucpf-btn,
+.ucpf-banner__actions .ucpf-btn {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+}
+
+/* Modal / prefs / compact banner cards: equal columns when there is room */
+#ucpf-root .ucpf-banner--modal .ucpf-banner__actions,
+.ucpf-banner--modal .ucpf-banner__actions,
+#ucpf-root .ucpf-prefs__footer,
+.ucpf-prefs__footer {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 0.75rem !important;
+  width: 100% !important;
+  margin-top: 1.5rem !important;
+  align-items: stretch !important;
+  box-sizing: border-box !important;
+}
+
+#ucpf-root .ucpf-banner--modal .ucpf-banner__actions .ucpf-btn,
+.ucpf-banner--modal .ucpf-banner__actions .ucpf-btn,
+#ucpf-root .ucpf-prefs__footer .ucpf-btn,
+.ucpf-prefs__footer .ucpf-btn {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 3rem !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  padding: 0.75rem 1rem !important;
+  white-space: nowrap !important;
+  letter-spacing: 0.04em !important;
+  font-size: 0.9375rem !important;
+  line-height: 1.25 !important;
+  text-align: center !important;
+}
+
+/* Compact bar / corner cards: stack actions full-width (3-up row overflows "Accept All") */
+#ucpf-root .ucpf-banner--bar .ucpf-banner__actions,
+.ucpf-banner--bar .ucpf-banner__actions,
+#ucpf-root .ucpf-banner--corner .ucpf-banner__actions,
+.ucpf-banner--corner .ucpf-banner__actions {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 0.625rem !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+#ucpf-root .ucpf-banner--bar .ucpf-banner__actions .ucpf-btn,
+.ucpf-banner--bar .ucpf-banner__actions .ucpf-btn,
+#ucpf-root .ucpf-banner--corner .ucpf-banner__actions .ucpf-btn,
+.ucpf-banner--corner .ucpf-banner__actions .ucpf-btn {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  padding: 0.75rem 1rem !important;
+  font-size: 0.875rem !important;
+  letter-spacing: 0.04em !important;
+  white-space: nowrap !important;
+  min-height: 2.75rem !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+/* Wide centered bar only: three equal columns once the panel is roomy enough */
+@media (min-width: 720px) {
+  #ucpf-root .ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-center .ucpf-banner__actions,
+  .ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-center .ucpf-banner__actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 0.625rem !important;
+  }
+
+  #ucpf-root .ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-center .ucpf-banner__actions .ucpf-btn,
+  .ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-center .ucpf-banner__actions .ucpf-btn {
+    padding: 0.7rem 0.5rem !important;
+    font-size: 0.8125rem !important;
+  }
+}
+
+@media (min-width: 560px) {
+  #ucpf-root .ucpf-banner--modal .ucpf-banner__actions,
+  .ucpf-banner--modal .ucpf-banner__actions,
+  #ucpf-root .ucpf-prefs__footer,
+  .ucpf-prefs__footer {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    column-gap: 0.875rem !important;
+    row-gap: 0.75rem !important;
+  }
+}
+
+/* Rights links sit under the action row (not a floating button) */
+#ucpf-root .ucpf-banner__rights,
+.ucpf-banner__rights,
+#ucpf-root .ucpf-prefs__rights,
+.ucpf-prefs__rights {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.65rem 1.15rem !important;
+  margin: 1rem 0 0 !important;
+  padding: 0.85rem 0 0 !important;
+  border-top: 1px solid var(--ucpf-border) !important;
+}
+
+#ucpf-root .ucpf-rights-link,
+.ucpf-rights-link {
+  color: var(--ucpf-muted) !important;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em !important;
+  text-transform: none !important;
+  text-decoration: underline !important;
+  text-underline-offset: 0.15em !important;
+  line-height: 1.35 !important;
+}
+
+#ucpf-root .ucpf-rights-link:hover,
+#ucpf-root .ucpf-rights-link:focus-visible,
+.ucpf-rights-link:hover,
+.ucpf-rights-link:focus-visible {
+  color: var(--ucpf-cream) !important;
+  outline: none !important;
+}
+
+#ucpf-root .ucpf-rights-link:focus-visible,
+.ucpf-rights-link:focus-visible {
+  outline: 2px solid var(--ucpf-focus-ring, #b45309) !important;
+  outline-offset: 2px !important;
+}
+
+@media (min-width: 640px) {
+  /* Full-bleed bottom bar only: content + actions can sit side by side */
+  .ucpf-banner--bar:not(.ucpf-banner--pos-left):not(.ucpf-banner--pos-right):not(.ucpf-banner--pos-center) .ucpf-banner__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .ucpf-banner--bar:not(.ucpf-banner--pos-left):not(.ucpf-banner--pos-right):not(.ucpf-banner--pos-center) .ucpf-banner__actions {
+    margin-top: 0;
+    width: auto !important;
+    max-width: min(28rem, 100%) !important;
+    flex: 1 1 16rem;
+  }
+
+  /* Compact positioned cards: keep a vertical stack so buttons never spill out */
+  #ucpf-root .ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-left .ucpf-banner__inner,
+  #ucpf-root .ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-right .ucpf-banner__inner,
+  #ucpf-root .ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-center .ucpf-banner__inner,
+  .ucpf-banner--corner .ucpf-banner__inner {
+    display: block !important;
+  }
+
+  #ucpf-root .ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-left .ucpf-banner__actions,
+  #ucpf-root .ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-right .ucpf-banner__actions,
+  #ucpf-root .ucpf-banner.ucpf-banner--bar.ucpf-banner--pos-center .ucpf-banner__actions,
+  .ucpf-banner--corner .ucpf-banner__actions {
+    width: 100% !important;
+    margin-top: 1.25rem !important;
+  }
+
+  .ucpf-banner--bar .ucpf-banner__rights {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+#ucpf-root .ucpf-btn,
+.ucpf-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 2px solid transparent !important;
+  background: transparent !important;
+  color: var(--ucpf-cream) !important;
+  font-family: var(--ucpf-font-sans) !important;
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+  letter-spacing: var(--ucpf-tracking-cta) !important;
+  text-transform: uppercase !important;
+  line-height: 1.2 !important;
+  text-decoration: none !important;
+  box-shadow: none !important;
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+#ucpf-root .ucpf-btn--pill,
+.ucpf-btn--pill {
+  border-radius: var(--ucpf-radius-pill) !important;
+}
+
+#ucpf-root .ucpf-btn--primary-tier,
+.ucpf-btn--primary-tier {
+  min-height: var(--ucpf-touch-min, 3rem) !important;
+  padding: 0.625rem 1.5rem !important;
+  font-size: 1rem !important;
+}
+
+/* Compact banner action row must beat primary-tier padding or Accept All overflows */
+#ucpf-root .ucpf-banner--bar .ucpf-banner__actions .ucpf-btn,
+.ucpf-banner--bar .ucpf-banner__actions .ucpf-btn,
+#ucpf-root .ucpf-banner--corner .ucpf-banner__actions .ucpf-btn,
+.ucpf-banner--corner .ucpf-banner__actions .ucpf-btn,
+#ucpf-root .ucpf-banner--bar .ucpf-banner__actions .ucpf-btn--primary-tier,
+.ucpf-banner--bar .ucpf-banner__actions .ucpf-btn--primary-tier,
+#ucpf-root .ucpf-banner--corner .ucpf-banner__actions .ucpf-btn--primary-tier,
+.ucpf-banner--corner .ucpf-banner__actions .ucpf-btn--primary-tier,
+#ucpf-root .ucpf-banner--bar .ucpf-banner__actions .ucpf-btn--outline,
+#ucpf-root .ucpf-banner--bar .ucpf-banner__actions .ucpf-btn--fill,
+#ucpf-root .ucpf-banner--bar .ucpf-banner__actions .ucpf-btn--ghost,
+#ucpf-root .ucpf-banner--corner .ucpf-banner__actions .ucpf-btn--outline,
+#ucpf-root .ucpf-banner--corner .ucpf-banner__actions .ucpf-btn--fill,
+#ucpf-root .ucpf-banner--corner .ucpf-banner__actions .ucpf-btn--ghost {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  padding: 0.75rem 1rem !important;
+  font-size: 0.875rem !important;
+  letter-spacing: 0.04em !important;
+  min-height: 2.75rem !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+}
+
+#ucpf-root .ucpf-banner--modal .ucpf-banner__actions .ucpf-btn,
+.ucpf-banner--modal .ucpf-banner__actions .ucpf-btn,
+#ucpf-root .ucpf-prefs__footer .ucpf-btn,
+.ucpf-prefs__footer .ucpf-btn {
+  padding: 0.75rem 0.85rem !important;
+  font-size: 0.875rem !important;
+  letter-spacing: 0.04em !important;
+  min-height: 3rem !important;
+}
+
+/* Reject / secondary — high-contrast outline; hover inverts */
+#ucpf-root .ucpf-btn--outline,
+.ucpf-btn--outline {
+  border-color: var(--ucpf-cream) !important;
+  background: transparent !important;
+  color: var(--ucpf-cream) !important;
+}
+
+#ucpf-root .ucpf-btn--outline:hover,
+#ucpf-root .ucpf-btn--outline:active,
+.ucpf-btn--outline:hover,
+.ucpf-btn--outline:active {
+  background: var(--ucpf-cream) !important;
+  border-color: var(--ucpf-cream) !important;
+  color: var(--ucpf-surface) !important;
+}
+
+#ucpf-root .ucpf-btn--outline:focus-visible,
+.ucpf-btn--outline:focus-visible {
+  outline: 3px solid var(--ucpf-focus-ring, #b45309) !important;
+  outline-offset: 3px !important;
+  background: var(--ucpf-cream) !important;
+  color: var(--ucpf-surface) !important;
+}
+
+/* Accept / Save — on-accent text on brand accent (hover/active darken / keep contrast) */
+#ucpf-root .ucpf-btn--fill,
+.ucpf-btn--fill {
+  border-color: var(--ucpf-accent) !important;
+  background: var(--ucpf-accent) !important;
+  color: var(--ucpf-on-accent, #ffffff) !important;
+}
+
+#ucpf-root .ucpf-btn--fill:hover,
+.ucpf-btn--fill:hover {
+  background: var(--ucpf-accent-hover) !important;
+  border-color: var(--ucpf-cream) !important;
+  color: var(--ucpf-on-accent, #ffffff) !important;
+}
+
+#ucpf-root .ucpf-btn--fill:active,
+.ucpf-btn--fill:active {
+  background: var(--ucpf-accent-active) !important;
+  border-color: var(--ucpf-cream) !important;
+  color: var(--ucpf-on-accent, #ffffff) !important;
+}
+
+#ucpf-root .ucpf-btn--fill:focus-visible,
+.ucpf-btn--fill:focus-visible {
+  outline: 3px solid var(--ucpf-focus-ring, #b45309) !important;
+  outline-offset: 3px !important;
+  border-color: var(--ucpf-cream) !important;
+  background: var(--ucpf-accent-hover) !important;
+  color: var(--ucpf-on-accent, #ffffff) !important;
+}
+
+#ucpf-root .ucpf-btn--ghost,
+.ucpf-btn--ghost {
+  border-color: var(--ucpf-border) !important;
+  color: var(--ucpf-cream) !important;
+  background: transparent !important;
+}
+
+#ucpf-root .ucpf-btn--ghost:hover,
+#ucpf-root .ucpf-btn--ghost:active,
+.ucpf-btn--ghost:hover,
+.ucpf-btn--ghost:active {
+  border-color: var(--ucpf-cream) !important;
+  background: color-mix(in srgb, var(--ucpf-cream) 12%, transparent) !important;
+  color: var(--ucpf-cream) !important;
+}
+
+#ucpf-root .ucpf-btn--ghost:focus-visible,
+.ucpf-btn--ghost:focus-visible {
+  outline: 3px solid var(--ucpf-focus-ring, #b45309) !important;
+  outline-offset: 3px !important;
+}
+
+#ucpf-root .ucpf-btn:focus:not(:focus-visible),
+.ucpf-btn:focus:not(:focus-visible) {
+  outline: none !important;
+}
+
+.ucpf-prefs {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147483001 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  color: var(--ucpf-cream);
+}
+
+.ucpf-prefs[hidden] {
+  display: none !important;
+}
+
+.ucpf-prefs__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.82);
+}
+
+.ucpf-prefs__dialog {
+  position: relative;
+  z-index: 1;
+  width: min(42rem, 100%);
+  max-height: min(90vh, 48rem);
+  overflow: auto;
+  border: 1px solid var(--ucpf-border);
+  border-radius: var(--ucpf-radius-soft);
+  background: var(--ucpf-surface);
+  color: var(--ucpf-cream);
+  padding: 1.5rem 1.5rem 1.75rem;
+  box-shadow: var(--ucpf-shadow-panel);
+}
+
+.ucpf-prefs__dialog:focus {
+  outline: none;
+}
+
+.ucpf-prefs__dialog:focus-visible {
+  outline: 3px solid var(--ucpf-focus-ring, #b45309);
+  outline-offset: 2px;
+}
+
+#ucpf-root .ucpf-prefs__title,
+.ucpf-prefs__title {
+  margin: 0 0 0.75rem !important;
+  font-size: 1.125rem !important;
+  font-weight: 700 !important;
+  letter-spacing: var(--ucpf-tracking-label) !important;
+  text-transform: uppercase !important;
+  line-height: 1.3 !important;
+  color: var(--ucpf-label, var(--ucpf-cream)) !important;
+}
+
+#ucpf-root .ucpf-prefs__intro,
+.ucpf-prefs__intro {
+  margin: 0 0 0.5rem !important;
+  font-size: 0.9375rem !important;
+  line-height: 1.5 !important;
+  color: var(--ucpf-muted) !important;
+}
+
+#ucpf-root .ucpf-prefs__hint,
+.ucpf-prefs__hint {
+  margin: 0.75rem 0 0.5rem !important;
+  padding: 0.65rem 0.85rem !important;
+  border: 1px solid var(--ucpf-border) !important;
+  border-radius: var(--ucpf-radius-soft, 0.5rem) !important;
+  background: color-mix(in srgb, var(--ucpf-accent, #0b5cad) 18%, transparent) !important;
+  color: var(--ucpf-cream, #fff) !important;
+  font-size: 0.9375rem !important;
+  line-height: 1.4 !important;
+}
+
+#ucpf-root .ucpf-prefs__policy,
+.ucpf-prefs__policy {
+  margin: 0 0 1rem !important;
+  font-size: 0.875rem !important;
+  line-height: 1.4 !important;
+}
+
+#ucpf-root .ucpf-policy-link,
+.ucpf-policy-link {
+  color: var(--ucpf-accent, #0b5cad) !important;
+  font-weight: 600 !important;
+  text-decoration: underline !important;
+  text-underline-offset: 0.15em !important;
+}
+
+#ucpf-root .ucpf-banner__text .ucpf-policy-link,
+.ucpf-banner__text .ucpf-policy-link {
+  display: inline !important;
+  margin-left: 0.35em !important;
+  white-space: nowrap !important;
+}
+
+#ucpf-root .ucpf-prefs__category,
+.ucpf-prefs__category {
+  display: flex !important;
+  gap: 1rem !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 1rem 0 !important;
+  border-bottom: 1px solid var(--ucpf-border) !important;
+}
+
+#ucpf-root .ucpf-prefs__category > div:first-child,
+.ucpf-prefs__category > div:first-child {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+
+#ucpf-root .ucpf-prefs__category-name,
+.ucpf-prefs__category-name {
+  margin: 0 !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+  font-size: 0.875rem !important;
+  line-height: 1.3 !important;
+  color: var(--ucpf-label, var(--ucpf-cream)) !important;
+}
+
+#ucpf-root .ucpf-prefs__category-desc,
+.ucpf-prefs__category-desc {
+  margin: 0.35rem 0 0 !important;
+  font-size: 1rem !important;
+  line-height: 1.5 !important;
+  color: var(--ucpf-muted) !important;
+}
+
+/*
+ * Preference toggles — themes often style `button { width:100%; height:auto }` which
+ * stretches these into tall rectangles with a tiny thumb. Lock size under #ucpf-root.
+ */
+#ucpf-root button.ucpf-toggle,
+#ucpf-root .ucpf-toggle,
+.ucpf-toggle {
+  position: relative !important;
+  display: inline-block !important;
+  box-sizing: border-box !important;
+  width: 3.25rem !important;
+  height: 1.875rem !important;
+  min-width: 3.25rem !important;
+  max-width: 3.25rem !important;
+  min-height: 1.875rem !important;
+  max-height: 1.875rem !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 2px solid var(--ucpf-border, rgba(255, 255, 255, 0.35)) !important;
+  border-radius: 999px !important;
+  background: color-mix(in srgb, var(--ucpf-surface, #111111) 85%, var(--ucpf-cream, #ffffff)) !important;
+  flex: 0 0 3.25rem !important;
+  align-self: center !important;
+  overflow: hidden !important;
+  cursor: pointer !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  line-height: 0 !important;
+  font-size: 0 !important;
+  text-align: left !important;
+  vertical-align: middle !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+#ucpf-root .ucpf-toggle[aria-checked="true"],
+.ucpf-toggle[aria-checked="true"] {
+  background: var(--ucpf-accent) !important;
+  border-color: var(--ucpf-accent-2, var(--ucpf-accent)) !important;
+}
+
+#ucpf-root .ucpf-toggle__thumb,
+.ucpf-toggle__thumb {
+  position: absolute !important;
+  top: 2px !important;
+  left: 2px !important;
+  right: auto !important;
+  bottom: auto !important;
+  display: block !important;
+  box-sizing: border-box !important;
+  width: 1.25rem !important;
+  height: 1.25rem !important;
+  min-width: 1.25rem !important;
+  min-height: 1.25rem !important;
+  max-width: 1.25rem !important;
+  max-height: 1.25rem !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  background: var(--ucpf-on-accent, #ffffff) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45) !important;
+  transition: transform 0.2s ease !important;
+  pointer-events: none !important;
+  transform: translateX(0) !important;
+}
+
+#ucpf-root .ucpf-toggle[aria-checked="true"] .ucpf-toggle__thumb,
+.ucpf-toggle[aria-checked="true"] .ucpf-toggle__thumb {
+  transform: translateX(1.35rem) !important;
+}
+
+#ucpf-root .ucpf-toggle:hover:not(.ucpf-toggle--locked),
+.ucpf-toggle:hover:not(.ucpf-toggle--locked) {
+  border-color: var(--ucpf-cream, #ffffff) !important;
+}
+
+#ucpf-root .ucpf-toggle:focus-visible,
+.ucpf-toggle:focus-visible {
+  outline: 3px solid var(--ucpf-focus-ring, #b45309) !important;
+  outline-offset: 3px !important;
+}
+
+#ucpf-root .ucpf-toggle--locked,
+.ucpf-toggle--locked {
+  opacity: 1 !important;
+  cursor: not-allowed !important;
+  background: var(--ucpf-accent) !important;
+  border-color: var(--ucpf-accent-2, var(--ucpf-accent)) !important;
+}
+
+#ucpf-root .ucpf-toggle--locked .ucpf-toggle__thumb,
+.ucpf-toggle--locked .ucpf-toggle__thumb {
+  background: var(--ucpf-on-accent, #ffffff) !important;
+}
+
+.ucpf-prefs__footer {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 0.25rem;
+}
+
+@media (min-width: 560px) {
+  .ucpf-prefs__footer {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: 0.875rem;
+  }
+}
+
+#ucpf-root .ucpf-banner__logo img,
+.ucpf-banner__logo img {
+  max-height: 2.5rem;
+  width: auto;
+  max-width: 10rem;
+  object-fit: contain;
+  margin: 0 0 0.5rem;
+}
+
+#ucpf-root .ucpf-powered-by,
+.ucpf-powered-by {
+  margin: 0.75rem 0 0;
+  font-size: 0.75rem;
+  opacity: 0.7;
+  text-align: center;
+}
+
+#ucpf-root .ucpf-powered-by a,
+.ucpf-powered-by a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+/* Floating Cookie Settings — quiet secondary control (not a second banner) */
+#ucpf-root .ucpf-fab,
+.ucpf-fab {
+  position: fixed !important;
+  left: max(1rem, env(safe-area-inset-left)) !important;
+  right: auto !important;
+  bottom: max(1rem, env(safe-area-inset-bottom)) !important;
+  z-index: 2147482999 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.4rem !important;
+  border: 1px solid var(--ucpf-border) !important;
+  border-radius: var(--ucpf-radius-pill) !important;
+  background: color-mix(in srgb, var(--ucpf-surface) 92%, transparent) !important;
+  color: var(--ucpf-cream) !important;
+  padding: 0.55rem 0.95rem !important;
+  min-height: 2.4rem !important;
+  font-family: var(--ucpf-font-sans) !important;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em !important;
+  text-transform: none !important;
+  line-height: 1.2 !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.28) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+#ucpf-root .ucpf-fab__label,
+.ucpf-fab__label {
+  display: inline-block !important;
+}
+
+/* FAB follows Banner position (same setting as consent card). */
+#ucpf-root[data-ucpf-position="right"] .ucpf-fab,
+#ucpf-root .ucpf-fab.ucpf-fab--pos-right,
+.ucpf-fab.ucpf-fab--pos-right {
+  left: auto !important;
+  right: max(1rem, env(safe-area-inset-right)) !important;
+  transform: none !important;
+}
+
+#ucpf-root[data-ucpf-position="center"] .ucpf-fab,
+#ucpf-root .ucpf-fab.ucpf-fab--pos-center,
+.ucpf-fab.ucpf-fab--pos-center {
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+}
+
+#ucpf-root[data-ucpf-position="left"] .ucpf-fab,
+#ucpf-root .ucpf-fab.ucpf-fab--pos-left,
+.ucpf-fab.ucpf-fab--pos-left {
+  left: max(1rem, env(safe-area-inset-left)) !important;
+  right: auto !important;
+  transform: none !important;
+}
+
+#ucpf-root .ucpf-fab:hover,
+#ucpf-root .ucpf-fab:active,
+.ucpf-fab:hover,
+.ucpf-fab:active {
+  background: var(--ucpf-accent) !important;
+  border-color: var(--ucpf-accent) !important;
+  color: var(--ucpf-on-accent, #ffffff) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35) !important;
+}
+
+#ucpf-root .ucpf-fab:focus-visible,
+.ucpf-fab:focus-visible {
+  outline: 3px solid var(--ucpf-focus-ring, #b45309) !important;
+  outline-offset: 3px !important;
+}
+
+#ucpf-root .ucpf-fab[hidden],
+.ucpf-fab[hidden] {
+  display: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ucpf-banner__panel,
+  .ucpf-toggle__thumb,
+  .ucpf-btn,
+  .ucpf-fab,
+  .ucpf-motion-enter,
+  .ucpf-motion-stagger {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+@keyframes ucpf-motion-panel {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ucpf-motion-btn {
+  from {
+    opacity: 0.55;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#ucpf-root .ucpf-motion-enter,
+.ucpf-motion-enter {
+  animation: ucpf-motion-panel 0.4s ease-out both;
+}
+
+#ucpf-root .ucpf-motion-stagger,
+.ucpf-motion-stagger {
+  animation: ucpf-motion-btn 0.35s ease-out both;
+  animation-delay: var(--ucpf-motion-delay, 0s);
+}
+
+/* Consent surface guard (captcha forms, maps, embeds) — outside #ucpf-root.
+   Tokens come from bannerTheme CSS class + ucpfConfig.themeTokens / #ucpf-root copy.
+   Panel is position:absolute over the surface so page/form layout stays unchanged.
+   !important beats theme/Elementor button rules that paint all buttons blue. */
+.ucpf-consent-guard,
+.ucpf-captcha-guard {
+  --ucpf-black: #000000;
+  --ucpf-surface: #111111;
+  --ucpf-cream: #ffffff;
+  --ucpf-muted: #d4d4d4;
+  --ucpf-border: rgba(255, 255, 255, 0.35);
+  --ucpf-accent: #0b5cad;
+  --ucpf-accent-hover: #094a8c;
+  --ucpf-accent-active: #073a6e;
+  --ucpf-accent-2: #094a8c;
+  --ucpf-on-accent: #ffffff;
+  --ucpf-label: #ffffff;
+  --ucpf-focus-ring: #b45309;
+  --ucpf-shadow-panel: 0 12px 40px rgba(0, 0, 0, 0.65);
+  --ucpf-font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+  --ucpf-radius-soft: 12px;
+  box-sizing: border-box;
+}
+
+.ucpf-consent-guard--form.ucpf-consent-guard--active,
+.ucpf-consent-guard--embed.ucpf-consent-guard--active {
+  position: relative !important;
+  isolation: isolate;
+  box-sizing: border-box !important;
+}
+
+.ucpf-consent-guard--embed.ucpf-consent-guard--active {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: 14rem !important;
+  /* Keep the card inside the media box (Elementor columns often clip overflow). */
+  overflow: hidden !important;
+}
+
+/*
+ * Elementor background video (decorative absolute e-con).
+ * ZERO host layout overrides — Elementor owns top/left/width/height/position.
+ * Only the child panel is absolutely painted over that box.
+ */
+.ucpf-consent-guard--bg.ucpf-consent-guard--active {
+  isolation: isolate;
+}
+
+.ucpf-consent-guard--bg > .ucpf-consent-guard__panel {
+  position: absolute !important;
+  inset: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  transform: none !important;
+  z-index: 5 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: rgba(17, 17, 17, 0.92) !important;
+  background: color-mix(in srgb, var(--ucpf-surface, #111111) 92%, transparent) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  padding: clamp(1rem, 3vw, 1.75rem) !important;
+  gap: 0.75rem !important;
+  overflow: auto !important;
+  pointer-events: auto !important;
+}
+
+/* On BG hosts, only dim the Elementor video fill — not section content siblings. */
+.ucpf-consent-guard--bg.ucpf-consent-guard--active > *:not(.ucpf-consent-guard__panel) {
+  opacity: 1;
+  filter: none;
+  pointer-events: auto;
+  user-select: auto;
+}
+
+.ucpf-consent-guard--bg.ucpf-consent-guard--active > .elementor-background-video-container,
+.ucpf-consent-guard--bg.ucpf-consent-guard--active > .elementor-background-overlay {
+  opacity: 0.35;
+  filter: grayscale(0.15);
+  pointer-events: none;
+  user-select: none;
+}
+
+.ucpf-consent-guard--form.ucpf-consent-guard--active {
+  /* Don't switch display/flex — preserve theme form grid/columns. */
+  overflow: visible !important;
+  min-height: 0;
+}
+
+/* Builder video shells are often empty until JS injects an iframe */
+.ucpf-consent-guard--embed.ucpf-consent-guard--active .elementor-video,
+.ucpf-consent-guard--embed.ucpf-consent-guard--active .elementor-wrapper,
+.ucpf-consent-guard--embed.ucpf-consent-guard--active.elementor-widget-video,
+.ucpf-consent-guard--embed.ucpf-consent-guard--active.et_pb_video,
+.ucpf-consent-guard--embed.ucpf-consent-guard--active.wpb_video_widget,
+.ucpf-consent-guard--embed.ucpf-consent-guard--active.fl-module-video,
+.ucpf-consent-guard--embed.ucpf-consent-guard--active.brxe-video,
+.ucpf-consent-guard--embed.ucpf-consent-guard--active.wp-block-embed-youtube,
+.ucpf-consent-guard--embed.ucpf-consent-guard--active.wp-block-embed-vimeo {
+  min-height: 14rem;
+  position: relative;
+}
+
+/* Dim the underlying surface; panel stays interactive above it */
+.ucpf-consent-guard--active > *:not(.ucpf-consent-guard__panel) {
+  opacity: 0.4;
+  filter: grayscale(0.2);
+  pointer-events: none;
+  user-select: none;
+}
+
+/*
+ * Overlay card — absolute over form/map/video.
+ * Never use top:50% + translateY(-50%) here: under Elementor absolute shells that
+ * also set inset:0 it shifts the whole card up and clips the title off-screen.
+ */
+.ucpf-consent-guard__panel {
+  position: absolute !important;
+  z-index: 30 !important;
+  left: 0.75rem !important;
+  right: 0.75rem !important;
+  top: 1.25rem !important;
+  bottom: auto !important;
+  box-sizing: border-box !important;
+  width: auto !important;
+  max-width: 32rem !important;
+  max-height: calc(100% - 2.5rem) !important;
+  margin: 0 auto !important;
+  padding: 1.5rem 1.5rem 1.35rem !important;
+  transform: none !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: stretch !important;
+  gap: 0.35rem !important;
+  text-align: center !important;
+  border: 2px solid var(--ucpf-accent, #0b5cad) !important;
+  border-radius: var(--ucpf-radius-soft, 12px) !important;
+  background: var(--ucpf-surface, #111111) !important;
+  color: var(--ucpf-cream, #ffffff) !important;
+  font-family: var(--ucpf-font-sans, system-ui, sans-serif) !important;
+  box-shadow: var(--ucpf-shadow-panel, 0 12px 32px rgba(0, 0, 0, 0.28)) !important;
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  filter: none !important;
+  visibility: visible !important;
+}
+
+/*
+ * Embeds/maps/video: full-bleed glass over the media box (not a cramped floating card).
+ */
+.ucpf-consent-guard--embed > .ucpf-consent-guard__panel {
+  inset: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  width: auto !important;
+  max-width: none !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: clamp(1rem, 4%, 1.75rem) !important;
+  transform: none !important;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: rgba(17, 17, 17, 0.92) !important;
+  background: color-mix(in srgb, var(--ucpf-surface, #111111) 92%, transparent) !important;
+  backdrop-filter: blur(10px) saturate(1.1);
+  -webkit-backdrop-filter: blur(10px) saturate(1.1);
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+}
+
+.ucpf-consent-guard--embed > .ucpf-consent-guard__panel .ucpf-consent-guard__title,
+.ucpf-consent-guard--embed > .ucpf-consent-guard__panel .ucpf-consent-guard__body,
+.ucpf-consent-guard--embed > .ucpf-consent-guard__panel .ucpf-consent-guard__actions {
+  width: min(100%, 36rem) !important;
+  max-width: 100% !important;
+  flex: 0 0 auto !important;
+}
+
+/* Tall forms: keep card near top of the form box without reflowing layout */
+.ucpf-consent-guard--form > .ucpf-consent-guard__panel {
+  top: 1.25rem !important;
+  bottom: auto !important;
+  transform: none !important;
+  max-height: min(24rem, calc(100% - 2.5rem)) !important;
+}
+
+.ucpf-consent-guard__panel .ucpf-consent-guard__title,
+.ucpf-consent-guard__title {
+  position: static !important;
+  inset: auto !important;
+  transform: none !important;
+  float: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  margin: 0 0 0.55rem !important;
+  padding: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  font-size: 1.125rem !important;
+  font-weight: 700 !important;
+  line-height: 1.35 !important;
+  letter-spacing: normal !important;
+  text-align: center !important;
+  color: #ffffff !important;
+  color: var(--ucpf-cream, #ffffff) !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+}
+
+.ucpf-consent-guard__panel .ucpf-consent-guard__body,
+.ucpf-consent-guard__body {
+  position: static !important;
+  inset: auto !important;
+  transform: none !important;
+  float: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  margin: 0 0 1.15rem !important;
+  padding: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  font-size: 0.9375rem !important;
+  font-weight: 400 !important;
+  line-height: 1.5 !important;
+  text-align: center !important;
+  color: #d4d4d4 !important;
+  color: var(--ucpf-muted, #d4d4d4) !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+}
+
+.ucpf-consent-guard__actions {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 0.65rem !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  position: static !important;
+  transform: none !important;
+}
+
+.ucpf-consent-guard__btn {
+  appearance: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  vertical-align: middle !important;
+  margin: 0 !important;
+  padding: 0.75rem 1.25rem !important;
+  border-radius: 999px !important;
+  border: 2px solid transparent !important;
+  font-family: inherit !important;
+  font-size: 0.9375rem !important;
+  font-weight: 600 !important;
+  line-height: 1.2 !important;
+  cursor: pointer !important;
+  min-height: 2.75rem !important;
+  box-shadow: none !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  text-align: center !important;
+  position: static !important;
+  transform: none !important;
+  float: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.ucpf-consent-guard__btn--primary {
+  background: var(--ucpf-accent, #135629) !important;
+  border-color: var(--ucpf-accent, #135629) !important;
+  color: #ffffff !important;
+  color: var(--ucpf-on-accent, #ffffff) !important;
+}
+
+.ucpf-consent-guard__btn--primary:hover,
+.ucpf-consent-guard__btn--primary:focus-visible {
+  background: var(--ucpf-accent-hover, #0f4a22) !important;
+  border-color: var(--ucpf-accent-hover, #0f4a22) !important;
+  color: #ffffff !important;
+  color: var(--ucpf-on-accent, #ffffff) !important;
+}
+
+.ucpf-consent-guard__btn--ghost {
+  background: transparent !important;
+  border-color: #ffffff !important;
+  border-color: var(--ucpf-cream, #ffffff) !important;
+  color: #ffffff !important;
+  color: var(--ucpf-cream, #ffffff) !important;
+}
+
+.ucpf-consent-guard__btn--ghost:hover,
+.ucpf-consent-guard__btn--ghost:focus-visible {
+  background: color-mix(in srgb, var(--ucpf-cream, #ffffff) 12%, transparent) !important;
+  color: #ffffff !important;
+  color: var(--ucpf-cream, #ffffff) !important;
+  border-color: #ffffff !important;
+  border-color: var(--ucpf-cream, #ffffff) !important;
+}
+
+.ucpf-consent-guard__btn:focus-visible {
+  outline: 3px solid var(--ucpf-focus-ring) !important;
+  outline-offset: 2px !important;
+}
+
+@media (max-width: 480px) {
+  .ucpf-consent-guard__panel {
+    padding: 1.15rem 1rem 1.1rem !important;
+  }
+
+  .ucpf-consent-guard__actions {
+    flex-direction: column;
+  }
+
+  .ucpf-consent-guard__btn {
+    width: 100%;
+  }
+}
+
+/* Empty iframe placeholders need a visible box under the overlay */
+.ucpf-iframe-placeholder {
+  display: block;
+  min-height: 14rem;
+  width: 100%;
+  background: color-mix(in srgb, var(--ucpf-surface, #111) 88%, #666);
+}
+
+#ucpf-root .ucpf-prefs__category--highlight {
+  outline: 2px solid var(--ucpf-accent) !important;
+  outline-offset: 4px !important;
+  border-radius: 8px !important;
+  background: color-mix(in srgb, var(--ucpf-accent) 18%, transparent) !important;
+}

@@ -1,0 +1,79 @@
+{
+  "services": [
+    {
+      "key": "wistia",
+      "name": "Wistia",
+      "provider": "Wistia",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Embedded Wistia video players (functional embeds; separate ad pixels stay marketing).",
+      "privacy_url": "https://wistia.com/privacy",
+      "script_patterns": [
+        "wistia.com",
+        "fast.wistia.com",
+        "fast.wistia.net",
+        "embedwistia-a.akamaihd.net"
+      ],
+      "cookie_patterns": ["wistia*"],
+      "cookies": [],
+      "iframe_patterns": ["wistia.com", "fast.wistia.net"],
+      "default_blocking": true
+    },
+    {
+      "key": "spotify",
+      "name": "Spotify Embeds",
+      "provider": "Spotify",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Embedded Spotify players / open.spotify.com embeds.",
+      "privacy_url": "https://www.spotify.com/legal/privacy-policy/",
+      "script_patterns": ["open.spotify.com", "embed.spotify.com"],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["open.spotify.com", "embed.spotify.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "soundcloud",
+      "name": "SoundCloud Embeds",
+      "provider": "SoundCloud",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Embedded SoundCloud players.",
+      "privacy_url": "https://soundcloud.com/pages/privacy",
+      "script_patterns": ["w.soundcloud.com", "soundcloud.com", "api.soundcloud.com"],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["w.soundcloud.com", "soundcloud.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "google_docs",
+      "name": "Google Docs / Drive embeds",
+      "provider": "Google",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Google Docs, Sheets, Slides, and Drive preview embeds.",
+      "privacy_url": "https://policies.google.com/privacy",
+      "script_patterns": ["docs.google.com", "drive.google.com"],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["docs.google.com", "drive.google.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "zoom",
+      "name": "Zoom Embeds",
+      "provider": "Zoom",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Zoom web client / meeting embedding hosts.",
+      "privacy_url": "https://explore.zoom.us/en/privacy/",
+      "script_patterns": ["zoom.us/wc", "applications.zoom.us"],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["zoom.us"],
+      "default_blocking": true
+    }
+  ]
+}

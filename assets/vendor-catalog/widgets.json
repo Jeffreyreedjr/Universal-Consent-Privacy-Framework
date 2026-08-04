@@ -1,0 +1,163 @@
+{
+  "services": [
+    {
+      "key": "tawkto",
+      "name": "Tawk.to Live Chat",
+      "provider": "tawk.to",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Live chat widget and visitor tracking.",
+      "privacy_url": "https://www.tawk.to/privacy-policy/",
+      "script_patterns": ["embed.tawk.to", "tawk.to"],
+      "cookie_patterns": ["TawkConnectionTime", "twk_*", "__tawkuuid"],
+      "cookies": [
+        {
+          "name": "TawkConnectionTime",
+          "pattern": "TawkConnectionTime",
+          "purpose": "Tracks chat connection time.",
+          "retention": "Session",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "__tawkuuid",
+          "pattern": "__tawkuuid",
+          "purpose": "Identifies the visitor for chat history.",
+          "retention": "months",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": ["tawk.to"],
+      "default_blocking": true
+    },
+    {
+      "key": "userway",
+      "name": "UserWay Accessibility",
+      "provider": "UserWay",
+      "category": "preferences",
+      "treatment": "consent",
+      "description": "Accessibility widget preferences and related cookies.",
+      "privacy_url": "https://userway.org/privacy/",
+      "script_patterns": ["cdn.userway.org", "api.userway.org", "userway.org/widget", "userway.org"],
+      "cookie_patterns": ["userway*", "uw-*"],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "facebook_feed",
+      "name": "Facebook Feed (Smash Balloon / Custom)",
+      "provider": "Smash Balloon / Smash",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Facebook social feed embeds and related third-party requests.",
+      "privacy_url": "https://smashballoon.com/privacy-policy/",
+      "script_patterns": ["facebook.com/plugins", "connect.facebook.net", "sb-facebook"],
+      "cookie_patterns": ["sb_*", "cff_*"],
+      "cookies": [],
+      "iframe_patterns": ["facebook.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "instagram_feed",
+      "name": "Instagram Feed",
+      "provider": "Smash Balloon",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Instagram feed embeds.",
+      "privacy_url": "https://smashballoon.com/privacy-policy/",
+      "script_patterns": ["instagram.com", "cdninstagram.com", "sb-instagram"],
+      "cookie_patterns": ["sbi_*"],
+      "cookies": [],
+      "iframe_patterns": ["instagram.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "twitter_feed",
+      "name": "Twitter / X Feed",
+      "provider": "Smash Balloon / Custom Twitter Feeds",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Twitter/X feed embeds.",
+      "privacy_url": "https://twitter.com/privacy",
+      "script_patterns": ["platform.twitter.com", "syndication.twitter.com", "ctf_"],
+      "cookie_patterns": ["ctf_*"],
+      "cookies": [],
+      "iframe_patterns": ["twitter.com", "x.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "tidio",
+      "name": "Tidio Chat",
+      "provider": "Tidio",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Tidio live chat widget.",
+      "privacy_url": "https://www.tidio.com/privacy-policy/",
+      "script_patterns": ["code.tidio.co", "tidio.co"],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["tidio.co"],
+      "default_blocking": true
+    },
+    {
+      "key": "crisp",
+      "name": "Crisp Chat",
+      "provider": "Crisp",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Crisp live chat widget.",
+      "privacy_url": "https://crisp.chat/en/privacy/",
+      "script_patterns": ["client.crisp.chat", "crisp.chat"],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["crisp.chat"],
+      "default_blocking": true
+    },
+    {
+      "key": "intercom",
+      "name": "Intercom",
+      "provider": "Intercom",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Intercom messenger / chat widget.",
+      "privacy_url": "https://www.intercom.com/legal/privacy",
+      "script_patterns": ["widget.intercom.io", "js.intercomcdn.com"],
+      "cookie_patterns": ["intercom*"],
+      "cookies": [],
+      "iframe_patterns": ["intercom.io"],
+      "default_blocking": true
+    },
+    {
+      "key": "drift",
+      "name": "Drift",
+      "provider": "Drift",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Drift chat / conversational marketing widget.",
+      "privacy_url": "https://www.drift.com/privacy-policy/",
+      "script_patterns": ["js.driftt.com", "drift.com"],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["drift.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "zendesk",
+      "name": "Zendesk Chat / Web Widget",
+      "provider": "Zendesk",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Zendesk messaging / web widget assets.",
+      "privacy_url": "https://www.zendesk.com/company/agreements-and-terms/privacy-notice/",
+      "script_patterns": ["static.zdassets.com", "ekr.zdassets.com", "zendesk.com"],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["zendesk.com"],
+      "default_blocking": true
+    }
+  ]
+}

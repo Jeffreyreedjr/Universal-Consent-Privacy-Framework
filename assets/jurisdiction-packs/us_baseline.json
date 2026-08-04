@@ -1,0 +1,34 @@
+{
+  "id": "us_baseline",
+  "label": "United States privacy baseline",
+  "regions": ["US"],
+  "consent_model": "optin",
+  "require_reject_parity": true,
+  "esc_behavior": "reject",
+  "gpc_enforcement": "sale_share",
+  "dns_required": true,
+  "privacy_choices_link": true,
+  "show_limit_sensitive": true,
+  "category_defaults": {
+    "necessary": true,
+    "preferences": false,
+    "analytics": false,
+    "marketing": false,
+    "functional": false,
+    "security": true
+  },
+  "signals": {
+    "respect_gpc": true,
+    "respect_dnt": true
+  },
+  "copy": {
+    "banner_title": "Your Privacy Choices",
+    "banner_text": "We use cookies and similar technologies. Choose Accept, Reject optional cookies, or Customize. Where US state privacy laws apply (including California and other comprehensive state privacy laws), you can also use Do Not Sell or Share and Limit Use of Sensitive Personal Information. Global Privacy Control (GPC) signals are honored for sale or sharing.",
+    "prefs_title": "Privacy & Cookie Preferences",
+    "prefs_intro": "Choose optional cookie categories. Essential cookies stay on. US privacy choices such as Do Not Sell or Share are available via the link below where applicable.",
+    "fab_label": "Your Privacy Choices",
+    "privacy_choices_label": "Your Privacy Choices",
+    "dns_title": "Do Not Sell or Share My Personal Information",
+    "dns_intro": "Opt out of the sale or sharing of personal information and, where applicable, limit use of sensitive personal information under US state privacy laws. We enforce this on this site immediately."
+  }
+}

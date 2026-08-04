@@ -1,0 +1,232 @@
+{
+  "services": [
+    {
+      "key": "microsoft_clarity",
+      "name": "Microsoft Clarity",
+      "provider": "Microsoft",
+      "category": "analytics",
+      "treatment": "consent",
+      "description": "Behavior analytics and session recordings.",
+      "privacy_url": "https://privacy.microsoft.com/",
+      "script_patterns": [
+        "clarity.ms/tag",
+        "clarity.ms"
+      ],
+      "cookie_patterns": ["_clck", "_clsk", "CLID", "ANONCHK", "MR", "MUID", "SM"],
+      "cookies": [
+        {
+          "name": "_clck",
+          "pattern": "_clck",
+          "purpose": "Persists Clarity user ID and preferences.",
+          "retention": "1 year",
+          "category": "analytics",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "_clsk",
+          "pattern": "_clsk",
+          "purpose": "Connects multiple page views into a Clarity session.",
+          "retention": "1 day",
+          "category": "analytics",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "recaptcha",
+      "name": "Google reCAPTCHA",
+      "provider": "Google",
+      "category": "security",
+      "treatment": "consent",
+      "description": "Bot protection and spam prevention.",
+      "privacy_url": "https://policies.google.com/privacy",
+      "script_patterns": ["google.com/recaptcha", "gstatic.com/recaptcha"],
+      "cookie_patterns": ["_GRECAPTCHA"],
+      "cookies": [
+        {
+          "name": "_GRECAPTCHA",
+          "pattern": "_GRECAPTCHA",
+          "purpose": "Provides risk analysis for bot protection.",
+          "retention": "6 months",
+          "category": "security",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "hcaptcha",
+      "name": "hCaptcha",
+      "provider": "Intuition Machines",
+      "category": "security",
+      "treatment": "consent",
+      "description": "Bot protection and spam prevention.",
+      "privacy_url": "https://www.hcaptcha.com/privacy",
+      "script_patterns": ["hcaptcha.com", "newassets.hcaptcha.com", "api.hcaptcha.com", "js.hcaptcha.com"],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "cloudflare_turnstile",
+      "name": "Cloudflare Turnstile",
+      "provider": "Cloudflare",
+      "category": "security",
+      "treatment": "consent",
+      "description": "Bot protection widget.",
+      "privacy_url": "https://www.cloudflare.com/privacypolicy/",
+      "script_patterns": ["challenges.cloudflare.com"],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "mailchimp",
+      "name": "Mailchimp Forms",
+      "provider": "Mailchimp",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Email marketing signup forms, popups, and Mailchimp for WooCommerce storefront / pixel tracking.",
+      "privacy_url": "https://www.intuit.com/privacy/statement/",
+      "script_patterns": [
+        "chimpstatic.com",
+        "list-manage.com",
+        "downloads.mailchimp.com",
+        "mailchimp.com/embed",
+        "cdn-images.mailchimp.com",
+        "mailchimp-for-woocommerce",
+        "mailchimp-woocommerce",
+        "mailchimp-woocommerce-pixel",
+        "mcjs-connected"
+      ],
+      "cookie_patterns": [
+        "MCPopupClosed",
+        "MCPopupSubscribed",
+        "mailchimp_landing_site",
+        "_mcid",
+        "mc_session"
+      ],
+      "cookies": [
+        {
+          "name": "MCPopupClosed",
+          "pattern": "MCPopupClosed",
+          "purpose": "Remembers that the Mailchimp popup was closed.",
+          "retention": "1 year",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "MCPopupSubscribed",
+          "pattern": "MCPopupSubscribed",
+          "purpose": "Remembers that the visitor subscribed via Mailchimp popup.",
+          "retention": "1 year",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "mailchimp_landing_site",
+          "pattern": "mailchimp_landing_site",
+          "purpose": "Mailchimp landing page attribution.",
+          "retention": "1 month",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "_mcid",
+          "pattern": "_mcid",
+          "purpose": "Mailchimp visitor identifier.",
+          "retention": "1 year",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "hubspot",
+      "name": "HubSpot",
+      "provider": "HubSpot",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "CRM and marketing tracking.",
+      "privacy_url": "https://legal.hubspot.com/privacy-policy",
+      "script_patterns": [
+        "js.hs-scripts.com",
+        "js.hubspot.com",
+        "js.hs-analytics.net",
+        "js.hscollectedforms.net",
+        "js.hsforms.net",
+        "js.hs-banner.com"
+      ],
+      "cookie_patterns": ["__hstc", "hubspotutk", "__hssc", "__hssrc"],
+      "cookies": [
+        {
+          "name": "__hstc",
+          "pattern": "__hstc",
+          "purpose": "Main HubSpot tracking cookie for visitors.",
+          "retention": "6 months",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "hubspotutk",
+          "pattern": "hubspotutk",
+          "purpose": "Keeps track of a visitor identity.",
+          "retention": "6 months",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "calendly",
+      "name": "Calendly",
+      "provider": "Calendly",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Scheduling embeds.",
+      "privacy_url": "https://calendly.com/privacy",
+      "script_patterns": ["assets.calendly.com", "calendly.com"],
+      "cookie_patterns": ["_calendly_session", "cal_anonymous_id"],
+      "cookies": [
+        {
+          "name": "_calendly_session",
+          "pattern": "_calendly_session",
+          "purpose": "Calendly scheduling session state.",
+          "retention": "Session",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "cal_anonymous_id",
+          "pattern": "cal_anonymous_id",
+          "purpose": "Anonymous visitor id for Calendly embeds.",
+          "retention": "months",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": ["calendly.com"],
+      "default_blocking": true
+    }
+  ]
+}

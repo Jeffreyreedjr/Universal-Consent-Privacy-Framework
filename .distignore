@@ -1,0 +1,33 @@
+# Paths excluded from WordPress.org / distribution zips (10up deploy + packaging).
+# The Playwright scanner lives in GitHub only as companion software.
+
+.git
+.github
+.cursor
+.wp-env
+.phpcs-tools
+.distignore
+.gitignore
+.gitattributes
+.wordpress-org
+node_modules
+vendor
+dist
+tools
+tests
+docs
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+SECURITY.md
+CHANGELOG.md
+README.md
+package.ps1
+package.json
+package-lock.json
+webpack.config.js
+phpcs.xml.dist
+*.log
+.env
+.env.*
+**/report*.json
+**/node_modules

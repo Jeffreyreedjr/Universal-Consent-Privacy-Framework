@@ -1,0 +1,2541 @@
+/* Tokens enqueued separately as ucpf-admin-tokens */
+
+/* —— Shell —— */
+.ucpf-shell {
+  display: grid;
+  grid-template-columns: minmax(200px, 240px) minmax(0, 1fr);
+  gap: calc(var(--ucpf-admin-space) * 2);
+  margin: 1.25rem 0 2rem;
+  max-width: 1400px;
+  width: 100%;
+  box-sizing: border-box;
+  color: var(--ucpf-admin-ink);
+}
+
+.ucpf-shell__nav {
+  background: var(--ucpf-admin-surface-2);
+  color: #f1f5f9;
+  border-radius: var(--ucpf-admin-radius);
+  padding: calc(var(--ucpf-admin-space) * 2);
+  box-shadow: var(--ucpf-admin-shadow);
+  align-self: start;
+  position: sticky;
+  top: 48px;
+}
+
+.ucpf-shell__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: 0 0 1rem;
+  color: #94a3b8;
+}
+
+.ucpf-shell__brand-mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.ucpf-shell__brand-text {
+  line-height: 1.25;
+}
+
+/* Light surfaces (dashboard header): brand mark needs a subtle edge */
+.ucpf-dash__header .ucpf-shell__brand-mark,
+.ucpf-admin:not(.ucpf-shell) .ucpf-shell__brand-mark {
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.12);
+}
+
+.ucpf-shell__nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.ucpf-shell__nav-link {
+  display: block;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--ucpf-admin-radius-sm);
+  color: #e2e8f0;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  border: 1px solid transparent;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.ucpf-shell__nav-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.ucpf-shell__nav-link:active {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.ucpf-shell__nav-link.is-active {
+  background: var(--ucpf-admin-accent);
+  color: var(--ucpf-admin-on-accent);
+  border-color: var(--ucpf-admin-accent-hover);
+}
+
+.ucpf-shell__main {
+  min-width: 0;
+  max-width: 100%;
+  /* Prefer clip over hidden so descendants can still opt into scroll regions. */
+  overflow-x: clip;
+}
+
+.ucpf-shell__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ucpf-admin-ink);
+}
+
+.ucpf-shell__lede {
+  margin: 0 0 1.25rem;
+  color: var(--ucpf-admin-muted);
+  max-width: min(52rem, 100%);
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (max-width: 960px) {
+  .ucpf-shell {
+    grid-template-columns: 1fr;
+  }
+  .ucpf-shell__nav {
+    position: static;
+  }
+  .ucpf-shell__nav-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+}
+
+/* —— Buttons —— */
+.ucpf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.75rem;
+  padding: 0.55rem 1.15rem;
+  border-radius: 999px;
+  border: 2px solid var(--ucpf-admin-accent);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+.ucpf-btn--primary {
+  background: var(--ucpf-admin-accent);
+  color: var(--ucpf-admin-on-accent);
+}
+
+.ucpf-btn--primary:hover {
+  background: var(--ucpf-admin-accent-hover);
+  border-color: var(--ucpf-admin-accent-hover);
+  color: #fff;
+}
+
+.ucpf-btn--primary:active {
+  background: var(--ucpf-admin-accent-active);
+  border-color: var(--ucpf-admin-accent-active);
+  transform: translateY(1px);
+}
+
+.ucpf-btn--ghost {
+  background: transparent;
+  color: var(--ucpf-admin-accent);
+}
+
+.ucpf-btn--ghost:hover {
+  background: var(--ucpf-admin-ok-bg);
+  color: var(--ucpf-admin-accent-active);
+}
+
+.ucpf-btn--ghost:active {
+  background: var(--ucpf-admin-ok-bg);
+  transform: translateY(1px);
+}
+
+.ucpf-btn:disabled,
+.ucpf-btn[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Map WP primary buttons inside shell */
+.ucpf-shell .button-primary,
+.ucpf-admin .button-primary {
+  background: var(--ucpf-admin-accent) !important;
+  border-color: var(--ucpf-admin-accent) !important;
+  color: #fff !important;
+  border-radius: 999px;
+  min-height: 2.5rem;
+  padding: 0 1.1rem;
+  font-weight: 600;
+}
+
+.ucpf-shell .button-primary:hover,
+.ucpf-admin .button-primary:hover {
+  background: var(--ucpf-admin-accent-hover) !important;
+  border-color: var(--ucpf-admin-accent-hover) !important;
+}
+
+.ucpf-shell .button-primary:active,
+.ucpf-admin .button-primary:active {
+  background: var(--ucpf-admin-accent-active) !important;
+  border-color: var(--ucpf-admin-accent-active) !important;
+}
+
+.ucpf-shell .button,
+.ucpf-admin .button {
+  border-radius: 999px;
+  min-height: 2.5rem;
+  font-weight: 600;
+}
+
+.ucpf-shell .button:hover,
+.ucpf-admin .button:hover {
+  border-color: var(--ucpf-admin-accent);
+  color: var(--ucpf-admin-accent);
+}
+
+/* —— Cards / bento —— */
+.ucpf-admin__cards,
+.ucpf-bento {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin: 1.25rem 0;
+}
+
+.ucpf-admin__card,
+.ucpf-card {
+  background: var(--ucpf-admin-surface);
+  border: 1px solid var(--ucpf-admin-border);
+  border-radius: var(--ucpf-admin-radius);
+  padding: 1.15rem 1.25rem;
+  box-shadow: var(--ucpf-admin-shadow);
+  border-left: 4px solid var(--ucpf-admin-accent);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  overflow: visible;
+}
+
+/* Kill CSS transform transitions while intro entrance runs */
+.ucpf-bento.ucpf-bento--intro .ucpf-card {
+  transition: none !important;
+}
+
+@keyframes ucpf-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.ucpf-dash--enter [data-ucpf-animate="card"].ucpf-enter {
+  animation: ucpf-enter 0.45s ease-out both;
+  animation-delay: var(--ucpf-enter-delay, 0s);
+}
+
+.ucpf-admin__card:hover,
+.ucpf-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(15, 20, 17, 0.12);
+}
+
+.ucpf-admin__card h2,
+.ucpf-card__title {
+  margin: 0 0 0.4rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ucpf-admin-muted);
+}
+
+.ucpf-card__value {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--ucpf-admin-ink);
+}
+
+.ucpf-admin__warnings {
+  margin: 1rem 0;
+  padding: 0.85rem 1.1rem;
+  border-radius: var(--ucpf-admin-radius-sm);
+  border-left: 4px solid var(--ucpf-admin-fail);
+  background: var(--ucpf-admin-fail-bg);
+}
+
+.ucpf-admin__warning {
+  margin: 0.25rem 0;
+}
+
+/* —— Dashboard layout —— */
+#ucpf-admin-root .ucpf-dash {
+  max-width: 1100px;
+}
+
+.ucpf-dash__cta {
+  margin-bottom: 1.25rem;
+}
+
+.ucpf-dash__section-title {
+  margin: 0 0 0.65rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ucpf-admin-muted);
+}
+
+/* Status hero */
+.ucpf-dash__hero {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 1.25rem 1.5rem;
+  align-items: center;
+  margin: 0 0 1.5rem;
+  padding: 1.25rem 1.4rem;
+  background: var(--ucpf-admin-surface);
+  border: 1px solid var(--ucpf-admin-border);
+  border-radius: var(--ucpf-admin-radius);
+  box-shadow: var(--ucpf-admin-shadow);
+  border-left: 4px solid var(--ucpf-admin-accent);
+}
+
+.ucpf-dash__hero--ready {
+  border-left-color: var(--ucpf-admin-accent);
+}
+
+.ucpf-dash__hero--attention {
+  border-left-color: var(--ucpf-admin-warn);
+}
+
+.ucpf-dash__hero--blocked {
+  border-left-color: var(--ucpf-admin-fail);
+}
+
+.ucpf-dash__hero-score {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+}
+
+.ucpf-dash__ring {
+  display: block;
+  transform: rotate(-90deg);
+}
+
+.ucpf-dash__ring-track,
+.ucpf-dash__ring-value {
+  fill: none;
+  stroke-width: 6;
+}
+
+.ucpf-dash__ring-track {
+  stroke: var(--ucpf-admin-surface-muted);
+}
+
+.ucpf-dash__ring-value {
+  stroke: var(--ucpf-admin-accent);
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.45s ease;
+}
+
+.ucpf-dash__hero--attention .ucpf-dash__ring-value {
+  stroke: var(--ucpf-admin-warn);
+}
+
+.ucpf-dash__hero--blocked .ucpf-dash__ring-value {
+  stroke: var(--ucpf-admin-fail);
+}
+
+.ucpf-dash__ring-pct {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ucpf-admin-ink);
+}
+
+.ucpf-dash__hero-kicker {
+  margin: 0 0 0.15rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ucpf-admin-muted);
+}
+
+.ucpf-dash__hero-status {
+  margin: 0 0 0.25rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--ucpf-admin-ink);
+}
+
+.ucpf-dash__hero-passing {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--ucpf-admin-muted);
+}
+
+.ucpf-dash__hero-scan {
+  margin: 0.35rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--ucpf-admin-muted);
+}
+
+.ucpf-dash__hero-scan-label {
+  font-weight: 600;
+  color: var(--ucpf-admin-ink);
+}
+
+.ucpf-dash__chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.ucpf-dash__chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 3.5rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: var(--ucpf-admin-radius-sm);
+  background: var(--ucpf-admin-surface-muted);
+  border: 1px solid var(--ucpf-admin-border);
+}
+
+.ucpf-dash__chip strong {
+  font-size: 1.15rem;
+  line-height: 1.2;
+  color: var(--ucpf-admin-ink);
+}
+
+.ucpf-dash__chip span {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ucpf-admin-muted);
+}
+
+.ucpf-dash__chip--ok {
+  background: var(--ucpf-admin-ok-bg);
+  border-color: #bfdbfe;
+}
+
+.ucpf-dash__chip--ok strong {
+  color: var(--ucpf-admin-accent);
+}
+
+.ucpf-dash__chip--warn {
+  background: var(--ucpf-admin-warn-bg);
+  border-color: #fde68a;
+}
+
+.ucpf-dash__chip--warn strong {
+  color: var(--ucpf-admin-warn);
+}
+
+.ucpf-dash__chip--fail {
+  background: var(--ucpf-admin-fail-bg);
+  border-color: #fecaca;
+}
+
+.ucpf-dash__chip--fail strong {
+  color: var(--ucpf-admin-fail);
+}
+
+/* Needs attention */
+.ucpf-dash__attention {
+  margin: 0 0 1.5rem;
+}
+
+.ucpf-dash__all-clear {
+  margin: 0;
+  padding: 0.95rem 1.15rem;
+  border-radius: var(--ucpf-admin-radius);
+  border: 1px solid #bfdbfe;
+  background: var(--ucpf-admin-ok-bg);
+  color: var(--ucpf-admin-ink);
+  font-weight: 500;
+}
+
+.ucpf-dash__attention-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.85rem;
+}
+
+.ucpf-dash__attention-card {
+  margin: 0;
+  padding: 1rem 1.1rem;
+  background: var(--ucpf-admin-surface);
+  border: 1px solid var(--ucpf-admin-border);
+  border-radius: var(--ucpf-admin-radius);
+  box-shadow: var(--ucpf-admin-shadow);
+  border-left: 4px solid var(--ucpf-admin-warn);
+}
+
+.ucpf-dash__attention-card--fail {
+  border-left-color: var(--ucpf-admin-fail);
+  background: var(--ucpf-admin-fail-bg);
+}
+
+.ucpf-dash__attention-card--warn {
+  border-left-color: var(--ucpf-admin-warn);
+  background: var(--ucpf-admin-warn-bg);
+}
+
+.ucpf-dash__attention-card-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.65rem;
+  margin-bottom: 0.35rem;
+}
+
+.ucpf-dash__attention-badge {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--ucpf-admin-warn);
+}
+
+.ucpf-dash__attention-card--fail .ucpf-dash__attention-badge {
+  color: var(--ucpf-admin-fail);
+}
+
+.ucpf-dash__attention-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ucpf-admin-ink);
+}
+
+.ucpf-dash__attention-detail {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--ucpf-admin-muted);
+}
+
+.ucpf-dash__attention-action {
+  margin: 0.75rem 0 0;
+}
+
+.ucpf-dash__attention-action .ucpf-btn {
+  display: inline-flex;
+}
+
+/* Quick actions */
+.ucpf-dash__actions {
+  margin: 0 0 0.5rem;
+}
+
+.ucpf-dash__action-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Passing checks (collapsible) */
+.ucpf-dash__passing {
+  margin: 1.25rem 0 0;
+  border: 1px solid var(--ucpf-admin-border);
+  border-radius: var(--ucpf-admin-radius);
+  background: var(--ucpf-admin-surface);
+  box-shadow: var(--ucpf-admin-shadow);
+  overflow: hidden;
+}
+
+.ucpf-dash__passing-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.9rem 1.15rem;
+  cursor: pointer;
+  list-style: none;
+  font-weight: 600;
+  color: var(--ucpf-admin-ink);
+  user-select: none;
+}
+
+.ucpf-dash__passing-summary::-webkit-details-marker {
+  display: none;
+}
+
+.ucpf-dash__passing-summary::before {
+  content: "";
+  width: 0.45rem;
+  height: 0.45rem;
+  border-right: 2px solid var(--ucpf-admin-muted);
+  border-bottom: 2px solid var(--ucpf-admin-muted);
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+  margin-right: 0.15rem;
+}
+
+.ucpf-dash__passing[open] > .ucpf-dash__passing-summary::before {
+  transform: rotate(45deg);
+}
+
+.ucpf-dash__passing-title {
+  flex: 1;
+}
+
+.ucpf-dash__passing-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.75rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--ucpf-admin-ok-bg);
+  color: var(--ucpf-admin-accent);
+}
+
+.ucpf-dash__passing-group {
+  padding: 0 1.15rem 1rem;
+}
+
+.ucpf-dash__passing-group + .ucpf-dash__passing-group {
+  padding-top: 0.25rem;
+}
+
+.ucpf-dash__passing-group-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ucpf-admin-muted);
+}
+
+/* —— Health —— */
+.ucpf-health {
+  list-style: none;
+  margin: 0 0 1.5rem;
+  padding: 0;
+  border: 1px solid var(--ucpf-admin-border);
+  border-radius: var(--ucpf-admin-radius);
+  background: var(--ucpf-admin-surface);
+  overflow: hidden;
+}
+
+.ucpf-health--compact {
+  margin: 0;
+  border-radius: var(--ucpf-admin-radius-sm);
+  box-shadow: none;
+}
+
+.ucpf-health__item {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.9rem 1.1rem;
+  border-bottom: 1px solid var(--ucpf-admin-border);
+}
+
+.ucpf-health__item--compact {
+  padding: 0.65rem 0.85rem;
+}
+
+.ucpf-health__item:last-child {
+  border-bottom: 0;
+}
+
+.ucpf-health__badge {
+  flex: 0 0 auto;
+  min-width: 3.25rem;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  line-height: 1.4;
+}
+
+.ucpf-health__item--ok .ucpf-health__badge {
+  background: var(--ucpf-admin-ok-bg);
+  color: var(--ucpf-admin-accent);
+}
+
+.ucpf-health__item--warn .ucpf-health__badge {
+  background: var(--ucpf-admin-warn-bg);
+  color: var(--ucpf-admin-warn);
+}
+
+.ucpf-health__item--fail .ucpf-health__badge {
+  background: var(--ucpf-admin-fail-bg);
+  color: var(--ucpf-admin-fail);
+}
+
+.ucpf-health__label {
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+.ucpf-health__detail {
+  margin: 0;
+  color: var(--ucpf-admin-muted);
+}
+
+.ucpf-health__item--compact .ucpf-health__detail {
+  font-size: 0.8125rem;
+}
+
+.ucpf-health__action {
+  margin: 0.35rem 0 0;
+}
+
+.ucpf-health__action a {
+  color: var(--ucpf-admin-accent);
+  font-weight: 600;
+}
+
+.ucpf-health__action a:hover {
+  color: var(--ucpf-admin-accent-hover);
+}
+
+@media (max-width: 782px) {
+  .ucpf-dash__hero {
+    grid-template-columns: auto 1fr;
+  }
+
+  .ucpf-dash__chips {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}
+
+
+/* —— Scanner chips —— */
+.ucpf-scanner-empty {
+  margin: 1.25rem 0;
+  padding: 1.25rem 1.5rem;
+  border: 1px dashed var(--ucpf-admin-border);
+  border-radius: var(--ucpf-admin-radius);
+  background: var(--ucpf-admin-surface-muted);
+}
+
+.ucpf-scanner-empty h2 {
+  margin-top: 0;
+}
+
+.ucpf-scanner-picker {
+  max-width: 52rem;
+  margin: 1rem 0 1.25rem;
+  padding: 1.1rem 1.25rem;
+  background: var(--ucpf-admin-surface);
+  border: 1px solid var(--ucpf-admin-border);
+  border-radius: var(--ucpf-admin-radius);
+  box-shadow: var(--ucpf-admin-shadow);
+}
+
+.ucpf-scanner-picker__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.1rem;
+}
+
+.ucpf-scanner-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.75rem 0;
+}
+
+.ucpf-scanner-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.85rem;
+  border: 2px solid var(--ucpf-admin-border);
+  border-radius: 999px;
+  background: var(--ucpf-admin-surface-muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  font-family: inherit;
+  color: var(--ucpf-admin-ink);
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.ucpf-scanner-chip:hover {
+  border-color: var(--ucpf-admin-accent);
+  color: var(--ucpf-admin-accent);
+}
+
+.ucpf-scanner-chip:active {
+  background: var(--ucpf-admin-ok-bg);
+}
+
+.ucpf-scanner-chip.is-active,
+.ucpf-scanner-chip[aria-pressed="true"] {
+  background: var(--ucpf-admin-accent);
+  border-color: var(--ucpf-admin-accent);
+  color: #fff;
+}
+
+.ucpf-scanner-chip.is-active:hover,
+.ucpf-scanner-chip[aria-pressed="true"]:hover {
+  background: var(--ucpf-admin-accent-hover);
+  border-color: var(--ucpf-admin-accent-hover);
+  color: #fff;
+}
+
+.ucpf-scanner-pages {
+  max-height: 28rem;
+  overflow: auto;
+  border: 1px solid var(--ucpf-admin-border);
+  border-radius: var(--ucpf-admin-radius-sm);
+  padding: 0.5rem 0.75rem;
+  margin: 0.5rem 0;
+  background: var(--ucpf-admin-surface);
+}
+
+.ucpf-scanner-pages label,
+.ucpf-scanner-page {
+  display: block;
+  margin: 0.2rem 0;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.ucpf-scanner-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0.65rem 0 0.35rem;
+}
+
+.ucpf-scanner-group {
+  margin: 0.75rem 0 0.35rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--ucpf-admin-border);
+}
+
+.ucpf-scanner-group:last-child {
+  border-bottom: 0;
+}
+
+.ucpf-scanner-group__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 0.35rem;
+}
+
+.ucpf-scanner-group__title {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ucpf-admin-muted);
+}
+
+.ucpf-scanner-group__select {
+  font-size: 12px;
+}
+
+.ucpf-scanner-custom__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.35rem;
+}
+
+.ucpf-scan-remembered {
+  margin: 0.35rem 0 0.75rem;
+  color: var(--ucpf-admin-accent);
+}
+
+.ucpf-scanner-coverage,
+.ucpf-scanner-run {
+  max-width: 52rem;
+  margin: 1rem 0 1.25rem;
+  padding: 1.1rem 1.25rem;
+  background: var(--ucpf-admin-surface);
+  border: 1px solid var(--ucpf-admin-border);
+  border-radius: var(--ucpf-admin-radius);
+  box-shadow: var(--ucpf-admin-shadow);
+}
+
+.ucpf-scanner-coverage h2,
+.ucpf-scanner-run h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.1rem;
+}
+
+.ucpf-scanner-run__primary,
+.ucpf-scanner-run__fallback {
+  margin: 0.85rem 0 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--ucpf-admin-border);
+  border-radius: var(--ucpf-admin-radius-sm);
+  background: var(--ucpf-admin-surface-muted);
+}
+
+.ucpf-scanner-run__primary {
+  border-color: var(--ucpf-admin-accent);
+  background: var(--ucpf-admin-surface);
+}
+
+.ucpf-scanner-run__heading {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+}
+
+.ucpf-scanner-run__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0.65rem 0 0;
+}
+
+.ucpf-scanner-run__setup {
+  margin: 0.85rem 0 1rem;
+  padding: 0.85rem 1rem;
+}
+
+.ucpf-scanner-run__setup p {
+  margin: 0;
+}
+
+.ucpf-verify-banner {
+  max-width: 52rem;
+  margin: 1rem 0 1.25rem;
+  padding: 0.85rem 1rem;
+}
+
+.ucpf-verify-banner__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0.65rem 0 0;
+}
+
+.ucpf-verify-delta {
+  max-width: 52rem;
+  margin: 0 0 1.25rem;
+  padding: 0.85rem 1.1rem;
+  border: 1px solid var(--ucpf-admin-border);
+  border-radius: var(--ucpf-admin-radius-sm);
+  background: var(--ucpf-admin-surface-muted);
+}
+
+.ucpf-verify-delta h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+}
+
+.ucpf-verify-delta ul {
+  margin: 0.35rem 0 0;
+}
+
+.ucpf-scan-depth {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.ucpf-scan-depth select {
+  max-width: 100%;
+  min-width: min(100%, 28rem);
+}
+
+[aria-live] {
+  /* ensure live regions are present for AT */
+}
+
+/* —— Wizard —— */
+.ucpf-wizard-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  list-style: none;
+  padding: 0;
+}
+
+.ucpf-wizard-steps li {
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  background: var(--ucpf-admin-border);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ucpf-wizard-steps li.is-complete {
+  background: var(--ucpf-admin-accent);
+  color: #ffffff;
+}
+
+.ucpf-wizard__layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 1.25rem;
+  margin-top: 1rem;
+  align-items: start;
+}
+
+.ucpf-wizard__nav {
+  background: var(--ucpf-admin-surface);
+  border: 1px solid var(--ucpf-admin-border);
+  border-radius: var(--ucpf-admin-radius);
+  padding: 1rem;
+  box-shadow: var(--ucpf-admin-shadow);
+}
+
+.ucpf-wizard__nav-title {
+  margin: 0 0 0.75rem;
+  font-weight: 700;
+}
+
+.ucpf-wizard__section {
+  margin-bottom: 1rem;
+}
+
+.ucpf-wizard__section ul {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+}
+
+.ucpf-wizard__section li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.45rem;
+  color: var(--ucpf-admin-muted);
+  font-size: 13px;
+  border-radius: var(--ucpf-admin-radius-sm);
+}
+
+.ucpf-wizard__section li.is-active {
+  background: var(--ucpf-admin-ok-bg);
+  color: var(--ucpf-admin-accent);
+  font-weight: 600;
+}
+
+.ucpf-wizard__section li.is-complete {
+  color: var(--ucpf-admin-ink);
+}
+
+.ucpf-wizard__check {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ucpf-admin-border);
+  flex-shrink: 0;
+}
+
+.ucpf-wizard__section li.is-complete .ucpf-wizard__check,
+.ucpf-wizard__section li.is-active .ucpf-wizard__check {
+  background: var(--ucpf-admin-accent);
+}
+
+.ucpf-wizard__nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+  border-radius: var(--ucpf-admin-radius-sm);
+}
+
+.ucpf-wizard__nav-link:hover {
+  color: var(--ucpf-admin-accent);
+}
+
+.ucpf-wizard__nav-link:active {
+  color: var(--ucpf-admin-accent-active);
+}
+
+.ucpf-wizard__panel {
+  background: var(--ucpf-admin-surface);
+  border: 1px solid var(--ucpf-admin-border);
+  border-radius: var(--ucpf-admin-radius);
+  padding: 1.25rem 1.5rem 1.5rem;
+  min-height: 420px;
+  box-shadow: var(--ucpf-admin-shadow);
+}
+
+.ucpf-wizard__fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.ucpf-wizard__checklist {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.5rem;
+}
+
+.ucpf-wizard__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--ucpf-admin-border);
+}
+
+.ucpf-wizard__status {
+  margin: 0.75rem 0;
+  padding: 0.65rem 0.85rem;
+  background: var(--ucpf-admin-ok-bg);
+  border-left: 3px solid var(--ucpf-admin-accent);
+  border-radius: var(--ucpf-admin-radius-sm);
+  white-space: pre-wrap;
+  color: var(--ucpf-admin-ink);
+}
+
+.ucpf-wizard__status.is-error {
+  background: var(--ucpf-admin-fail-bg);
+  border-left-color: var(--ucpf-admin-fail);
+}
+
+.ucpf-scan-progress {
+  margin: 0.5rem 0 1rem;
+  padding: 0.85rem 1rem;
+  background: var(--ucpf-admin-surface);
+  border: 1px solid var(--ucpf-admin-border);
+  border-radius: var(--ucpf-admin-radius);
+  box-shadow: var(--ucpf-admin-shadow);
+}
+
+.ucpf-scan-progress__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 0.45rem;
+  color: var(--ucpf-admin-ink);
+}
+
+.ucpf-scan-progress__track {
+  height: 0.55rem;
+  background: var(--ucpf-admin-border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.ucpf-scan-progress__fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--ucpf-admin-accent-active), var(--ucpf-admin-accent));
+  border-radius: 999px;
+  transition: width 0.35s ease;
+}
+
+.ucpf-scan-progress__msg {
+  margin: 0.55rem 0 0;
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.ucpf-scan-progress__log {
+  margin: 0.65rem 0 0;
+  padding: 0.55rem 0.7rem;
+  max-height: 9rem;
+  overflow: auto;
+  font-size: 12px;
+  line-height: 1.4;
+  background: var(--ucpf-admin-surface-2);
+  color: #e2e8f0;
+  border-radius: var(--ucpf-admin-radius-sm);
+  white-space: pre-wrap;
+}
+
+@media (max-width: 960px) {
+  .ucpf-wizard__layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ucpf-admin__preview {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #111;
+  border-radius: var(--ucpf-admin-radius);
+  min-height: 320px;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.ucpf-admin__preview #ucpf-root {
+  position: relative;
+  display: block;
+  min-height: 280px;
+  transform: translateZ(0);
+}
+
+.ucpf-admin__preview .ucpf-banner,
+.ucpf-admin__preview .ucpf-banner.ucpf-banner--bar,
+.ucpf-admin__preview .ucpf-banner.ucpf-banner--modal,
+.ucpf-admin__preview .ucpf-banner.ucpf-banner--corner {
+  position: absolute !important;
+  z-index: 1 !important;
+  pointer-events: none !important;
+}
+
+.ucpf-admin__preview .ucpf-banner__panel {
+  pointer-events: none !important;
+}
+
+.ucpf-admin__preview .ucpf-banner--bar {
+  inset: auto auto 0.75rem 0.75rem !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: 0.75rem !important;
+  left: 0.75rem !important;
+  width: min(22rem, calc(100% - 1.5rem)) !important;
+  max-width: min(22rem, calc(100% - 1.5rem)) !important;
+  padding: 0 !important;
+  transform: none !important;
+}
+
+.ucpf-admin__preview .ucpf-banner__actions {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 0.5rem !important;
+  width: 100% !important;
+}
+
+.ucpf-admin__preview .ucpf-banner__actions .ucpf-btn {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.ucpf-admin__preview .ucpf-banner--bar.ucpf-banner--pos-right {
+  left: auto !important;
+  right: 0.75rem !important;
+}
+
+.ucpf-admin__preview .ucpf-banner--bar.ucpf-banner--pos-center {
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+  width: min(26rem, calc(100% - 1.5rem)) !important;
+  max-width: min(26rem, calc(100% - 1.5rem)) !important;
+}
+
+.ucpf-admin__preview .ucpf-banner--modal {
+  inset: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 1rem !important;
+  transform: none !important;
+  width: auto !important;
+  max-width: none !important;
+}
+
+.ucpf-admin__preview .ucpf-banner--corner {
+  inset: auto 0.75rem 0.75rem auto !important;
+  top: auto !important;
+  right: 0.75rem !important;
+  bottom: 0.75rem !important;
+  left: auto !important;
+  width: min(18rem, calc(100% - 1.5rem)) !important;
+  max-width: min(18rem, calc(100% - 1.5rem)) !important;
+  padding: 0 !important;
+  transform: none !important;
+}
+
+.ucpf-admin__preview .ucpf-banner--corner.ucpf-banner--pos-left,
+.ucpf-admin__preview .ucpf-banner--bar.ucpf-banner--pos-left {
+  left: 0.75rem !important;
+  right: auto !important;
+  transform: none !important;
+}
+
+.ucpf-admin__preview .ucpf-banner--corner.ucpf-banner--pos-center {
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+}
+
+.ucpf-admin__preview .ucpf-banner--corner.ucpf-banner--pos-right {
+  left: auto !important;
+  right: 0.75rem !important;
+  transform: none !important;
+}
+
+.ucpf-admin__preview .ucpf-banner--modal .ucpf-modal__overlay {
+  position: absolute !important;
+  inset: 0 !important;
+  display: block !important;
+  background: rgba(0, 0, 0, 0.55) !important;
+  pointer-events: none !important;
+}
+
+.ucpf-admin__preview .ucpf-banner--bar .ucpf-modal__overlay,
+.ucpf-admin__preview .ucpf-banner--corner .ucpf-modal__overlay {
+  display: none !important;
+}
+
+.ucpf-admin__code {
+  background: #111;
+  color: #f4efe7;
+  padding: 1rem;
+  overflow: auto;
+  border-radius: var(--ucpf-admin-radius-sm);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.ucpf-tracking-table th,
+.ucpf-tracking-table td {
+  vertical-align: top;
+}
+
+.ucpf-tracking-id-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.ucpf-wizard__id-field {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  background: var(--ucpf-admin-ok-bg);
+  border-left: 3px solid var(--ucpf-admin-accent);
+  border-radius: var(--ucpf-admin-radius-sm);
+}
+
+.ucpf-wizard__service-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.65rem;
+}
+
+.ucpf-wizard__id-inline {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.ucpf-wizard__id-inline span {
+  font-size: 12px;
+  color: var(--ucpf-admin-muted);
+}
+
+.ucpf-wizard__summary-list {
+  margin: 0.5rem 0 1.25rem;
+  padding: 0.75rem 1rem;
+  background: var(--ucpf-admin-ok-bg);
+  border-left: 3px solid var(--ucpf-admin-accent);
+  list-style: none;
+  border-radius: var(--ucpf-admin-radius-sm);
+}
+
+.ucpf-wizard__summary-list li {
+  margin: 0.35rem 0;
+}
+
+.ucpf-wizard__service-list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.5rem 0 1.25rem;
+  max-width: 36rem;
+}
+
+.ucpf-wizard__service-item {
+  padding: 0.65rem 0.85rem;
+  background: var(--ucpf-admin-surface);
+  border: 1px solid var(--ucpf-admin-border);
+  border-radius: var(--ucpf-admin-radius-sm);
+}
+
+.ucpf-wizard__service-check {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.ucpf-wizard__id-slot {
+  margin-top: 0.65rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--ucpf-admin-border);
+}
+
+.ucpf-wizard__id-slot label {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.ucpf-wizard__id-slot span {
+  font-size: 12px;
+  color: var(--ucpf-admin-muted);
+  font-weight: 600;
+}
+
+.ucpf-wizard__id-slot .regular-text {
+  max-width: 100%;
+  width: 100%;
+}
+
+.ucpf-wizard__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.7rem;
+  background: var(--ucpf-admin-surface-muted);
+  border: 1px solid var(--ucpf-admin-border);
+  border-radius: 999px;
+}
+
+.ucpf-wizard__chip--detected .ucpf-detected-mark,
+.ucpf-wizard__chip--infra .ucpf-detected-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ucpf-admin-ok, #1a7f37);
+  background: var(--ucpf-admin-ok-bg, #e6f4ea);
+  border-radius: 50%;
+}
+
+.ucpf-wizard__chip--infra {
+  border-color: var(--ucpf-admin-ok, #1a7f37);
+}
+
+.ucpf-infra-status {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--ucpf-admin-surface-muted);
+  border: 1px solid var(--ucpf-admin-border);
+  border-radius: var(--ucpf-admin-radius-sm, 4px);
+}
+
+.ucpf-infra-status__row {
+  margin: 0.35rem 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.ucpf-infra-status__mark {
+  display: inline-flex;
+  width: 1.25rem;
+  font-weight: 700;
+  color: var(--ucpf-admin-ok, #1a7f37);
+}
+
+.ucpf-scan-selection-hint {
+  font-weight: 600;
+  color: var(--ucpf-admin-ink);
+}
+
+.ucpf-scan-selection-hint.ucpf-hint--warn {
+  color: var(--ucpf-admin-fail);
+  background: var(--ucpf-admin-warn-bg);
+  border-left: 4px solid var(--ucpf-admin-warn);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--ucpf-admin-radius-sm);
+}
+
+#ucpf-stop-scan:not([hidden]) {
+  color: var(--ucpf-admin-fail);
+  border-color: var(--ucpf-admin-fail);
+  font-weight: 700;
+}
+
+.ucpf-import-box {
+  margin: 1rem 0 1.5rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--ucpf-admin-border);
+  border-left: 4px solid var(--ucpf-admin-accent);
+  background: var(--ucpf-admin-surface);
+  max-width: 52rem;
+  border-radius: var(--ucpf-admin-radius);
+}
+
+.ucpf-unknown-table .ucpf-row--critical {
+  background: var(--ucpf-admin-fail-bg) !important;
+}
+
+.ucpf-unknown-table .ucpf-row--critical td {
+  border-top: 1px solid #f87171;
+  color: var(--ucpf-admin-ink);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.ucpf-unknown-table .ucpf-row--warn {
+  background: var(--ucpf-admin-warn-bg) !important;
+}
+
+.ucpf-unknown-table .ucpf-row--warn td {
+  border-top: 1px solid #f59e0b;
+  color: var(--ucpf-admin-ink);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.ucpf-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+}
+
+.ucpf-badge--alert {
+  background: var(--ucpf-admin-fail);
+  color: #fff;
+}
+
+.ucpf-unknown-table select {
+  min-width: 12rem;
+  max-width: 100%;
+  font-size: 14px;
+  color: var(--ucpf-admin-ink);
+  background: #fff;
+  border: 2px solid var(--ucpf-admin-fail);
+  border-radius: var(--ucpf-admin-radius-sm);
+}
+
+.ucpf-unknown-table .ucpf-row--warn select {
+  border-color: var(--ucpf-admin-warn);
+}
+
+.ucpf-wizard .ucpf-row--critical,
+.ucpf-wizard tr.ucpf-row--critical {
+  background: var(--ucpf-admin-fail-bg) !important;
+}
+
+.ucpf-wizard .ucpf-row--warn,
+.ucpf-wizard tr.ucpf-row--warn {
+  background: var(--ucpf-admin-warn-bg) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ucpf-admin__card,
+  .ucpf-card,
+  .ucpf-btn,
+  .ucpf-shell__nav-link,
+  .ucpf-scanner-chip {
+    transition: none !important;
+  }
+  .ucpf-admin__card:hover,
+  .ucpf-card:hover {
+    transform: none;
+  }
+  .ucpf-dash--enter [data-ucpf-animate="card"].ucpf-enter {
+    animation: none !important;
+  }
+  .ucpf-dash__ring-value {
+    transition: none !important;
+  }
+  .ucpf-dash__passing-summary::before {
+    transition: none !important;
+  }
+}
+
+/* —— Tables: content-sized columns + horizontal scroll (never crush text) —— */
+.ucpf-shell__main {
+  overflow-x: clip;
+  max-width: 100%;
+}
+
+.ucpf-table-scroll {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  margin: 0.85rem 0 1.25rem;
+  border: 1px solid var(--ucpf-admin-border);
+  border-radius: var(--ucpf-admin-radius);
+  background: var(--ucpf-admin-surface);
+  box-shadow: var(--ucpf-admin-shadow);
+  /* Make overflow obvious (WCAG: operable / visible scroll affordance) */
+  scrollbar-gutter: stable;
+}
+
+.ucpf-table-scroll:focus-within {
+  outline: 3px solid var(--ucpf-admin-focus);
+  outline-offset: 2px;
+}
+
+/* Beat WP .widefat { width:100% } so columns keep their min-widths and the wrapper scrolls */
+.ucpf-shell__main .ucpf-table-scroll > table.widefat,
+.ucpf-admin .ucpf-table-scroll > table.widefat,
+.ucpf-table-scroll > table.widefat,
+.ucpf-table-scroll > table.ucpf-tracking-table {
+  margin: 0 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  width: max-content !important;
+  min-width: 100% !important;
+  max-width: none !important;
+  border-collapse: collapse;
+  table-layout: auto !important;
+}
+
+.ucpf-shell__main table.widefat,
+.ucpf-admin table.widefat {
+  margin-bottom: 1rem;
+  border-collapse: collapse;
+}
+
+.ucpf-shell__main table.widefat th,
+.ucpf-shell__main table.widefat td,
+.ucpf-admin table.widefat th,
+.ucpf-admin table.widefat td {
+  padding: 0.75rem 1rem;
+  vertical-align: top;
+  line-height: 1.5;
+  font-size: 14px;
+  color: var(--ucpf-admin-ink);
+  /* Never mid-word crush — prefer scroll over illegible wraps */
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+  hyphens: none !important;
+  white-space: normal;
+}
+
+.ucpf-shell__main table.widefat thead th,
+.ucpf-admin table.widefat thead th {
+  white-space: nowrap;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--ucpf-admin-ink);
+  background: var(--ucpf-admin-surface-muted);
+  vertical-align: middle;
+}
+
+/* Short enums — shrink-wrap, stay on one line */
+.ucpf-shell__main table.widefat .ucpf-cell-type,
+.ucpf-shell__main table.widefat .ucpf-cell-cat,
+.ucpf-shell__main table.widefat .ucpf-cell-sev,
+.ucpf-admin table.widefat .ucpf-cell-type,
+.ucpf-admin table.widefat .ucpf-cell-cat,
+.ucpf-admin table.widefat .ucpf-cell-sev {
+  white-space: nowrap !important;
+  width: 1%;
+  min-width: 7rem;
+}
+
+.ucpf-shell__main table.widefat .ucpf-cell-sev,
+.ucpf-admin table.widefat .ucpf-cell-sev {
+  min-width: 5.5rem;
+}
+
+/* Identifiers: one readable line; table grows / scrolls instead of squishing */
+.ucpf-shell__main table.widefat .ucpf-cell-verdict,
+.ucpf-admin table.widefat .ucpf-cell-verdict,
+.ucpf-shell__main table.widefat .ucpf-cell-host,
+.ucpf-admin table.widefat .ucpf-cell-host {
+  white-space: nowrap !important;
+  min-width: 18rem;
+  max-width: none;
+  width: auto;
+}
+
+.ucpf-shell__main table.widefat .ucpf-cell-name,
+.ucpf-admin table.widefat .ucpf-cell-name {
+  min-width: 22rem;
+  max-width: 36rem;
+  width: auto;
+  white-space: normal;
+}
+
+.ucpf-shell__main table.widefat .ucpf-cell-reason,
+.ucpf-admin table.widefat .ucpf-cell-reason {
+  min-width: 16rem;
+  max-width: 28rem;
+  white-space: normal;
+}
+
+.ucpf-shell__main table.widefat .ucpf-cell-actions,
+.ucpf-admin table.widefat .ucpf-cell-actions {
+  width: 1%;
+  min-width: 18rem;
+  white-space: nowrap !important;
+}
+
+.ucpf-unknown-table .ucpf-row--critical td,
+.ucpf-unknown-table .ucpf-row--warn td {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  vertical-align: top;
+}
+
+.ucpf-unknown-table,
+.ucpf-findings-table,
+.ucpf-catalog-suggestions-table,
+#ucpf-catalog-suggestions {
+  min-width: 68rem !important;
+}
+
+/* code chips inside cells */
+.ucpf-shell__main table.widefat td code,
+.ucpf-admin table.widefat td code {
+  display: inline;
+  margin: 0;
+  padding: 0.1rem 0.35rem;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ucpf-admin-ink);
+  background: var(--ucpf-admin-surface-muted);
+  border-radius: 4px;
+  white-space: inherit !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+  max-width: none;
+  overflow: visible;
+  text-overflow: unset;
+  vertical-align: baseline;
+}
+
+/* Long URLs may wrap at punctuation inside the name column only */
+.ucpf-shell__main table.widefat .ucpf-cell-name code,
+.ucpf-admin table.widefat .ucpf-cell-name code {
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  display: inline-block;
+  max-width: 34rem;
+}
+
+.ucpf-shell__main table.widefat .ucpf-cell-verdict code,
+.ucpf-shell__main table.widefat .ucpf-cell-host code,
+.ucpf-admin table.widefat .ucpf-cell-verdict code,
+.ucpf-admin table.widefat .ucpf-cell-host code {
+  white-space: nowrap !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+}
+
+/* Readable helper copy (≈ WCAG AA on white) */
+.ucpf-shell__main .description,
+.ucpf-admin .description,
+.ucpf-card > .description {
+  color: var(--ucpf-admin-muted);
+  font-size: 14px;
+  line-height: 1.5;
+  max-width: 52rem;
+}
+
+/* Cookie review: readable columns (no crushed cookie names) */
+.ucpf-cookie-review__known,
+.ucpf-cookie-review__services,
+.ucpf-cookie-review .ucpf-unknown-table {
+  min-width: 72rem;
+  table-layout: fixed;
+}
+
+.ucpf-cookie-review__known th:nth-child(1),
+.ucpf-cookie-review__known td:nth-child(1),
+.ucpf-cookie-review .ucpf-unknown-table th:nth-child(1),
+.ucpf-cookie-review .ucpf-unknown-table td:nth-child(1) {
+  width: 14rem;
+  min-width: 12rem;
+}
+
+.ucpf-cookie-review__known th:nth-child(2),
+.ucpf-cookie-review__known td:nth-child(2) {
+  width: 12rem;
+  min-width: 10rem;
+}
+
+.ucpf-cookie-review__known th:nth-child(3),
+.ucpf-cookie-review__known td:nth-child(3),
+.ucpf-cookie-review .ucpf-unknown-table th:nth-child(3),
+.ucpf-cookie-review .ucpf-unknown-table td:nth-child(3) {
+  width: 22%;
+  min-width: 14rem;
+}
+
+.ucpf-cookie-review__known th:nth-child(4),
+.ucpf-cookie-review__known th:nth-child(5),
+.ucpf-cookie-review__known th:nth-child(6),
+.ucpf-cookie-review__known td:nth-child(4),
+.ucpf-cookie-review__known td:nth-child(5),
+.ucpf-cookie-review__known td:nth-child(6) {
+  width: 10rem;
+  min-width: 9rem;
+}
+
+.ucpf-cookie-review__id {
+  white-space: normal;
+}
+
+.ucpf-cookie-review__name,
+.ucpf-cookie-review td.ucpf-cookie-review__id code,
+.ucpf-cookie-review .ucpf-cookie-review__id code {
+  display: block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: normal;
+  overflow-wrap: normal;
+  box-sizing: border-box;
+}
+
+.ucpf-cookie-review__meta {
+  display: block;
+  margin-top: 0.25rem;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+}
+
+.ucpf-cookie-review__meta code {
+  display: inline;
+  max-width: none;
+  white-space: inherit;
+  word-break: normal;
+}
+
+.ucpf-cookie-review textarea.widefat,
+.ucpf-cookie-review .ucpf-known-purpose,
+.ucpf-cookie-review .ucpf-unknown-purpose {
+  min-height: 3.25rem;
+  max-height: 8rem;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  line-height: 1.4;
+  font-size: 13px;
+}
+
+.ucpf-cookie-review input.widefat,
+.ucpf-cookie-review .ucpf-known-label {
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ucpf-cookie-review select {
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  white-space: normal;
+}
+
+/* —— Action toolbars (scanner etc.) —— */
+.ucpf-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: center;
+  margin: 0.75rem 0 1rem;
+  max-width: 100%;
+}
+
+.ucpf-toolbar .button,
+.ucpf-toolbar .ucpf-btn {
+  margin: 0 !important;
+  flex: 0 1 auto;
+}
+
+.ucpf-shell__main > .description,
+.ucpf-shell__main p.description {
+  margin: 0.35rem 0 0.85rem;
+  max-width: 48rem;
+}
+
+.ucpf-shell__main > p {
+  margin: 0.5rem 0;
+}
+
+/* Scanner: full-width picker, denser list */
+.ucpf-scanner-picker {
+  max-width: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ucpf-scanner-pages {
+  max-height: 28rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ucpf-import-box {
+  max-width: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ucpf-findings-summary {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Integrations tracking table proportions */
+.ucpf-tracking-table {
+  min-width: 52rem !important;
+}
+
+.ucpf-tracking-table .ucpf-col-check,
+.ucpf-tracking-table td:first-child {
+  width: 4.5rem;
+  text-align: center;
+}
+
+.ucpf-tracking-table .ucpf-col-service,
+.ucpf-tracking-table td:nth-child(2) {
+  width: 12rem;
+  min-width: 10rem;
+}
+
+.ucpf-tracking-table .ucpf-col-id,
+.ucpf-tracking-table td:nth-child(3) {
+  min-width: 16rem;
+  width: 38%;
+}
+
+.ucpf-tracking-table .ucpf-col-code,
+.ucpf-tracking-table td:nth-child(4) {
+  min-width: 14rem;
+  width: 28%;
+}
+
+.ucpf-tracking-table input.regular-text,
+.ucpf-tracking-table textarea.large-text {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+
+.ucpf-tracking-table textarea.large-text {
+  min-height: 4.5rem;
+  resize: vertical;
+}
+
+.ucpf-tracking-table .description {
+  margin: 0.25rem 0 0.65rem;
+  max-width: 28rem;
+}
+
+/* Form tables: use content width without huge empty right void feeling */
+.ucpf-shell__main .form-table {
+  width: 100%;
+  max-width: 52rem;
+  margin: 0.5rem 0 1.25rem;
+}
+
+.ucpf-shell__main .form-table th {
+  width: 12rem;
+  padding: 0.85rem 1rem 0.85rem 0;
+  vertical-align: top;
+}
+
+.ucpf-shell__main .form-table td {
+  padding: 0.65rem 0;
+}
+
+.ucpf-shell__main .form-table input.regular-text,
+.ucpf-shell__main .form-table input[type="url"],
+.ucpf-shell__main .form-table input[type="text"],
+.ucpf-shell__main .form-table input[type="password"],
+.ucpf-shell__main .form-table select {
+  max-width: 100%;
+  width: min(28rem, 100%);
+}
+
+/* Wizard: keep review table inside panel */
+.ucpf-wizard__layout {
+  min-width: 0;
+}
+
+.ucpf-wizard__panel {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.ucpf-wizard__panel .ucpf-table-scroll {
+  margin-top: 0.75rem;
+}
+
+.ucpf-cookie-review {
+  max-width: 100%;
+}
+
+.ucpf-cookie-review__actions {
+  margin-top: 1rem;
+}
+
+/* Page actions on Generated Pages */
+.ucpf-shell__main .button + .button {
+  margin-left: 0;
+}
+
+.ucpf-shell__main p .button {
+  margin: 0 0.35rem 0.35rem 0;
+}
+
+/* React dashboard root */
+#ucpf-admin-root {
+  margin: 0;
+}
+
+/* Consent logs filters */
+.ucpf-admin .ucpf-logs-tabs {
+  margin: 1rem 0 0.75rem;
+}
+
+.ucpf-admin .ucpf-logs-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: flex-end;
+  margin: 0.75rem 0 1rem;
+}
+
+.ucpf-admin .ucpf-logs-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 12px;
+  color: var(--ucpf-admin-muted, #646970);
+}
+
+.ucpf-admin .ucpf-logs-export {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+/* —— Shared panels (dashboard language across admin pages) —— */
+.ucpf-panel {
+  margin: 0 0 1.25rem;
+  padding: 1.15rem 1.25rem;
+  background: var(--ucpf-admin-surface);
+  border: 1px solid var(--ucpf-admin-border);
+  border-radius: var(--ucpf-admin-radius);
+  box-shadow: var(--ucpf-admin-shadow);
+  border-left: 4px solid var(--ucpf-admin-accent);
+  max-width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.ucpf-panel > :first-child {
+  margin-top: 0;
+}
+
+.ucpf-panel > :last-child {
+  margin-bottom: 0;
+}
+
+.ucpf-panel__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ucpf-admin-ink);
+  letter-spacing: -0.01em;
+}
+
+.ucpf-panel__lede,
+.ucpf-panel > .description {
+  margin: 0 0 1rem;
+  color: var(--ucpf-admin-muted);
+  font-size: 0.875rem;
+  max-width: 48rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.ucpf-panel .form-table {
+  margin: 0;
+  max-width: none;
+}
+
+.ucpf-panel .form-table th,
+.ucpf-panel .form-table td {
+  padding-top: 0.7rem;
+  padding-bottom: 0.7rem;
+}
+
+.ucpf-panel .submit {
+  margin: 1rem 0 0;
+  padding: 0;
+}
+
+.ucpf-shell__main > h2.title,
+.ucpf-shell__main > h2:not(.ucpf-panel__title):not(.ucpf-card__title) {
+  margin: 1.5rem 0 0.65rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ucpf-admin-muted);
+}
+
+.ucpf-shell__main > p,
+.ucpf-shell__main > .description {
+  max-width: min(48rem, 100%);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Stacked form fields on narrow / always-friendlier on mid widths */
+@media (max-width: 782px) {
+  .ucpf-shell__main .form-table,
+  .ucpf-shell__main .form-table tbody,
+  .ucpf-shell__main .form-table tr,
+  .ucpf-shell__main .form-table th,
+  .ucpf-shell__main .form-table td {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .ucpf-shell__main .form-table th {
+    padding-bottom: 0.25rem;
+  }
+
+  .ucpf-shell__main .form-table td {
+    padding-top: 0.25rem;
+  }
+
+  .ucpf-shell__main .form-table input.regular-text,
+  .ucpf-shell__main .form-table input[type="url"],
+  .ucpf-shell__main .form-table input[type="text"],
+  .ucpf-shell__main .form-table input[type="password"],
+  .ucpf-shell__main .form-table select,
+  .ucpf-shell__main .form-table textarea.large-text {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+.ucpf-check-grid {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.ucpf-check-grid label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.45rem 0.65rem;
+  border-radius: var(--ucpf-admin-radius-sm);
+  background: var(--ucpf-admin-surface-muted);
+  border: 1px solid transparent;
+  font-weight: 500;
+}
+
+.ucpf-check-grid label:hover {
+  border-color: var(--ucpf-admin-border);
+}
+
+.ucpf-check-grid input {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
+/* Category pills */
+.ucpf-cat {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.4;
+  background: var(--ucpf-admin-surface-muted);
+  color: var(--ucpf-admin-muted);
+  white-space: nowrap;
+}
+
+.ucpf-cat--necessary,
+.ucpf-cat--security {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.ucpf-cat--analytics {
+  background: var(--ucpf-admin-ok-bg);
+  color: var(--ucpf-admin-accent);
+}
+
+.ucpf-cat--marketing {
+  background: #fdf2f8;
+  color: #9d174d;
+}
+
+.ucpf-cat--functional,
+.ucpf-cat--preferences {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.ucpf-slug {
+  display: inline-block;
+  max-width: 100%;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  background: var(--ucpf-admin-surface-muted);
+  border: 1px solid var(--ucpf-admin-border);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  color: var(--ucpf-admin-ink);
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+/* Resolved / long URLs */
+.ucpf-resolved {
+  margin: 0.45rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--ucpf-admin-muted);
+  max-width: 100%;
+}
+
+.ucpf-resolved__url {
+  display: block;
+  margin-top: 0.2rem;
+  max-width: 100%;
+  padding: 0.4rem 0.55rem;
+  border-radius: var(--ucpf-admin-radius-sm);
+  background: var(--ucpf-admin-surface-muted);
+  border: 1px solid var(--ucpf-admin-border);
+  overflow-x: auto;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+  -webkit-overflow-scrolling: touch;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.ucpf-resolved__url a {
+  color: var(--ucpf-admin-accent);
+  text-decoration: none;
+}
+
+.ucpf-resolved__url a:hover {
+  text-decoration: underline;
+}
+
+/* Generated pages list */
+.ucpf-page-list {
+  list-style: none;
+  margin: 0 0 0.25rem;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.ucpf-page-list__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--ucpf-admin-radius-sm);
+  background: var(--ucpf-admin-surface-muted);
+  border: 1px solid var(--ucpf-admin-border);
+  min-width: 0;
+}
+
+.ucpf-page-list__label {
+  font-weight: 600;
+  color: var(--ucpf-admin-ink);
+}
+
+.ucpf-page-list__meta {
+  color: var(--ucpf-admin-muted);
+  font-size: 0.875rem;
+}
+
+.ucpf-page-list__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.ucpf-page-list__actions a {
+  font-weight: 600;
+  color: var(--ucpf-admin-accent);
+  text-decoration: none;
+}
+
+.ucpf-page-list__actions a:hover {
+  text-decoration: underline;
+}
+
+/* Script registry filter + denser table */
+.ucpf-registry-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 0.85rem;
+}
+
+.ucpf-registry-filter {
+  flex: 1 1 14rem;
+  min-width: 0;
+  max-width: 22rem;
+}
+
+.ucpf-registry-filter input {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-height: 2.5rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--ucpf-admin-border);
+  border-radius: var(--ucpf-admin-radius-sm);
+  font-family: inherit;
+  font-size: 0.875rem;
+}
+
+.ucpf-registry-table td {
+  vertical-align: middle;
+}
+
+.ucpf-registry-table .ucpf-service-cell {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.5rem;
+  min-width: 0;
+}
+
+.ucpf-registry-table .ucpf-service-name {
+  font-weight: 600;
+  color: var(--ucpf-admin-ink);
+}
+
+/* Integrations: card stack (avoids wide-table overflow) */
+.ucpf-integration-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0 0 1.25rem;
+  max-width: 100%;
+}
+
+.ucpf-integration-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.85rem 1rem;
+  padding: 1rem 1.1rem;
+  background: var(--ucpf-admin-surface);
+  border: 1px solid var(--ucpf-admin-border);
+  border-radius: var(--ucpf-admin-radius);
+  box-shadow: var(--ucpf-admin-shadow);
+  border-left: 4px solid var(--ucpf-admin-border);
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.ucpf-integration-card.is-enabled {
+  border-left-color: var(--ucpf-admin-accent);
+}
+
+.ucpf-integration-card__enable {
+  padding-top: 0.15rem;
+}
+
+.ucpf-integration-card__body {
+  min-width: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.ucpf-integration-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.65rem;
+  min-width: 0;
+}
+
+.ucpf-integration-card__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ucpf-admin-ink);
+}
+
+.ucpf-integration-card__fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  gap: 0.75rem 1rem;
+  min-width: 0;
+}
+
+.ucpf-integration-card__field label {
+  display: block;
+  margin: 0 0 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ucpf-admin-muted);
+}
+
+.ucpf-integration-card__field input,
+.ucpf-integration-card__field textarea {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+
+.ucpf-integration-card__field .description {
+  margin: 0.3rem 0 0;
+  max-width: none;
+}
+
+.ucpf-integration-card__code {
+  grid-column: 1 / -1;
+}
+
+.ucpf-admin__code,
+.ucpf-shell__main pre.ucpf-admin__code {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 1rem 1.1rem;
+  border-radius: var(--ucpf-admin-radius);
+  background: var(--ucpf-admin-surface-2);
+  color: #e2e8f0;
+  border: 1px solid #1e293b;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+
+/* Color inputs row */
+.ucpf-color-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.ucpf-color-row input[type="text"] {
+  width: min(10rem, 100%);
+}
+
+/* Dense tracking table fallback (if still used) */
+.ucpf-tracking-table tbody tr {
+  vertical-align: top;
+}
+
+.ucpf-tracking-table td {
+  padding-top: 0.75rem !important;
+  padding-bottom: 0.75rem !important;
+}
+
+@media (max-width: 960px) {
+  .ucpf-integration-card {
+    grid-template-columns: 1fr;
+  }
+
+  .ucpf-integration-card__enable {
+    order: -1;
+  }
+}
+

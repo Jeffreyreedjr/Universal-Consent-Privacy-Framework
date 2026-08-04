@@ -1,0 +1,39 @@
+/**
+ * WP admin sidebar menu icon for Privacy Consent (all admin screens).
+ * Custom URL icons need explicit size — oversized/opaque tiles brick the slot;
+ * SVG data URLs often render blank in the admin menu.
+ */
+
+#adminmenu #toplevel_page_ucpf-dashboard .wp-menu-image {
+  background-size: 20px 20px !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+}
+
+#adminmenu #toplevel_page_ucpf-dashboard .wp-menu-image img {
+  padding: 7px 0 0 !important;
+  opacity: 0.75;
+  width: 20px !important;
+  height: 20px !important;
+}
+
+#adminmenu #toplevel_page_ucpf-dashboard:hover .wp-menu-image img,
+#adminmenu #toplevel_page_ucpf-dashboard.wp-has-current-submenu .wp-menu-image img,
+#adminmenu #toplevel_page_ucpf-dashboard.current .wp-menu-image img {
+  opacity: 1;
+}
+
+/* When using a Dashicon fallback, keep default glyph visible */
+#adminmenu #toplevel_page_ucpf-dashboard .wp-menu-image.dashicons-before::before {
+  opacity: 0.75;
+}
+
+#adminmenu #toplevel_page_ucpf-dashboard:hover .wp-menu-image.dashicons-before::before,
+#adminmenu #toplevel_page_ucpf-dashboard.wp-has-current-submenu .wp-menu-image.dashicons-before::before,
+#adminmenu #toplevel_page_ucpf-dashboard.current .wp-menu-image.dashicons-before::before {
+  opacity: 1;
+}
+
+.folded #adminmenu #toplevel_page_ucpf-dashboard .wp-menu-image {
+  background-size: 20px 20px !important;
+}

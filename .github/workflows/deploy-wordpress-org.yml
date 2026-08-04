@@ -1,0 +1,44 @@
+name: Deploy to WordPress.org
+
+# After wordpress.org directory approval, add repo secrets:
+#   SVN_USERNAME, SVN_PASSWORD
+# Until then this workflow skips deploy (GitHub Releases remain the distribution channel).
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  svn-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check WordPress.org credentials
+        id: creds
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+        run: |
+          if [ -z "${SVN_USERNAME}" ] || [ -z "${SVN_PASSWORD}" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "SVN secrets not set — skipping WordPress.org deploy."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        if: steps.creds.outputs.configured == 'true'
+        uses: actions/checkout@v4
+
+      - name: Deploy plugin to WordPress.org SVN
+        if: steps.creds.outputs.configured == 'true'
+        uses: 10up/action-wordpress-plugin-deploy@2.3.0
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          SLUG: universal-consent-privacy-framework
+          ASSETS_DIR: .wordpress-org

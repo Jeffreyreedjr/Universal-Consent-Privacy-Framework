@@ -1,0 +1,105 @@
+{
+  "services": [
+    {
+      "key": "elementor",
+      "name": "Elementor",
+      "provider": "Elementor Ltd.",
+      "category": "necessary",
+      "treatment": "necessary",
+      "description": "Page builder assets used to render site layouts.",
+      "privacy_url": "https://elementor.com/about/privacy/",
+      "script_patterns": [
+        "elementor/assets",
+        "elementor-frontend",
+        "elementor-pro",
+        "elementor/js",
+        "elementorCommon",
+        "elementorFrontend"
+      ],
+      "cookie_patterns": ["elementor"],
+      "cookies": [
+        {
+          "name": "elementor",
+          "pattern": "elementor*",
+          "purpose": "Stores Elementor editor/frontend preferences when present.",
+          "retention": "Session / varies",
+          "category": "necessary",
+          "treatment": "necessary",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": false
+    },
+    {
+      "key": "wordpress_emoji",
+      "name": "WordPress Emoji",
+      "provider": "WordPress",
+      "category": "necessary",
+      "treatment": "necessary",
+      "description": "WordPress emoji script.",
+      "privacy_url": "https://wordpress.org/about/privacy/",
+      "script_patterns": ["wp-emoji-release.min.js", "s.w.org/images/core/emoji"],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": false
+    },
+    {
+      "key": "jetpack",
+      "name": "Jetpack",
+      "provider": "Automattic",
+      "category": "analytics",
+      "treatment": "consent",
+      "description": "Jetpack stats and related modules.",
+      "privacy_url": "https://automattic.com/privacy/",
+      "script_patterns": ["stats.wp.com", "/jetpack/", "pixel.wp.com", "jetpack.min.js"],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "gravatar",
+      "name": "Gravatar",
+      "provider": "Automattic",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Avatar images from Gravatar.",
+      "privacy_url": "https://automattic.com/privacy/",
+      "script_patterns": ["gravatar.com", "secure.gravatar.com"],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "slider_revolution",
+      "name": "Slider Revolution",
+      "provider": "ThemePunch",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Slider scripts and media; may load third-party fonts or video embeds.",
+      "privacy_url": "https://www.sliderrevolution.com/privacy-policy/",
+      "script_patterns": ["revslider", "tp-tools", "/themepunch/"],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": false
+    },
+    {
+      "key": "smart_slider",
+      "name": "Smart Slider 3",
+      "provider": "Nextend",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Slider frontend scripts.",
+      "privacy_url": "https://smartslider3.com/privacy-policy/",
+      "script_patterns": ["smartslider", "n2.min.js", "ss3-"],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": false
+    }
+  ]
+}

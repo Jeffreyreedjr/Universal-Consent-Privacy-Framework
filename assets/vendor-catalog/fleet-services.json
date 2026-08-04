@@ -1,0 +1,1340 @@
+{
+  "services": [
+    {
+      "key": "flexmls_idx",
+      "name": "Flexmls IDX",
+      "provider": "Flexmls IDX",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "flexmls.com",
+        "cdn.flexmls.com",
+        "sparkplatform.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [
+        "flexmls.com"
+      ],
+      "default_blocking": true
+    },
+    {
+      "key": "optima_express",
+      "name": "Optima Express IDX",
+      "provider": "Optima Express IDX",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Inferred from Optima Express IDX listing plugin; inferred_slug: true; inferred_slug: true Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "ihomefinder.com",
+        "www.ihomefinder.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [
+        "ihomefinder.com"
+      ],
+      "default_blocking": true
+    },
+    {
+      "key": "esri",
+      "name": "Esri",
+      "provider": "Esri",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "esri.com",
+        "arcgis.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "campaign_monitor",
+      "name": "Gravity Forms Campaign Monitor",
+      "provider": "Gravity Forms Campaign Monitor",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "campaignmonitor.com",
+        "createsend.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "brevo",
+      "name": "Brevo Marketing",
+      "provider": "Brevo Marketing",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "brevo.com",
+        "sendinblue.com",
+        "sibautomation.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "mailpoet",
+      "name": "MailPoet",
+      "provider": "MailPoet",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "mailpoet.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "omnisend",
+      "name": "Omnisend",
+      "provider": "Omnisend",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "omnisend.com",
+        "omnisnippet1.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "salesforce",
+      "name": "Salesforce",
+      "provider": "Salesforce",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "salesforce.com",
+        "force.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "pardot",
+      "name": "Salesforce Pardot",
+      "provider": "Salesforce Pardot",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "pardot.com",
+        "pi.pardot.com",
+        "go.pardot.com"
+      ],
+      "cookie_patterns": [
+        "visitor_id"
+      ],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "marketo",
+      "name": "Marketo",
+      "provider": "Marketo",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "marketo.com",
+        "mktoresp.com",
+        "mktoweb.com"
+      ],
+      "cookie_patterns": [
+        "_mkto_trk"
+      ],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "keap",
+      "name": "Keap (Infusionsoft)",
+      "provider": "Keap (Infusionsoft)",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "keap.com",
+        "infusionsoft.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "zoho_crm",
+      "name": "Zoho CRM",
+      "provider": "Zoho CRM",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "zoho.com",
+        "zoho.eu",
+        "pagesense.io"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "gohighlevel",
+      "name": "GoHighLevel",
+      "provider": "GoHighLevel",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "gohighlevel.com",
+        "leadconnectorhq.com",
+        "msgsndr.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "trello",
+      "name": "Gravity Forms Trello",
+      "provider": "Gravity Forms Trello",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "trello.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "twilio",
+      "name": "Gravity Forms Twilio",
+      "provider": "Gravity Forms Twilio",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "twilio.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "afterpay",
+      "name": "Afterpay",
+      "provider": "Afterpay",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Checkout payment facility — not marketing. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "afterpay.com",
+        "static.afterpay.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "affirm",
+      "name": "Affirm",
+      "provider": "Affirm",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Checkout payment facility — not marketing. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "affirm.com",
+        "cdn1.affirm.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "klarna",
+      "name": "Klarna",
+      "provider": "Klarna",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Checkout payment facility — not marketing. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "klarna.com",
+        "js.klarna.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "reviews",
+      "name": "WP Review",
+      "provider": "WP Review",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "pinterest",
+      "name": "Pinterest Tag",
+      "provider": "Pinterest Tag",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "ct.pinterest.com",
+        "s.pinimg.com",
+        "pinterest.com"
+      ],
+      "cookie_patterns": [
+        "_pinterest_ct_ua"
+      ],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "adrotate",
+      "name": "AdRotate Banner Manager",
+      "provider": "AdRotate Banner Manager",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "matomo",
+      "name": "Matomo",
+      "provider": "Matomo",
+      "category": "analytics",
+      "treatment": "consent",
+      "description": "Privacy-focused web analytics (formerly Piwik). Measures visits and page popularity when analytics consent is granted.",
+      "privacy_url": "https://matomo.org/privacy-policy/",
+      "script_patterns": [
+        "matomo.cloud",
+        "cdn.matomo.cloud",
+        "matomo.js",
+        "piwik.js",
+        "/matomo/",
+        "/piwik/"
+      ],
+      "cookie_patterns": [
+        "_pk_id*",
+        "_pk_ref*",
+        "_pk_ses*",
+        "_pk_cvar*",
+        "_pk_hsr*"
+      ],
+      "cookies": [
+        {
+          "name": "_pk_id*",
+          "pattern": "_pk_id*",
+          "purpose": "Randomly generated string used to recognise you across the webpages of this site you visit.",
+          "retention": "13 months",
+          "category": "analytics",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "_pk_ref*",
+          "pattern": "_pk_ref*",
+          "purpose": "Stores the referrer URL of the website you visited prior to accessing this site.",
+          "retention": "6 months",
+          "category": "analytics",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "_pk_ses*",
+          "pattern": "_pk_ses*",
+          "purpose": "Temporarily stores information about your visit.",
+          "retention": "30 minutes",
+          "category": "analytics",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "_pk_cvar*",
+          "pattern": "_pk_cvar*",
+          "purpose": "Temporarily stores custom variables / visit information for the session.",
+          "retention": "30 minutes",
+          "category": "analytics",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "_pk_hsr*",
+          "pattern": "_pk_hsr*",
+          "purpose": "Temporarily stores Heatmap / session recording related visit data when enabled.",
+          "retention": "30 minutes",
+          "category": "analytics",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "plausible",
+      "name": "Plausible",
+      "provider": "Plausible",
+      "category": "analytics",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "plausible.io"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "fathom",
+      "name": "Fathom Analytics",
+      "provider": "Fathom Analytics",
+      "category": "analytics",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "cdn.usefathom.com",
+        "usefathom.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "mixpanel",
+      "name": "Mixpanel",
+      "provider": "Mixpanel",
+      "category": "analytics",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "cdn.mxpnl.com",
+        "api.mixpanel.com",
+        "mixpanel.com"
+      ],
+      "cookie_patterns": [
+        "mp_*"
+      ],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "amplitude",
+      "name": "Amplitude",
+      "provider": "Amplitude",
+      "category": "analytics",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "cdn.amplitude.com",
+        "api.amplitude.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "fullstory",
+      "name": "FullStory",
+      "provider": "FullStory",
+      "category": "analytics",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "fullstory.com",
+        "rs.fullstory.com"
+      ],
+      "cookie_patterns": [
+        "fs_uid"
+      ],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "mouseflow",
+      "name": "Mouseflow",
+      "provider": "Mouseflow",
+      "category": "analytics",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "cdn.mouseflow.com",
+        "mouseflow.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "ninjalytics",
+      "name": "Ninjalytics",
+      "provider": "Ninjalytics",
+      "category": "analytics",
+      "treatment": "consent",
+      "description": "inferred_slug: true Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "livechat",
+      "name": "LiveChat",
+      "provider": "LiveChat",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "cdn.livechatinc.com",
+        "livechatinc.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "brightcove",
+      "name": "Brightcove",
+      "provider": "Brightcove",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "players.brightcove.net",
+        "brightcove.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [
+        "players.brightcove.net"
+      ],
+      "default_blocking": true
+    },
+    {
+      "key": "sonaar",
+      "name": "Sonaar Music",
+      "provider": "Sonaar Music",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "momento360",
+      "name": "Momento360",
+      "provider": "Momento360",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "momento360.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [
+        "momento360.com"
+      ],
+      "default_blocking": true
+    },
+    {
+      "key": "ipanorama",
+      "name": "iPanorama 360",
+      "provider": "iPanorama 360",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "wpvr",
+      "name": "WP VR",
+      "provider": "WP VR",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "lordicon",
+      "name": "Lordicon",
+      "provider": "Lordicon",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "cdn.lordicon.com",
+        "lordicon.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "amelia",
+      "name": "Amelia Booking",
+      "provider": "Amelia Booking",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "events_calendar",
+      "name": "The Events Calendar",
+      "provider": "The Events Calendar",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [
+        "tribe"
+      ],
+      "default_blocking": true
+    },
+    {
+      "key": "mec",
+      "name": "Modern Events Calendar Lite",
+      "provider": "Modern Events Calendar Lite",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "booking",
+      "name": "Booking Calendar",
+      "provider": "Booking Calendar",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "ssa",
+      "name": "Simply Schedule Appointments",
+      "provider": "Simply Schedule Appointments",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "ticket_tailor",
+      "name": "Ticket Tailor",
+      "provider": "Ticket Tailor",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "tickettailor.com",
+        "www.tickettailor.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [
+        "tickettailor.com"
+      ],
+      "default_blocking": true
+    },
+    {
+      "key": "wp_job_manager",
+      "name": "WP Job Manager",
+      "provider": "WP Job Manager",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "wp_jobsearch",
+      "name": "WP JobSearch",
+      "provider": "WP JobSearch",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "indeed",
+      "name": "Indeed",
+      "provider": "Indeed",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "indeed.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [
+        "indeed.com"
+      ],
+      "default_blocking": true
+    },
+    {
+      "key": "careerfy",
+      "name": "Careerfy Framework",
+      "provider": "Careerfy Framework",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "inferred_slug: true Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "aptivada",
+      "name": "Aptivada for WP",
+      "provider": "Aptivada for WP",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "inferred_slug: true Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "leaderboarded",
+      "name": "Leaderboarded",
+      "provider": "Leaderboarded",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "inferred_slug: true Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "santapress",
+      "name": "SantaPress",
+      "provider": "SantaPress",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "inferred_slug: true Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "gtranslate",
+      "name": "GTranslate",
+      "provider": "GTranslate",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "optinmonster",
+      "name": "OptinMonster",
+      "provider": "OptinMonster",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "a.omappapi.com",
+        "omappapi.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "typeform",
+      "name": "Typeform",
+      "provider": "Typeform",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "embed.typeform.com",
+        "typeform.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "snapchat",
+      "name": "Snapchat Pixel",
+      "provider": "Snapchat Pixel",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "sc-static.net",
+        "snapchat.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "reddit",
+      "name": "Reddit Pixel",
+      "provider": "Reddit Pixel",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "quora",
+      "name": "Quora Pixel",
+      "provider": "Quora Pixel",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "scorecardresearch",
+      "name": "ScorecardResearch",
+      "provider": "ScorecardResearch",
+      "category": "analytics",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "new_relic",
+      "name": "New Relic Browser",
+      "provider": "New Relic Browser",
+      "category": "analytics",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "js-agent.newrelic.com",
+        "nr-data.net"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "sentry",
+      "name": "Sentry Browser",
+      "provider": "Sentry Browser",
+      "category": "analytics",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "browser.sentry-cdn.com",
+        "sentry.io"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "segment",
+      "name": "Segment",
+      "provider": "Segment",
+      "category": "analytics",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "cdn.segment.com",
+        "api.segment.io"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "heap",
+      "name": "Heap Analytics",
+      "provider": "Heap Analytics",
+      "category": "analytics",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "crazyegg",
+      "name": "Crazy Egg",
+      "provider": "Crazy Egg",
+      "category": "analytics",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "lucky_orange",
+      "name": "Lucky Orange",
+      "provider": "Lucky Orange",
+      "category": "analytics",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "contentsquare",
+      "name": "ContentSquare",
+      "provider": "ContentSquare",
+      "category": "analytics",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "vwo",
+      "name": "VWO",
+      "provider": "VWO",
+      "category": "analytics",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "optimizely",
+      "name": "Optimizely",
+      "provider": "Optimizely",
+      "category": "analytics",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "ab_tasty",
+      "name": "AB Tasty",
+      "provider": "AB Tasty",
+      "category": "analytics",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "onesignal",
+      "name": "OneSignal",
+      "provider": "OneSignal",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "cdn.onesignal.com",
+        "onesignal.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "pushengage",
+      "name": "PushEngage",
+      "provider": "PushEngage",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "pushcrew",
+      "name": "PushCrew",
+      "provider": "PushCrew",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "addthis",
+      "name": "AddThis",
+      "provider": "AddThis",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "sharethis",
+      "name": "ShareThis",
+      "provider": "ShareThis",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "addtoany",
+      "name": "AddToAny",
+      "provider": "AddToAny",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "disqus",
+      "name": "Disqus",
+      "provider": "Disqus",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [
+        "disqus.com",
+        "c.disquscdn.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "funnelkit",
+      "name": "FunnelKit Automations",
+      "provider": "FunnelKit Automations",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "cartflows",
+      "name": "CartFlows",
+      "provider": "CartFlows",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "thrive",
+      "name": "Thrive Leads",
+      "provider": "Thrive Leads",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "weglot",
+      "name": "Weglot",
+      "provider": "Weglot",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "excited_testimonials",
+      "name": "Excited Testimonials",
+      "provider": "Excited Testimonials",
+      "category": "preferences",
+      "treatment": "consent",
+      "description": "Fleet stub.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "popup_maker",
+      "name": "Popup Maker",
+      "provider": "Popup Maker",
+      "category": "preferences",
+      "treatment": "consent",
+      "description": "Fleet stub.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "social_wall",
+      "name": "Social Wall",
+      "provider": "Social Wall",
+      "category": "preferences",
+      "treatment": "consent",
+      "description": "Fleet stub.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "twitter_by_united_themes",
+      "name": "Twitter by United Themes",
+      "provider": "Twitter by United Themes",
+      "category": "preferences",
+      "treatment": "consent",
+      "description": "Fleet stub.",
+      "privacy_url": "",
+      "script_patterns": [],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    }
+  ]
+}

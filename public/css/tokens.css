@@ -1,0 +1,54 @@
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../../assets/fonts/plus-jakarta-sans-latin-400-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("../../assets/fonts/plus-jakarta-sans-latin-500-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../../assets/fonts/plus-jakarta-sans-latin-600-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../../assets/fonts/plus-jakarta-sans-latin-700-normal.woff2") format("woff2");
+}
+
+#ucpf-root {
+  /* Classic WCAG blue defaults (text on near-black ≥ 7:1; accent ≥ 4.5:1 with white) */
+  --ucpf-black: #000000;
+  --ucpf-surface: #111111;
+  --ucpf-cream: #ffffff;
+  --ucpf-muted: #d4d4d4;
+  --ucpf-border: rgba(255, 255, 255, 0.35);
+  --ucpf-accent: #0b5cad;
+  --ucpf-accent-hover: #094a8c;
+  --ucpf-accent-active: #073a6e;
+  --ucpf-accent-2: #094a8c;
+  --ucpf-on-accent: #ffffff;
+  --ucpf-label: #ffffff;
+  --ucpf-focus: #ffffff;
+  --ucpf-focus-ring: #b45309;
+  --ucpf-danger: #ff6b6b;
+  --ucpf-radius-soft: 1rem;
+  --ucpf-radius-pill: 9999px;
+  --ucpf-font-sans: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ucpf-tracking-label: 0.12em;
+  --ucpf-tracking-cta: 0.08em;
+  --ucpf-touch-min: 3rem;
+  --ucpf-shadow-panel: 0 12px 40px rgba(0, 0, 0, 0.65);
+  --ucpf-text-body: 1.0625rem;
+}

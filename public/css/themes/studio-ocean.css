@@ -1,0 +1,17 @@
+#ucpf-root.ucpf-theme-studio_ocean,
+.ucpf-consent-guard.ucpf-theme-studio_ocean,
+.ucpf-captcha-guard.ucpf-theme-studio_ocean {
+  --ucpf-black: #051923;
+  --ucpf-surface: #0a2433;
+  --ucpf-cream: #f5fafc;
+  --ucpf-muted: #c5d8e0;
+  --ucpf-accent: #c2410c;
+  --ucpf-accent-hover: #9a3412;
+  --ucpf-accent-active: #7c2d12;
+  --ucpf-accent-2: #2ec4b6;
+  --ucpf-on-accent: #ffffff;
+  --ucpf-label: #ffffff;
+  --ucpf-focus: #ffffff;
+  --ucpf-focus-ring: #b45309;
+  --ucpf-border: rgba(245, 250, 252, 0.35);
+}

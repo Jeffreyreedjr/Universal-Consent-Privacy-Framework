@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://github.com/Jeffreyreedjr/Universal-Consent-Privacy-Framework#docs
+    about: Getting started, scanner server setup, and other docs in this repository.

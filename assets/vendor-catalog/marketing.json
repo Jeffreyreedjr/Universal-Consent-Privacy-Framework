@@ -1,0 +1,384 @@
+{
+  "services": [
+    {
+      "key": "klaviyo",
+      "name": "Klaviyo",
+      "provider": "Klaviyo",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Email/SMS marketing and onsite tracking.",
+      "privacy_url": "https://www.klaviyo.com/legal/privacy-notice",
+      "script_patterns": ["static.klaviyo.com", "static-forms.klaviyo.com", "klaviyo.com/onsite"],
+      "cookie_patterns": ["__kla_id", "klaviyo*"],
+      "cookies": [
+        {
+          "name": "__kla_id",
+          "pattern": "__kla_id",
+          "purpose": "Stores a Klaviyo identity for tracking and messaging.",
+          "retention": "2 years",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "pixelyoursite",
+      "name": "PixelYourSite",
+      "provider": "PixelYourSite",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Loads Meta and other marketing pixels via PixelYourSite.",
+      "privacy_url": "https://www.pixelyoursite.com/privacy-policy",
+      "script_patterns": ["/pixelyoursite/", "pys.library", "pys.js"],
+      "cookie_patterns": ["pys_*", "pysTracking"],
+      "cookies": [
+        {
+          "name": "pys_*",
+          "pattern": "pys_*",
+          "purpose": "PixelYourSite tracking and event state.",
+          "retention": "Session / months",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "paypal",
+      "name": "PayPal",
+      "provider": "PayPal",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "PayPal checkout, payment widgets, and related fraud/stats hosts.",
+      "privacy_url": "https://www.paypal.com/us/legalhub/privacy-full",
+      "script_patterns": [
+        "paypal.com/sdk",
+        "paypalobjects.com",
+        "www.paypal.com/sdk/js",
+        "c.paypal.com",
+        "b.stats.paypal.com",
+        "c6.paypal.com",
+        "lvs.stats.paypal.com",
+        "stats.paypal.com"
+      ],
+      "cookie_patterns": ["paypal*", "ts*", "enforce_policy", "l7_az", "sc_f", "KHcl0EuY7AKSMgfvHl7J5E7hPtK", "__paypal*"],
+      "cookies": [
+        {
+          "name": "l7_az",
+          "pattern": "l7_az",
+          "purpose": "This cookie is necessary for the PayPal login-function on the website.",
+          "retention": "Session / short-lived",
+          "category": "necessary",
+          "treatment": "necessary",
+          "contexts": ["guest", "logged_in", "checkout"]
+        },
+        {
+          "name": "sc_f",
+          "pattern": "sc_f",
+          "purpose": "PayPal session / fraud-related cookie required for purchase facilities.",
+          "retention": "varies",
+          "category": "necessary",
+          "treatment": "necessary",
+          "contexts": ["guest", "logged_in", "checkout"]
+        },
+        {
+          "name": "KHcl0EuY7AKSMgfvHl7J5E7hPtK",
+          "pattern": "KHcl0EuY7AKSMgfvHl7J5E7hPtK",
+          "purpose": "Used to show PayPal banners and run purchase facilities offered through PayPal.",
+          "retention": "varies",
+          "category": "necessary",
+          "treatment": "necessary",
+          "contexts": ["guest", "logged_in", "checkout"]
+        }
+      ],
+      "iframe_patterns": ["paypal.com", "c.paypal.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "stripe",
+      "name": "Stripe",
+      "provider": "Stripe",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Stripe payment elements and fraud prevention.",
+      "privacy_url": "https://stripe.com/privacy",
+      "script_patterns": ["js.stripe.com", "hooks.stripe.com"],
+      "cookie_patterns": ["__stripe_*", "stripe*"],
+      "cookies": [
+        {
+          "name": "__stripe_mid",
+          "pattern": "__stripe_mid",
+          "purpose": "Stripe fraud prevention / device identification.",
+          "retention": "1 year",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in", "checkout"]
+        }
+      ],
+      "iframe_patterns": ["js.stripe.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "square",
+      "name": "Square",
+      "provider": "Square",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Square payment forms and processing.",
+      "privacy_url": "https://squareup.com/us/en/legal/general/privacy",
+      "script_patterns": ["squareup.com", "squarecdn.com", "web.squarecdn.com"],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["squareup.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "constant_contact",
+      "name": "Constant Contact",
+      "provider": "Constant Contact",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Email marketing forms and tracking.",
+      "privacy_url": "https://www.constantcontact.com/legal/privacy-center",
+      "script_patterns": ["static.ctctcdn.com", "listgrowth.ctctcdn.com", "constantcontact.com"],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "magnite",
+      "name": "Magnite (Rubicon)",
+      "provider": "Magnite",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Programmatic advertising / bidstream (formerly Rubicon Project).",
+      "privacy_url": "https://www.magnite.com/legal/privacy-policy/",
+      "script_patterns": [
+        "rubiconproject.com",
+        "magnite.com",
+        "ads.rubiconproject.com",
+        "pixel.rubiconproject.com"
+      ],
+      "cookie_patterns": ["khaos", "audit", "receive-cookie-deprecation"],
+      "cookies": [
+        {
+          "name": "c",
+          "pattern": "c",
+          "purpose": "Magnite/Rubicon advertising cookie (only when set on rubiconproject.com / magnite.com — short name requires host match).",
+          "retention": "months",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "khaos",
+          "pattern": "khaos",
+          "purpose": "Magnite user identifier for advertising.",
+          "retention": "months",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": ["rubiconproject.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "activecampaign",
+      "name": "ActiveCampaign",
+      "provider": "ActiveCampaign",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Email marketing and site tracking from ActiveCampaign.",
+      "privacy_url": "https://www.activecampaign.com/legal/privacy-policy",
+      "script_patterns": [
+        "trackcmp.net",
+        "activehosted.com",
+        "activecampaign.com",
+        "lusrprx.com"
+      ],
+      "cookie_patterns": ["cmp*"],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "convertkit",
+      "name": "ConvertKit (Kit)",
+      "provider": "Kit",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "ConvertKit / Kit forms and tracking scripts.",
+      "privacy_url": "https://kit.com/privacy",
+      "script_patterns": [
+        "convertkit.com",
+        "ck.page",
+        "cdn.convertkit.com",
+        "app.convertkit.com"
+      ],
+      "cookie_patterns": ["ck_*"],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "drip",
+      "name": "Drip",
+      "provider": "Drip",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Drip email marketing and visitor tracking.",
+      "privacy_url": "https://www.drip.com/privacy",
+      "script_patterns": [
+        "getdrip.com",
+        "tag.getdrip.com",
+        "api.getdrip.com"
+      ],
+      "cookie_patterns": ["drip_*"],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "getresponse",
+      "name": "GetResponse",
+      "provider": "GetResponse",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "GetResponse forms and web tracking.",
+      "privacy_url": "https://www.getresponse.com/legal/privacy",
+      "script_patterns": [
+        "getresponse.com",
+        "app.getresponse.com",
+        "web-in.getresponse.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "mailerlite",
+      "name": "MailerLite",
+      "provider": "MailerLite",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "MailerLite forms, popups, and tracking.",
+      "privacy_url": "https://www.mailerlite.com/legal/privacy-policy",
+      "script_patterns": [
+        "mailerlite.com",
+        "assets.mlcdn.com",
+        "static.mailerlite.com",
+        "cdn.mailerlite.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "appnexus",
+      "name": "AppNexus / Xandr",
+      "provider": "Microsoft Xandr",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "AppNexus / Xandr ad serving and CDN (adnxs.com).",
+      "privacy_url": "https://www.microsoft.com/privacy",
+      "script_patterns": [
+        "adnxs.com",
+        "acdn.adnxs.com",
+        "ib.adnxs.com",
+        "secure.adnxs.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["adnxs.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "microsoft_advertising",
+      "name": "Microsoft Advertising (UET)",
+      "provider": "Microsoft",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Bing Ads / Microsoft Advertising Universal Event Tracking. Clarity (c.clarity.ms) is a separate analytics service.",
+      "privacy_url": "https://privacy.microsoft.com/privacystatement",
+      "script_patterns": ["bat.bing.com", "ads.bing.com"],
+      "cookie_patterns": ["_uetsid", "_uetvid"],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "taboola",
+      "name": "Taboola",
+      "provider": "Taboola",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Taboola content recommendation / advertising network.",
+      "privacy_url": "https://www.taboola.com/privacy-policy",
+      "script_patterns": ["cdn.taboola.com", "trc.taboola.com", "taboola.com"],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["taboola.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "outbrain",
+      "name": "Outbrain",
+      "provider": "Outbrain",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Outbrain content recommendation / advertising.",
+      "privacy_url": "https://www.outbrain.com/privacy/",
+      "script_patterns": ["widgets.outbrain.com", "outbrain.com", "odb.outbrain.com"],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["outbrain.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "criteo",
+      "name": "Criteo",
+      "provider": "Criteo",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Criteo retargeting and advertising.",
+      "privacy_url": "https://www.criteo.com/privacy/",
+      "script_patterns": [
+        "static.criteo.net",
+        "bidder.criteo.com",
+        "criteo.com",
+        "sslwidget.criteo.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["criteo.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "the_trade_desk",
+      "name": "The Trade Desk",
+      "provider": "The Trade Desk",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "The Trade Desk programmatic advertising (adsrvr.org).",
+      "privacy_url": "https://www.thetradedesk.com/us/privacy",
+      "script_patterns": [
+        "ads.thetradedesk.com",
+        "insight.adsrvr.org",
+        "adsrvr.org"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    }
+  ]
+}

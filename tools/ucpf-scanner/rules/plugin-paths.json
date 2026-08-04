@@ -1,0 +1,4203 @@
+{
+  "plugins": {
+    "elementor": {
+      "provider": "Elementor",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Page builder front-end runtime — typically required for site layout."
+    },
+    "elementor-pro": {
+      "provider": "Elementor Pro",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "the-plus-addons-for-elementor-page-builder": {
+      "provider": "The Plus Addons for Elementor",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "google-site-kit": {
+      "provider": "Google Site Kit",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "May load GA/Ads tags after consent."
+    },
+    "wp-google-maps": {
+      "provider": "WP Go Maps",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "google_maps"
+    },
+    "wp-google-maps-pro": {
+      "provider": "WP Go Maps Pro",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "google_maps"
+    },
+    "wp-google-maps-gold": {
+      "provider": "WP Go Maps Gold",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "google_maps"
+    },
+    "wp-consent-api": {
+      "provider": "WP Consent API",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "universal-consent-privacy-framework": {
+      "provider": "UCPF",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "woocommerce": {
+      "provider": "WooCommerce",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "gravityforms": {
+      "provider": "Gravity Forms",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "gravitysmtp": {
+      "provider": "Gravity SMTP",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional email (admin/server). Maps to UCPF transactional_email."
+    },
+    "wp-mail-smtp": {
+      "provider": "WP Mail SMTP",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional email (admin/server)."
+    },
+    "wp-mail-smtp-pro": {
+      "provider": "WP Mail SMTP Pro",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional email (admin/server)."
+    },
+    "fluent-smtp": {
+      "provider": "FluentSMTP",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional email (admin/server)."
+    },
+    "post-smtp": {
+      "provider": "Post SMTP",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional email (admin/server)."
+    },
+    "easy-wp-smtp": {
+      "provider": "Easy WP SMTP",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional email (admin/server)."
+    },
+    "smtp-mailer": {
+      "provider": "SMTP Mailer",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional email (admin/server)."
+    },
+    "wp-smtp": {
+      "provider": "WP SMTP",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional email (admin/server)."
+    },
+    "wp-ses": {
+      "provider": "WP SES",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Amazon SES transactional email."
+    },
+    "wp-offload-ses": {
+      "provider": "WP Offload SES",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Amazon SES transactional email."
+    },
+    "wp-offload-ses-lite": {
+      "provider": "WP Offload SES Lite",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Amazon SES transactional email."
+    },
+    "site-mailer": {
+      "provider": "Site Mailer",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional email (admin/server)."
+    },
+    "gmail-smtp": {
+      "provider": "Gmail SMTP",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Gmail / Google Workspace transactional mailer."
+    },
+    "wp-defender": {
+      "provider": "Defender Security",
+      "category": "security",
+      "treatment": "necessary",
+      "importance": "required",
+      "service_key": "defender"
+    },
+    "defender-security": {
+      "provider": "Defender Security (alt slug)",
+      "category": "security",
+      "treatment": "necessary",
+      "importance": "required",
+      "service_key": "defender"
+    },
+    "wordfence": {
+      "provider": "Wordfence",
+      "category": "security",
+      "treatment": "necessary",
+      "importance": "required",
+      "service_key": "wordfence"
+    },
+    "smartcrawl-seo": {
+      "provider": "SmartCrawl",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "wpmu-dev-seo": {
+      "provider": "SmartCrawl",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "jetpack": {
+      "provider": "Jetpack",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "contact-form-7": {
+      "provider": "Contact Form 7",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "wpforms": {
+      "provider": "WPForms",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "wpforms-lite": {
+      "provider": "WPForms",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "forminator": {
+      "provider": "Forminator",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "pixelyoursite": {
+      "provider": "PixelYourSite",
+      "category": "advertising",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "hotjar": {
+      "provider": "Hotjar",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "mailchimp-for-wp": {
+      "provider": "Mailchimp",
+      "category": "advertising",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "mailchimp-for-woocommerce": {
+      "provider": "Mailchimp",
+      "category": "advertising",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "revslider": {
+      "provider": "Slider Revolution",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "tawkto-live-chat": {
+      "provider": "Tawk.to Live Chat",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "tawkto"
+    },
+    "essential-addons-for-elementor-lite": {
+      "provider": "Essential Addons for Elementor",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "Elementor companion widgets — review which features load for visitors."
+    },
+    "essential-addons-for-elementor": {
+      "provider": "Essential Addons for Elementor",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "mapster-wp-maps": {
+      "provider": "Mapster WP Maps",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "mapbox"
+    },
+    "mapster-wp-maps-premium": {
+      "provider": "Mapster WP Maps Premium",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "mapbox"
+    },
+    "modern-events-calendar-lite": {
+      "provider": "Modern Events Calendar Lite",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "mec"
+    },
+    "modern-events-calendar": {
+      "provider": "Modern Events Calendar",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "mec"
+    },
+    "userway-accessibility-widget": {
+      "provider": "Accessibility by UserWay",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "userway"
+    },
+    "complianz-gdpr": {
+      "provider": "Complianz",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Third-party consent plugin — excluded from auto-gating; not treated as a tracker."
+    },
+    "wpmudev-updates": {
+      "provider": "WPMU DEV Dashboard",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Admin tooling — usually not on visitor pages."
+    },
+    "wp-crontrol": {
+      "provider": "WP Crontrol",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Admin tooling."
+    },
+    "leaflet": {
+      "provider": "Leaflet (local)",
+      "category": "functional",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Local Leaflet library is necessary for map UI; gate external tiles (OSM/Mapbox/Esri) separately."
+    },
+    "mapster-wp-maps-pro": {
+      "provider": "Mapster WP Maps Pro",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "inferred_slug: true",
+      "service_key": "mapbox"
+    },
+    "wpgmza-marker-clustering": {
+      "provider": "WP Go Maps Marker Clustering",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "Also known as visitor-generated-markers companion; inferred_slug: true; inferred_slug: true",
+      "service_key": "google_maps"
+    },
+    "wp-google-maps-visitor-generated-markers": {
+      "provider": "WP Go Maps Visitor Generated Markers",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "google_maps"
+    },
+    "pennsylvania-map": {
+      "provider": "Pennsylvania Map",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "inferred_slug: true",
+      "service_key": "mapbox"
+    },
+    "pennsylvania-map-iii": {
+      "provider": "Pennsylvania Map III",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "inferred_slug: true",
+      "service_key": "mapbox"
+    },
+    "flexmls-idx": {
+      "provider": "Flexmls IDX",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "flexmls_idx"
+    },
+    "optima-express": {
+      "provider": "Optima Express IDX",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "Inferred from Optima Express IDX listing plugin; inferred_slug: true; inferred_slug: true",
+      "service_key": "optima_express"
+    },
+    "bing-maps": {
+      "provider": "Bing Maps",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "bing_maps"
+    },
+    "here-maps": {
+      "provider": "HERE Maps",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "here_maps"
+    },
+    "esri": {
+      "provider": "Esri",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "esri"
+    },
+    "easy-wp-smtp-pro": {
+      "provider": "Easy WP SMTP Pro",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional/server-side email — default_blocking false; inventory/disclosure only.",
+      "service_key": "transactional_email"
+    },
+    "sendgrid": {
+      "provider": "SendGrid",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional/server-side email — default_blocking false; inventory/disclosure only.",
+      "service_key": "sendgrid"
+    },
+    "mailgun": {
+      "provider": "Mailgun",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional/server-side email — default_blocking false; inventory/disclosure only.",
+      "service_key": "mailgun"
+    },
+    "amazon_ses": {
+      "provider": "Amazon SES",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional/server-side email — default_blocking false; inventory/disclosure only.",
+      "service_key": "amazon_ses"
+    },
+    "postmark": {
+      "provider": "Postmark",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional/server-side email — default_blocking false; inventory/disclosure only.",
+      "service_key": "postmark"
+    },
+    "mailchimp_transactional": {
+      "provider": "Mailchimp Transactional (Mandrill)",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional/server-side email — default_blocking false; inventory/disclosure only.",
+      "service_key": "mailchimp_transactional"
+    },
+    "brevo_smtp": {
+      "provider": "Brevo SMTP",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional/server-side email — default_blocking false; inventory/disclosure only.",
+      "service_key": "brevo_smtp"
+    },
+    "sparkpost": {
+      "provider": "SparkPost",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional/server-side email — default_blocking false; inventory/disclosure only.",
+      "service_key": "sparkpost"
+    },
+    "sendlayer": {
+      "provider": "SendLayer",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional/server-side email — default_blocking false; inventory/disclosure only.",
+      "service_key": "sendlayer"
+    },
+    "smtp-com": {
+      "provider": "SMTP.com",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional/server-side email — default_blocking false; inventory/disclosure only.",
+      "service_key": "smtp_com"
+    },
+    "microsoft_365_smtp": {
+      "provider": "Microsoft 365 SMTP",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional/server-side email — default_blocking false; inventory/disclosure only.",
+      "service_key": "microsoft_365_smtp"
+    },
+    "zoho_mail": {
+      "provider": "Zoho Mail",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional/server-side email — default_blocking false; inventory/disclosure only.",
+      "service_key": "zoho_mail"
+    },
+    "elastic_email": {
+      "provider": "Elastic Email",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional/server-side email — default_blocking false; inventory/disclosure only.",
+      "service_key": "elastic_email"
+    },
+    "mailjet": {
+      "provider": "Mailjet",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional/server-side email — default_blocking false; inventory/disclosure only.",
+      "service_key": "mailjet"
+    },
+    "resend": {
+      "provider": "Resend",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional/server-side email — default_blocking false; inventory/disclosure only.",
+      "service_key": "resend"
+    },
+    "mailersend": {
+      "provider": "MailerSend",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional/server-side email — default_blocking false; inventory/disclosure only.",
+      "service_key": "mailersend"
+    },
+    "smtp2go": {
+      "provider": "SMTP2GO",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional/server-side email — default_blocking false; inventory/disclosure only.",
+      "service_key": "smtp2go"
+    },
+    "emailit": {
+      "provider": "Emailit",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional/server-side email — default_blocking false; inventory/disclosure only.",
+      "service_key": "emailit"
+    },
+    "generic_smtp": {
+      "provider": "Generic SMTP",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional/server-side email — default_blocking false; inventory/disclosure only.",
+      "service_key": "generic_smtp"
+    },
+    "gravity_smtp": {
+      "provider": "Gravity SMTP (service)",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Transactional/server-side email — default_blocking false; inventory/disclosure only.",
+      "service_key": "transactional_email"
+    },
+    "mailchimp": {
+      "provider": "Mailchimp",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "mailchimp"
+    },
+    "mailchimper-pro": {
+      "provider": "Mailchimper Pro",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "inferred_slug: true",
+      "service_key": "mailchimp"
+    },
+    "klaviyo": {
+      "provider": "Klaviyo",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "klaviyo"
+    },
+    "constant-contact-forms": {
+      "provider": "Constant Contact Forms",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "constant_contact"
+    },
+    "gravityformscampaignmonitor": {
+      "provider": "Gravity Forms Campaign Monitor",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "campaign_monitor"
+    },
+    "activecampaign": {
+      "provider": "ActiveCampaign",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "activecampaign"
+    },
+    "hubspot": {
+      "provider": "HubSpot",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "hubspot"
+    },
+    "brevo": {
+      "provider": "Brevo Marketing",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "brevo"
+    },
+    "mailpoet": {
+      "provider": "MailPoet",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "mailpoet"
+    },
+    "drip": {
+      "provider": "Drip",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "drip"
+    },
+    "convertkit": {
+      "provider": "ConvertKit / Kit",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "convertkit"
+    },
+    "getresponse": {
+      "provider": "GetResponse",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "getresponse"
+    },
+    "mailerlite": {
+      "provider": "MailerLite",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "mailerlite"
+    },
+    "omnisend": {
+      "provider": "Omnisend",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "omnisend"
+    },
+    "salesforce": {
+      "provider": "Salesforce",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "salesforce"
+    },
+    "pardot": {
+      "provider": "Salesforce Pardot",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "pardot"
+    },
+    "marketo": {
+      "provider": "Marketo",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "marketo"
+    },
+    "keap": {
+      "provider": "Keap (Infusionsoft)",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "keap"
+    },
+    "zoho-crm": {
+      "provider": "Zoho CRM",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "zoho_crm"
+    },
+    "gohighlevel": {
+      "provider": "GoHighLevel",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "gohighlevel"
+    },
+    "campaign-monitor": {
+      "provider": "Campaign Monitor",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "campaign_monitor"
+    },
+    "gutena-forms": {
+      "provider": "Gutena Forms",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "service_key": "gutena_forms"
+    },
+    "ht-contactform": {
+      "provider": "HT Contact Form",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "service_key": "ht_contactform"
+    },
+    "ninja-forms": {
+      "provider": "Ninja Forms",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "service_key": "ninja_forms"
+    },
+    "fluentform": {
+      "provider": "Fluent Forms",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "service_key": "fluentform"
+    },
+    "formidable": {
+      "provider": "Formidable Forms",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "service_key": "formidable"
+    },
+    "gravityformsrecaptcha": {
+      "provider": "Gravity Forms reCAPTCHA",
+      "category": "security",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "recaptcha"
+    },
+    "gravityformscloudflareturnstile": {
+      "provider": "Gravity Forms Cloudflare Turnstile",
+      "category": "security",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "cloudflare_turnstile"
+    },
+    "gravityformsstripe": {
+      "provider": "Gravity Forms Stripe",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "service_key": "stripe"
+    },
+    "gravityformspaypal": {
+      "provider": "Gravity Forms PayPal Checkout",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "service_key": "paypal"
+    },
+    "gravityformspaypalstandard": {
+      "provider": "Gravity Forms PayPal Standard",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "service_key": "paypal"
+    },
+    "gravityformssquare": {
+      "provider": "Gravity Forms Square",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "service_key": "square"
+    },
+    "gravityformsmailchimp": {
+      "provider": "Gravity Forms Mailchimp",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "mailchimp"
+    },
+    "gravityformsconstantcontact": {
+      "provider": "Gravity Forms Constant Contact",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "constant_contact"
+    },
+    "gravityformsauthorizenet": {
+      "provider": "Gravity Forms Authorize.Net",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "service_key": "authorize_net"
+    },
+    "gravityformscoupons": {
+      "provider": "Gravity Forms Coupons",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "gravityformspolls": {
+      "provider": "Gravity Forms Polls",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "gravityformsquiz": {
+      "provider": "Gravity Forms Quiz",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "gravityformssignature": {
+      "provider": "Gravity Forms Signature",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "gravityformsuserregistration": {
+      "provider": "Gravity Forms User Registration",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "gravityformswebhooks": {
+      "provider": "Gravity Forms Webhooks",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "gravityformstrello": {
+      "provider": "Gravity Forms Trello",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "trello"
+    },
+    "gravityformstwilio": {
+      "provider": "Gravity Forms Twilio",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "twilio"
+    },
+    "gravityformspartialentries": {
+      "provider": "Gravity Forms Partial Entries",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "gravityformsadvancedpostcreation": {
+      "provider": "Gravity Forms Advanced Post Creation",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "gravityformssupercharge": {
+      "provider": "Gravity Forms Supercharge",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "inferred_slug: true"
+    },
+    "gravity-forms-cardconnect": {
+      "provider": "Gravity Forms CardConnect",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "inferred_slug: true",
+      "service_key": "cardconnect"
+    },
+    "7mm-gravity-forms-styles": {
+      "provider": "7MM Gravity Forms Styles",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "inferred_slug: true"
+    },
+    "stripe": {
+      "provider": "Stripe",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Checkout payment facility — not marketing.",
+      "service_key": "stripe"
+    },
+    "paypal": {
+      "provider": "PayPal",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Checkout payment facility — not marketing.",
+      "service_key": "paypal"
+    },
+    "woocommerce-payments": {
+      "provider": "WooPayments",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Checkout payment facility — not marketing.",
+      "service_key": "stripe"
+    },
+    "woocommerce-gateway-stripe": {
+      "provider": "WooCommerce Stripe Gateway",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Checkout payment facility — not marketing.",
+      "service_key": "stripe"
+    },
+    "square": {
+      "provider": "Square",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Checkout payment facility — not marketing.",
+      "service_key": "square"
+    },
+    "woocommerce-square": {
+      "provider": "WooCommerce Square",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Checkout payment facility — not marketing.",
+      "service_key": "square"
+    },
+    "authorize-net": {
+      "provider": "Authorize.Net",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Checkout payment facility — not marketing.",
+      "service_key": "authorize_net"
+    },
+    "cardconnect": {
+      "provider": "CardConnect",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Checkout payment facility — not marketing.",
+      "service_key": "cardconnect"
+    },
+    "afterpay": {
+      "provider": "Afterpay",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "Checkout payment facility — not marketing.",
+      "service_key": "afterpay"
+    },
+    "affirm": {
+      "provider": "Affirm",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "Checkout payment facility — not marketing.",
+      "service_key": "affirm"
+    },
+    "klarna": {
+      "provider": "Klarna",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "Checkout payment facility — not marketing.",
+      "service_key": "klarna"
+    },
+    "braintree": {
+      "provider": "Braintree",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Checkout payment facility — not marketing.",
+      "service_key": "braintree"
+    },
+    "apple-pay": {
+      "provider": "Apple Pay",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Checkout payment facility — not marketing.",
+      "service_key": "apple_pay"
+    },
+    "google-pay": {
+      "provider": "Google Pay",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Checkout payment facility — not marketing.",
+      "service_key": "google_pay"
+    },
+    "invoice-payment-option": {
+      "provider": "Invoice Payment Option",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Checkout payment facility — not marketing.; inferred_slug: true"
+    },
+    "shippo": {
+      "provider": "Shippo",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "shippo",
+      "note": " Checkout shipping/tax widget: consent Embeds & Widgets; loads when checkout triggers rates/validation."
+    },
+    "ups": {
+      "provider": "UPS",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "ups",
+      "note": " Checkout shipping/tax widget: consent Embeds & Widgets; loads when checkout triggers rates/validation."
+    },
+    "usps": {
+      "provider": "USPS",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "usps",
+      "note": " Checkout shipping/tax widget: consent Embeds & Widgets; loads when checkout triggers rates/validation."
+    },
+    "woocommerce-shipping": {
+      "provider": "WooCommerce Shipping",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "shippo",
+      "note": " Checkout shipping/tax widget: consent Embeds & Widgets; loads when checkout triggers rates/validation."
+    },
+    "woocommerce-tax": {
+      "provider": "WooCommerce Tax",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "avalara",
+      "note": " Checkout shipping/tax widget: consent Embeds & Widgets; loads when checkout triggers rates/validation."
+    },
+    "printful": {
+      "provider": "Printful",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "printful",
+      "note": " Checkout shipping/tax widget: consent Embeds & Widgets; loads when checkout triggers rates/validation."
+    },
+    "printbest": {
+      "provider": "Printbest",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "inferred_slug: true Checkout shipping/tax widget: consent Embeds & Widgets; loads when checkout triggers rates/validation.",
+      "service_key": "printful"
+    },
+    "myworks-quickbooks": {
+      "provider": "MyWorks QuickBooks Sync",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "quickbooks",
+      "note": " Checkout shipping/tax widget: consent Embeds & Widgets; loads when checkout triggers rates/validation."
+    },
+    "flexible-shipping": {
+      "provider": "Flexible Shipping",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": " Checkout shipping/tax widget: consent Embeds & Widgets; loads when checkout triggers rates/validation.",
+      "service_key": "flexible-shipping"
+    },
+    "ecomm-shipping-dashboard-by-ups": {
+      "provider": "UPS eCommerce Shipping Dashboard",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "inferred_slug: true Checkout shipping/tax widget: consent Embeds & Widgets; loads when checkout triggers rates/validation.",
+      "service_key": "ups"
+    },
+    "custom-facebook-feed": {
+      "provider": "Custom Facebook Feed (Smash Balloon)",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "facebook_feed"
+    },
+    "custom-facebook-feed-pro": {
+      "provider": "Custom Facebook Feed Pro",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "facebook_feed"
+    },
+    "instagram-feed": {
+      "provider": "Instagram Feed (Smash Balloon)",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "instagram_feed"
+    },
+    "instagram-feed-pro": {
+      "provider": "Instagram Feed Pro",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "instagram_feed"
+    },
+    "youtube-feed-pro": {
+      "provider": "Feeds for YouTube Pro",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "youtube"
+    },
+    "custom-twitter-feeds": {
+      "provider": "Custom Twitter Feeds",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "twitter_feed"
+    },
+    "custom-twitter-feeds-pro": {
+      "provider": "Custom Twitter Feeds Pro",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "twitter_feed"
+    },
+    "tiktok-feeds-pro": {
+      "provider": "TikTok Feeds Pro",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "tiktok_pixel"
+    },
+    "sb-social-wall": {
+      "provider": "Smash Balloon Social Wall",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "facebook_feed"
+    },
+    "wp-review": {
+      "provider": "WP Review",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "reviews"
+    },
+    "excited-testimonials": {
+      "provider": "Excited Testimonials",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "elfsight-facebook-feed": {
+      "provider": "Elfsight Facebook Feed",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "facebook_feed"
+    },
+    "flow-flow": {
+      "provider": "Flow-Flow Social Streams",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "facebook_feed"
+    },
+    "facebook": {
+      "provider": "Facebook / Meta Hosts",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "meta_pixel"
+    },
+    "instagram": {
+      "provider": "Instagram Hosts",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "instagram_feed"
+    },
+    "tiktok": {
+      "provider": "TikTok Hosts",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "tiktok_pixel"
+    },
+    "google_ads": {
+      "provider": "Google Ads",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "google_ads"
+    },
+    "meta_pixel": {
+      "provider": "Meta Pixel",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "meta_pixel"
+    },
+    "tiktok_pixel": {
+      "provider": "TikTok Pixel",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "tiktok_pixel"
+    },
+    "linkedin_insight": {
+      "provider": "LinkedIn Insight",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "linkedin_insight"
+    },
+    "microsoft_uet": {
+      "provider": "Microsoft Advertising UET",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "microsoft_advertising"
+    },
+    "bing": {
+      "provider": "Bing Ads / UET (alias)",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "microsoft_advertising"
+    },
+    "xandr": {
+      "provider": "Xandr",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "appnexus"
+    },
+    "pinterest": {
+      "provider": "Pinterest Tag",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "pinterest"
+    },
+    "adrotate": {
+      "provider": "AdRotate Banner Manager",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "adrotate"
+    },
+    "google-listings-and-ads": {
+      "provider": "Google for WooCommerce / Listings & Ads",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "google_ads"
+    },
+    "google_analytics_4": {
+      "provider": "Google Analytics 4",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "google_analytics_4"
+    },
+    "google_tag_manager": {
+      "provider": "Google Tag Manager",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "google_tag_manager"
+    },
+    "gtm4wp": {
+      "provider": "GTM4WP",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "google_tag_manager"
+    },
+    "duracelltomi-google-tag-manager": {
+      "provider": "GTM4WP (plugin slug)",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "google_tag_manager"
+    },
+    "microsoft_clarity": {
+      "provider": "Microsoft Clarity",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "microsoft_clarity"
+    },
+    "cloudflare_web_analytics": {
+      "provider": "Cloudflare Web Analytics",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "cloudflare_web_analytics"
+    },
+    "matomo": {
+      "provider": "Matomo",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "matomo"
+    },
+    "plausible": {
+      "provider": "Plausible",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "plausible"
+    },
+    "fathom": {
+      "provider": "Fathom Analytics",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "fathom"
+    },
+    "mixpanel": {
+      "provider": "Mixpanel",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "mixpanel"
+    },
+    "amplitude": {
+      "provider": "Amplitude",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "amplitude"
+    },
+    "fullstory": {
+      "provider": "FullStory",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "fullstory"
+    },
+    "mouseflow": {
+      "provider": "Mouseflow",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "mouseflow"
+    },
+    "ninjalytics": {
+      "provider": "Ninjalytics",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "inferred_slug: true",
+      "service_key": "ninjalytics"
+    },
+    "monsterinsights": {
+      "provider": "MonsterInsights",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "google_analytics_4"
+    },
+    "google-analytics-for-woocommerce": {
+      "provider": "Google Analytics for WooCommerce",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "google_analytics_4"
+    },
+    "tidio": {
+      "provider": "Tidio",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "tidio"
+    },
+    "crisp": {
+      "provider": "Crisp",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "crisp"
+    },
+    "intercom": {
+      "provider": "Intercom",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "intercom"
+    },
+    "drift": {
+      "provider": "Drift",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "drift"
+    },
+    "zendesk": {
+      "provider": "Zendesk",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "zendesk"
+    },
+    "livechat": {
+      "provider": "LiveChat",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "livechat"
+    },
+    "video-conferencing-with-zoom-api": {
+      "provider": "Video Conferencing with Zoom",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "zoom"
+    },
+    "zoom-integration-for-woocommerce": {
+      "provider": "Zoom Integration for WooCommerce",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "zoom"
+    },
+    "brightcove": {
+      "provider": "Brightcove",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "brightcove"
+    },
+    "sonaar-music": {
+      "provider": "Sonaar Music",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "sonaar"
+    },
+    "music-player-for-elementor": {
+      "provider": "Music Player for Elementor",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "momento360": {
+      "provider": "Momento360",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "momento360"
+    },
+    "ipanorama": {
+      "provider": "iPanorama 360",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "ipanorama"
+    },
+    "wpvr": {
+      "provider": "WP VR",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "wpvr"
+    },
+    "document-embedder": {
+      "provider": "Document Embedder",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "google_docs"
+    },
+    "document-gallery": {
+      "provider": "Document Gallery",
+      "category": "functional",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "gravitypdf": {
+      "provider": "Gravity PDF",
+      "category": "functional",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "e2pdf": {
+      "provider": "E2Pdf",
+      "category": "functional",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "simple-cloudflare-turnstile": {
+      "provider": "Simple Cloudflare Turnstile",
+      "category": "security",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "cloudflare_turnstile"
+    },
+    "google-captcha": {
+      "provider": "Google Captcha (reCAPTCHA plugin)",
+      "category": "security",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "recaptcha"
+    },
+    "recaptcha": {
+      "provider": "reCAPTCHA (service)",
+      "category": "security",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "recaptcha"
+    },
+    "hcaptcha": {
+      "provider": "hCaptcha",
+      "category": "security",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "hcaptcha"
+    },
+    "akismet": {
+      "provider": "Akismet",
+      "category": "security",
+      "treatment": "necessary",
+      "importance": "required",
+      "service_key": "akismet"
+    },
+    "userway": {
+      "provider": "UserWay Accessibility",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "userway"
+    },
+    "cloudflare": {
+      "provider": "Cloudflare (proxy/infra)",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Infrastructure signal; not a marketing tracker.",
+      "service_key": "cloudflare"
+    },
+    "cookie-law-info": {
+      "provider": "CookieYes / Cookie Law Info",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Third-party consent plugin — excluded from auto-gating."
+    },
+    "cookieyes": {
+      "provider": "CookieYes",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Third-party consent plugin — excluded from auto-gating."
+    },
+    "hu-manity": {
+      "provider": "Compliance by Hu-manity.co",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Third-party consent plugin — excluded from auto-gating."
+    },
+    "google_fonts": {
+      "provider": "Google Fonts",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "google_fonts"
+    },
+    "adobe_fonts": {
+      "provider": "Adobe Fonts (Typekit)",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "adobe_fonts"
+    },
+    "custom-typekit-fonts": {
+      "provider": "Custom Adobe Fonts (Typekit)",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "adobe_fonts"
+    },
+    "font-awesome": {
+      "provider": "Font Awesome",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "font_awesome"
+    },
+    "cdnjs": {
+      "provider": "cdnjs",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "CDN utility; usually noise unless shipping trackers."
+    },
+    "unpkg": {
+      "provider": "unpkg CDN",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "CDN utility; usually noise unless shipping trackers."
+    },
+    "jsdelivr": {
+      "provider": "jsDelivr CDN",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "CDN utility; usually noise unless shipping trackers."
+    },
+    "lordicon": {
+      "provider": "Lordicon",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "lordicon"
+    },
+    "ajax-search-pro": {
+      "provider": "Ajax Search Pro",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "ivory-search": {
+      "provider": "Ivory Search",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "ninja-tables": {
+      "provider": "Ninja Tables",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "ninja-tables-pro": {
+      "provider": "Ninja Tables Pro",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "tablepress": {
+      "provider": "TablePress",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "js_composer": {
+      "provider": "WPBakery Page Builder",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "js-composer": {
+      "provider": "WPBakery (hyphen slug)",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "inferred_slug: true"
+    },
+    "happy-elementor-addons": {
+      "provider": "Happy Elementor Addons",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "elementor"
+    },
+    "happy-elementor-addons-pro": {
+      "provider": "Happy Elementor Addons Pro",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "elementor"
+    },
+    "jetengine": {
+      "provider": "JetEngine",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "elementor"
+    },
+    "jet-engine": {
+      "provider": "JetEngine (slug)",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "elementor"
+    },
+    "essential-blocks": {
+      "provider": "Essential Blocks",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "essential-grid": {
+      "provider": "Essential Grid",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "ameliabooking": {
+      "provider": "Amelia Booking",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "amelia"
+    },
+    "the-events-calendar": {
+      "provider": "The Events Calendar",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "events_calendar"
+    },
+    "events-calendar-pro": {
+      "provider": "Events Calendar Pro",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "events_calendar"
+    },
+    "booking": {
+      "provider": "Booking Calendar",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "booking"
+    },
+    "simply-schedule-appointments": {
+      "provider": "Simply Schedule Appointments",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "ssa"
+    },
+    "ticket-tailor": {
+      "provider": "Ticket Tailor",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "ticket_tailor"
+    },
+    "ics-calendar": {
+      "provider": "ICS Calendar",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "wp-job-manager": {
+      "provider": "WP Job Manager",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "wp_job_manager"
+    },
+    "wp-jobsearch": {
+      "provider": "WP JobSearch",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "wp_jobsearch"
+    },
+    "job-postings": {
+      "provider": "Job Postings",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "indeed": {
+      "provider": "Indeed",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "indeed"
+    },
+    "careerfy": {
+      "provider": "Careerfy Framework",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "inferred_slug: true",
+      "service_key": "careerfy"
+    },
+    "careerfy-framework": {
+      "provider": "Careerfy Framework",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "careerfy"
+    },
+    "wp-simple-booking-calendar": {
+      "provider": "WP Simple Booking Calendar",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "booking"
+    },
+    "give": {
+      "provider": "GiveWP",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "service_key": "givewp"
+    },
+    "givewp": {
+      "provider": "GiveWP (alias)",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "service_key": "givewp"
+    },
+    "donations": {
+      "provider": "Donations",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "auctions-for-woocommerce": {
+      "provider": "Auctions for WooCommerce",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "age-gate": {
+      "provider": "Age Gate",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "service_key": "age_gate"
+    },
+    "cost-calculator": {
+      "provider": "Cost Calculator",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "aptivada": {
+      "provider": "Aptivada for WP",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "inferred_slug: true",
+      "service_key": "aptivada"
+    },
+    "leaderboarded": {
+      "provider": "Leaderboarded",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "inferred_slug: true",
+      "service_key": "leaderboarded"
+    },
+    "santapress": {
+      "provider": "SantaPress",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "inferred_slug: true",
+      "service_key": "santapress"
+    },
+    "np-quote-request": {
+      "provider": "NP Quote Request",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "inferred_slug: true"
+    },
+    "7mm-events-panel": {
+      "provider": "7mm Events Panel",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "inferred_slug: true"
+    },
+    "capcity-closings": {
+      "provider": "CapCity Closings",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "inferred_slug: true"
+    },
+    "wood-sample-builder": {
+      "provider": "Wood Sample Builder",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "inferred_slug: true"
+    },
+    "advanced-custom-fields": {
+      "provider": "Advanced Custom Fields",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "ACF field framework — admin/content; ignore for visitor consent."
+    },
+    "advanced-custom-fields-pro": {
+      "provider": "Advanced Custom Fields PRO",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "ACF Pro — admin/content."
+    },
+    "wp-all-import-pro": {
+      "provider": "WP All Import Pro",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin import tool."
+    },
+    "wp-all-export-pro": {
+      "provider": "WP All Export Pro",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin export tool."
+    },
+    "worker": {
+      "provider": "ManageWP Worker",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Remote management agent."
+    },
+    "snapshot": {
+      "provider": "Snapshot",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Backup tool."
+    },
+    "wpvivid": {
+      "provider": "WPvivid Backup",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Backup tool."
+    },
+    "wp-security-audit-log": {
+      "provider": "WP Activity Log",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin audit log."
+    },
+    "query-monitor": {
+      "provider": "Query Monitor",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Dev admin tooling."
+    },
+    "better-search-replace": {
+      "provider": "Better Search Replace",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin DB tool."
+    },
+    "code-snippets": {
+      "provider": "Code Snippets",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "May inject front-end code — classify injected vendors separately; plugin itself ignore."
+    },
+    "insert-headers-and-footers": {
+      "provider": "Insert Headers and Footers / WPCode",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Injection host — classify injected third parties, not this plugin."
+    },
+    "wpcode": {
+      "provider": "WPCode Lite",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Injection host — classify injected third parties."
+    },
+    "redirection": {
+      "provider": "Redirection",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin redirects."
+    },
+    "redis-cache": {
+      "provider": "Redis Object Cache",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Infrastructure cache."
+    },
+    "wordpress-seo": {
+      "provider": "Yoast SEO",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "SEO admin; may emit schema only."
+    },
+    "litespeed-cache": {
+      "provider": "LiteSpeed Cache",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Cache infra."
+    },
+    "wp-rocket": {
+      "provider": "WP Rocket",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Cache infra."
+    },
+    "wp-optimize": {
+      "provider": "WP-Optimize",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Optimize/cache infra."
+    },
+    "wp-smush-pro": {
+      "provider": "Smush Pro",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Image optimization."
+    },
+    "duplicate-page": {
+      "provider": "Duplicate Page",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin utility."
+    },
+    "loco-translate": {
+      "provider": "Loco Translate",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Translation admin."
+    },
+    "classic-editor": {
+      "provider": "Classic Editor",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Editor preference."
+    },
+    "disable-gutenberg": {
+      "provider": "Disable Gutenberg",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Editor preference."
+    },
+    "hello-dolly": {
+      "provider": "Hello Dolly",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Sample plugin."
+    },
+    "enable-media-replace": {
+      "provider": "Enable Media Replace",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin media."
+    },
+    "child-theme-wizard": {
+      "provider": "Child Theme Wizard",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin tool."
+    },
+    "broken-link-checker": {
+      "provider": "Broken Link Checker",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin crawler."
+    },
+    "wordpress-importer": {
+      "provider": "WordPress Importer",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin import."
+    },
+    "envato-market": {
+      "provider": "Envato Market",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Theme/plugin updater."
+    },
+    "envato-elements": {
+      "provider": "Envato Elements",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Asset library admin."
+    },
+    "hummingbird-performance": {
+      "provider": "Hummingbird Pro",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Perf/cache admin."
+    },
+    "wps-hide-login": {
+      "provider": "WPS Hide Login",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Security admin."
+    },
+    "disable-comments": {
+      "provider": "Disable Comments",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Site config."
+    },
+    "disable-cart-fragments": {
+      "provider": "Disable Cart Fragments",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Woo perf tweak."
+    },
+    "favicon-by-realfavicongenerator": {
+      "provider": "Favicon by RealFaviconGenerator",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Static assets."
+    },
+    "folders": {
+      "provider": "Folders",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin media organizer."
+    },
+    "filebird": {
+      "provider": "FileBird Lite",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin media organizer."
+    },
+    "custom-post-type-ui": {
+      "provider": "Custom Post Type UI",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin CPT."
+    },
+    "intuitive-custom-post-order": {
+      "provider": "Intuitive Custom Post Order",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin ordering."
+    },
+    "flamingo": {
+      "provider": "Flamingo",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "official-facebook-pixel": {
+      "provider": "Official Facebook Pixel",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "meta_pixel"
+    },
+    "facebook-for-woocommerce": {
+      "provider": "Facebook for WooCommerce",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "meta_pixel"
+    },
+    "sb-instagram-feed": {
+      "provider": "SB Instagram Feed",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "instagram_feed"
+    },
+    "gtranslate": {
+      "provider": "GTranslate",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "gtranslate"
+    },
+    "popup-maker": {
+      "provider": "Popup Maker",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "optinmonster": {
+      "provider": "OptinMonster",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "optinmonster"
+    },
+    "calendly": {
+      "provider": "Calendly",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "calendly"
+    },
+    "typeform": {
+      "provider": "Typeform",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "typeform"
+    },
+    "jotform": {
+      "provider": "Jotform",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "service_key": "jotform"
+    },
+    "all-in-one-wp-migration": {
+      "provider": "All-in-One WP Migration",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin migration."
+    },
+    "updraftplus": {
+      "provider": "UpdraftPlus",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Backup tool."
+    },
+    "really-simple-ssl": {
+      "provider": "Really Simple SSL",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "header-footer-elementor": {
+      "provider": "Elementor Header & Footer Builder",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "service_key": "elementor"
+    },
+    "metform": {
+      "provider": "MetForm",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "trustindex-google-reviews": {
+      "provider": "Trustindex Google Reviews",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "reviews"
+    },
+    "wp-reviews-plugin-for-google": {
+      "provider": "Widget for Google Reviews",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "reviews"
+    },
+    "site-reviews": {
+      "provider": "Site Reviews",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "yith-woocommerce-wishlist": {
+      "provider": "YITH WooCommerce Wishlist",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "yith-woocommerce-ajax-navigation": {
+      "provider": "YITH Ajax Product Filter",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "woo-discount-rules": {
+      "provider": "Discount Rules for WooCommerce",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "service_key": "woo_discount_rules"
+    },
+    "advanced-woo-search": {
+      "provider": "Advanced Woo Search",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "woosidebars": {
+      "provider": "WooSidebars",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "mailchimp-woocommerce": {
+      "provider": "Mailchimp WooCommerce (alt)",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "mailchimp"
+    },
+    "pinterest-for-woocommerce": {
+      "provider": "Pinterest for WooCommerce",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "pinterest"
+    },
+    "tiktok-for-business": {
+      "provider": "TikTok for Business",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "tiktok_pixel"
+    },
+    "snapchat-pixel": {
+      "provider": "Snapchat Pixel",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "snapchat"
+    },
+    "reddit-pixel": {
+      "provider": "Reddit Pixel",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "reddit"
+    },
+    "quora-pixel": {
+      "provider": "Quora Pixel",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "quora"
+    },
+    "taboola": {
+      "provider": "Taboola",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "taboola"
+    },
+    "outbrain": {
+      "provider": "Outbrain",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "outbrain"
+    },
+    "criteo": {
+      "provider": "Criteo",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "criteo"
+    },
+    "magnite": {
+      "provider": "Magnite",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "magnite"
+    },
+    "scorecardresearch": {
+      "provider": "ScorecardResearch",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "scorecardresearch"
+    },
+    "new-relic": {
+      "provider": "New Relic Browser",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "new_relic"
+    },
+    "sentry": {
+      "provider": "Sentry Browser",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "sentry"
+    },
+    "segment": {
+      "provider": "Segment",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "segment"
+    },
+    "heap": {
+      "provider": "Heap Analytics",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "heap"
+    },
+    "crazy-egg": {
+      "provider": "Crazy Egg",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "crazyegg"
+    },
+    "lucky-orange": {
+      "provider": "Lucky Orange",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "lucky_orange"
+    },
+    "contentsquare": {
+      "provider": "ContentSquare",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "contentsquare"
+    },
+    "vwo": {
+      "provider": "VWO",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "vwo"
+    },
+    "optimizely": {
+      "provider": "Optimizely",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "optimizely"
+    },
+    "ab-tasty": {
+      "provider": "AB Tasty",
+      "category": "analytics",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "ab_tasty"
+    },
+    "onesignal": {
+      "provider": "OneSignal",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "onesignal"
+    },
+    "pushengage": {
+      "provider": "PushEngage",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "pushengage"
+    },
+    "pushcrew": {
+      "provider": "PushCrew",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "pushcrew"
+    },
+    "addthis": {
+      "provider": "AddThis",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "addthis"
+    },
+    "sharethis": {
+      "provider": "ShareThis",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "sharethis"
+    },
+    "addtoany": {
+      "provider": "AddToAny",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "addtoany"
+    },
+    "disqus-comment-system": {
+      "provider": "Disqus",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "disqus"
+    },
+    "jetpack-boost": {
+      "provider": "Jetpack Boost",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "autonami-automations": {
+      "provider": "FunnelKit Automations",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "funnelkit"
+    },
+    "cartflows": {
+      "provider": "CartFlows",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "cartflows"
+    },
+    "thrive-leads": {
+      "provider": "Thrive Leads",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "thrive"
+    },
+    "gravityforms-multilingual": {
+      "provider": "Gravity Forms Multilingual",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "wpml-media-translation": {
+      "provider": "WPML Media",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "sitepress-multilingual-cms": {
+      "provider": "WPML",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "polylang": {
+      "provider": "Polylang",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    },
+    "translatepress-multilingual": {
+      "provider": "TranslatePress",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "weglot": {
+      "provider": "Weglot",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "weglot"
+    },
+    "smash-balloon-custom-facebook-feed": {
+      "provider": "Smash Balloon Custom Facebook Feed",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "facebook_feed"
+    },
+    "smash-balloon-instagram-feed": {
+      "provider": "Smash Balloon Instagram Feed",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "instagram_feed"
+    },
+    "simple-captcha-with-cloudflare-turnstile": {
+      "provider": "Simple CAPTCHA with Cloudflare Turnstile",
+      "category": "security",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "service_key": "cloudflare_turnstile"
+    },
+    "complianz-terms-conditions": {
+      "provider": "Complianz Terms and Conditions",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Third-party consent companion plugin — excluded from auto-gating."
+    },
+    "brooklyn-core": {
+      "provider": "Brooklyn Core Plugin",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Theme companion core."
+    },
+    "ai-engine": {
+      "provider": "AI Engine",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "May call external AI APIs."
+    },
+    "ai-engine-pro": {
+      "provider": "AI Engine Pro",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential"
+    },
+    "eps-301-redirects": {
+      "provider": "301 Redirects",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "404-to-301": {
+      "provider": "404 to 301 - Redirect Manager, 404 Error Logs & Notifications",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "addon-jobsearch-chat": {
+      "provider": "Addon Jobsearch Chat",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "Jobs/career plugin family.; inferred_slug: true"
+    },
+    "addon-jobsearch-resume-export": {
+      "provider": "Addon Jobsearch Resume Export",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin backup/migration/import tool.; inferred_slug: true"
+    },
+    "addon-jobsearch-scheduled-meetings": {
+      "provider": "Addon Jobsearch Scheduled Meetings",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "Jobs/career plugin family.; inferred_slug: true"
+    },
+    "acf-unique-id-field": {
+      "provider": "Advanced Custom Fields: Unique ID Field",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "woo-order-export-lite": {
+      "provider": "Advanced Order Export For WooCommerce",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin backup/migration/import tool.; inferred_slug: true"
+    },
+    "advanced-post-queries": {
+      "provider": "Advanced Post Queries",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "advanced-product-fields-for-woocommerce": {
+      "provider": "Advanced Product Fields (Product Addons) for WooCommerce",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "sg-ai-agent": {
+      "provider": "AI Agent by SiteGround",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "js_composer_aio": {
+      "provider": "All In One Addons for WPBakery Page Builder (formerly Visual Composer)",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Form companion addon.; inferred_slug: true"
+    },
+    "beaf-before-and-after-gallery": {
+      "provider": "BEAF - Ultimate Before After Image Slider & Gallery",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "before-after-image-comparison-slider-for-elementor": {
+      "provider": "Before After Image Comparison Slider for Elementor",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "Elementor companion — review front-end widgets for third-party embeds.; inferred_slug: true",
+      "service_key": "elementor"
+    },
+    "better-post-filter-widgets-for-elementor": {
+      "provider": "Better Post & Filter Widgets for Elementor",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "Elementor companion — review front-end widgets for third-party embeds.; inferred_slug: true",
+      "service_key": "elementor"
+    },
+    "blogger-importer": {
+      "provider": "Blogger Importer",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin backup/migration/import tool.; inferred_slug: true"
+    },
+    "bulk-category-editor-for-woocommerce": {
+      "provider": "Bulk Category Editor for WooCommerce",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "woocommerce-bulk-edit": {
+      "provider": "Bulk Edit Products, Prices & Attributes for Woocommerce",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "bulky-bulk-edit-products-for-woo": {
+      "provider": "Bulky - Bulk Edit Products for WooCommerce",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "careerfy-demo-data": {
+      "provider": "Careerfy Demo Data",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "Jobs/career plugin family.; inferred_slug: true"
+    },
+    "cf7-signature": {
+      "provider": "CF7 Signature",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Form companion addon.; inferred_slug: true"
+    },
+    "woo-checkout-field-editor-pro": {
+      "provider": "Checkout Field Editor for WooCommerce",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "code-embed": {
+      "provider": "Code Embed",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "cf7-conditional-fields-pro": {
+      "provider": "Conditional Fields PRO",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "woo-conditional-shipping": {
+      "provider": "Conditional Shipping for WooCommerce",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "cf7-repeatable-fields": {
+      "provider": "Contact Form 7 - Repeatable Fields",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Form companion addon.; inferred_slug: true"
+    },
+    "cool-flipbox": {
+      "provider": "Cool Flipbox",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "ct-size-guide": {
+      "provider": "createIT Size Guide Plugin",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "current-year-shortcode": {
+      "provider": "Current Year, Symbols and IP Shortcode",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "custom-fonts": {
+      "provider": "Custom Fonts",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "customer-email-verification-for-woocommerce": {
+      "provider": "Customer Email Verification for WooCommerce",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "day-of-week": {
+      "provider": "Day Of Week",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "disable-search": {
+      "provider": "Disable Search",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "download-manager": {
+      "provider": "WordPress Download Manager",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "service_key": "wordpress_download_manager",
+      "note": "Front-end session cookie __wpdm_client — essential / necessary."
+    },
+    "download-plugins-dashboard": {
+      "provider": "Download Plugins and Themes in ZIP from Dashboard",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "dzs-parallaxer": {
+      "provider": "DZS Parallaxer",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "easy-notification-bar": {
+      "provider": "Easy Notification Bar",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "ele-custom-skin": {
+      "provider": "ECS - Ele Custom Skin for Elementor",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "Elementor companion — review front-end widgets for third-party embeds.; inferred_slug: true",
+      "service_key": "elementor"
+    },
+    "edge-cpt": {
+      "provider": "Edge CPT",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "elfsight-addons-for-elementor": {
+      "provider": "Elfsight Addons For Elementor",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "Elementor companion — review front-end widgets for third-party embeds.; inferred_slug: true",
+      "service_key": "elementor"
+    },
+    "events-widgets-for-elementor": {
+      "provider": "Events Widgets For Elementor And The Events Calendar",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "Elementor companion — review front-end widgets for third-party embeds.; inferred_slug: true",
+      "service_key": "elementor"
+    },
+    "export-woocommerce": {
+      "provider": "Export Products, Orders & Customers for WooCommerce",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin backup/migration/import tool.; inferred_slug: true"
+    },
+    "extensions-for-cf7": {
+      "provider": "Extensions For CF7",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Form companion addon.; inferred_slug: true"
+    },
+    "extra-fees-for-woocommerce": {
+      "provider": "Extra Fees for WooCommerce",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "featured-image-from-url": {
+      "provider": "Featured Image from URL (FIFU)",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "feedzy-rss-feeds": {
+      "provider": "Feedzy RSS Feeds Lite",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "file-upload-types": {
+      "provider": "File Upload Types by WPForms",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Form companion addon.; inferred_slug: true"
+    },
+    "filter-everything": {
+      "provider": "Filter Everything",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "forminator-pdf": {
+      "provider": "Forminator PDF Generator Add-on",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Form companion addon.; inferred_slug: true"
+    },
+    "woocommerce-currency-switcher": {
+      "provider": "FOX - Currency Switcher Professional for WooCommerce",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "givewp-donation-widgets-for-elementor": {
+      "provider": "GiveWP Donation Widgets for Elementor",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "Elementor companion — review front-end widgets for third-party embeds.; inferred_slug: true",
+      "service_key": "elementor"
+    },
+    "global-elementor-buttons": {
+      "provider": "Global Elementor Buttons",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "Elementor companion — review front-end widgets for third-party embeds.; inferred_slug: true",
+      "service_key": "elementor"
+    },
+    "image-hover-effects-for-elementor": {
+      "provider": "Image Hover Effects for Elementor with Lightbox and Flipbox",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "Elementor companion — review front-end widgets for third-party embeds.; inferred_slug: true",
+      "service_key": "elementor"
+    },
+    "image-optimization": {
+      "provider": "Image Optimization - Optimize Images and Convert to WebP or AVIF",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Performance/cache infrastructure.; inferred_slug: true"
+    },
+    "import-users-from-csv": {
+      "provider": "Import Users from CSV",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin backup/migration/import tool.; inferred_slug: true"
+    },
+    "indeed-xml-feed": {
+      "provider": "Indeed Job XML Feed",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "Jobs/career plugin family.; inferred_slug: true"
+    },
+    "jet-blocks": {
+      "provider": "JetBlocks For Elementor",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "Elementor companion — review front-end widgets for third-party embeds.; inferred_slug: true",
+      "service_key": "elementor"
+    },
+    "jetblog-for-elementor": {
+      "provider": "JetBlog For Elementor",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "Elementor companion — review front-end widgets for third-party embeds.; inferred_slug: true",
+      "service_key": "elementor"
+    },
+    "jet-elements": {
+      "provider": "JetElements For Elementor",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "Elementor companion — review front-end widgets for third-party embeds.; inferred_slug: true",
+      "service_key": "elementor"
+    },
+    "jetmenu": {
+      "provider": "JetMenu",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "jetpopup": {
+      "provider": "JetPopup",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "jquery-validation-for-contact-form-7-lite": {
+      "provider": "Jquery Validation For Contact Form 7 (Lite)",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Form companion addon.; inferred_slug: true"
+    },
+    "jwt-authentication-for-wp-rest-apis": {
+      "provider": "JWT Authentication for WP REST APIs",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "kadence-woocommerce-email-designer": {
+      "provider": "Kadence WooCommerce Email Designer",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "kitestudio-core": {
+      "provider": "KiteStudio Core",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "kitestudio-pro-tools": {
+      "provider": "KiteStudio Pro Tools",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "kr-utilities-digest": {
+      "provider": "KR Utilities Digest",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "legacy-quote-system-sqg": {
+      "provider": "Legacy Quote System (SQG)",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "listo": {
+      "provider": "Listo",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "login-as-user": {
+      "provider": "Login as User",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "logo-showcase-for-elementor": {
+      "provider": "Logo Showcase for Elementor",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "Elementor companion — review front-end widgets for third-party embeds.; inferred_slug: true",
+      "service_key": "elementor"
+    },
+    "lordicon-animated-icons": {
+      "provider": "Lordicon Animated Icons",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "make-column-clickable-elementor": {
+      "provider": "Make Column Clickable Elementor",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "Elementor companion — review front-end widgets for third-party embeds.; inferred_slug: true",
+      "service_key": "elementor"
+    },
+    "make-section-column-clickable-for-elementor": {
+      "provider": "Make Section & Column Clickable For Elementor",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "Elementor companion — review front-end widgets for third-party embeds.; inferred_slug: true",
+      "service_key": "elementor"
+    },
+    "managewp-worker": {
+      "provider": "ManageWP - Worker",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "marquee-addons-for-elementor-essential-motion-widgets-templates": {
+      "provider": "Marquee Addons for Elementor - Essential Motion Widgets & Templates",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "Elementor companion — review front-end widgets for third-party embeds.; inferred_slug: true",
+      "service_key": "elementor"
+    },
+    "master-slider": {
+      "provider": "Master Slider",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "master-slider-pro": {
+      "provider": "Master Slider Pro",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "maximum-products-per-user-for-woocommerce": {
+      "provider": "Maximum Products per User for WooCommerce",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "mb-imagechimp-rss-feed-enhancer": {
+      "provider": "MB ImageChimp RSS Feed Enhancer",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "mc4wp-mailchimp-for-wordpress": {
+      "provider": "MC4WP: Mailchimp for WordPress",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "media-cleaner-pro": {
+      "provider": "Media Cleaner (Pro)",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "media-deduper": {
+      "provider": "Media Deduper",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "media-file-renamer-rename-for-better-seo-ai-powered-pro": {
+      "provider": "Media File Renamer: Rename for better SEO (AI-Powered) (Pro)",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "SEO tooling; usually no visitor trackers unless analytics module enabled.; inferred_slug: true"
+    },
+    "media-file-renamer-rename-for-better-seo-ai-powered": {
+      "provider": "Media File Renamer: Rename for better SEO (AI-Powered)",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "SEO tooling; usually no visitor trackers unless analytics module enabled.; inferred_slug: true"
+    },
+    "media-grid": {
+      "provider": "Media Grid",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "media-image-usage-finder": {
+      "provider": "Media Image Usage Finder",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "members": {
+      "provider": "Members",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "menu-image": {
+      "provider": "Menu Image",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "meta-for-woocommerce": {
+      "provider": "Meta for WooCommerce",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "momentopress-for-momento360": {
+      "provider": "MomentoPress for Momento360",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "mp3-audio-player-by-sonaar": {
+      "provider": "MP3 Audio Player by Sonaar",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "multi-carrier-shippo-shipping-rates-address-validation-for-woocommerce": {
+      "provider": "Multi-Carrier Shippo Shipping Rates & Address Validation for WooCommerce",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true Checkout shipping/tax widget: consent Embeds & Widgets; loads when checkout triggers rates/validation.",
+      "service_key": "shippo"
+    },
+    "myworks-sync-for-woocommerce-quickbooks-online": {
+      "provider": "MyWorks Sync for WooCommerce & QuickBooks Online",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "nd-shortcodes": {
+      "provider": "ND Shortcodes",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "newbook-online": {
+      "provider": "Newbook Online",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "ninjalytics-sales-reports-order-export-for-woocommerce-and-edd": {
+      "provider": "Ninjalytics: Sales Reports & Order Export for WooCommerce and EDD",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin backup/migration/import tool.; inferred_slug: true"
+    },
+    "ocean-cookie-notice": {
+      "provider": "Ocean Cookie Notice",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "ocean-elementor-widgets": {
+      "provider": "Ocean Elementor Widgets",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "Elementor companion — review front-end widgets for third-party embeds.; inferred_slug: true",
+      "service_key": "elementor"
+    },
+    "ocean-extra": {
+      "provider": "Ocean Extra",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "ocean-footer-callout": {
+      "provider": "Ocean Footer Callout",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "ocean-hooks": {
+      "provider": "Ocean Hooks",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "ocean-portfolio": {
+      "provider": "Ocean Portfolio",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "ocean-side-panel": {
+      "provider": "Ocean Side Panel",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "ocean-sticky-header": {
+      "provider": "Ocean Sticky Header",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "one-click-demo-import": {
+      "provider": "One Click Demo Import",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin backup/migration/import tool.; inferred_slug: true"
+    },
+    "ost-connector": {
+      "provider": "OST Connector",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "payment-and-shipping-method-checkout-fee-for-woocommerce": {
+      "provider": "Payment and Shipping Method Checkout Fee for WooCommerce",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "payment-methods-by-product-country-for-woocommerce": {
+      "provider": "Payment Methods by Product & Country for WooCommerce",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "payment-plugins-for-paypal-woocommerce": {
+      "provider": "Payment Plugins for PayPal WooCommerce",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "pdf-for-gravity-forms-drag-and-drop-template-builder": {
+      "provider": "PDF for Gravity Forms + Drag And Drop Template Builder",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Form companion addon.; inferred_slug: true"
+    },
+    "pdf-invoices-packing-slips-for-woocommerce": {
+      "provider": "PDF Invoices & Packing Slips for WooCommerce",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "perfect-images-pro-regenerate-thumbnails-image-sizes-webp-avif": {
+      "provider": "Perfect Images (Pro): Regenerate Thumbnails, Image Sizes, WebP & AVIF",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Performance/cache infrastructure.; inferred_slug: true"
+    },
+    "pixfort-core": {
+      "provider": "pixfort Core",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "pixfort-likes": {
+      "provider": "pixfort Likes",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "pledged-plugins-secure-gateway-for-authorize-net-and-woocommerce": {
+      "provider": "Pledged Plugins Secure Gateway for Authorize.net and WooCommerce",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "plugin-check-pcp": {
+      "provider": "Plugin Check (PCP)",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "popup-builder-create-highly-converting-mobile-friendly-marketing-popups": {
+      "provider": "Popup Builder - Create highly converting, mobile friendly marketing popups.",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "portfolio-management-by-united-themes": {
+      "provider": "Portfolio Management by United Themes",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "porto-theme-functionality": {
+      "provider": "Porto Theme - Functionality",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "porto-theme-visual-composer-addon": {
+      "provider": "Porto Theme - Visual Composer Addon",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "pricing-tables-by-united-themes": {
+      "provider": "Pricing Tables by United Themes",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "printbest-for-woocommerce": {
+      "provider": "Printbest for WooCommerce",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "product-filter-for-woocommerce-by-wbw": {
+      "provider": "Product Filter for WooCommerce by WBW",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "product-import-export-for-woocommerce": {
+      "provider": "Product Import Export for WooCommerce",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin backup/migration/import tool.; inferred_slug: true"
+    },
+    "publishpress-future-free": {
+      "provider": "PublishPress Future Free",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "pvt-product-variation-table-for-woocommerce": {
+      "provider": "PVT - Product Variation Table for WooCommerce",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "radio-novo-product-rss-feed": {
+      "provider": "Radio Novo Product RSS Feed",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "recaptcha-by-bestwebsoft": {
+      "provider": "reCaptcha by BestWebSoft",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "recaptcha-for-woocommerce": {
+      "provider": "reCAPTCHA for WooCommerce",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "redux-framework": {
+      "provider": "Redux Framework",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "referrer-input-for-contact-form-7": {
+      "provider": "Referrer Input for Contact Form 7",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Form companion addon.; inferred_slug: true"
+    },
+    "regenerate-thumbnails": {
+      "provider": "Regenerate Thumbnails",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "reviews-feed-pro": {
+      "provider": "Reviews Feed Pro",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "rich-showcase-for-google-reviews": {
+      "provider": "Rich Showcase for Google Reviews",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "room-plugin": {
+      "provider": "Room Plugin",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "safe-svg": {
+      "provider": "Safe SVG",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "scroll-to-top": {
+      "provider": "Scroll To Top",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "search-filter": {
+      "provider": "Search & Filter",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "send-pdf-for-contact-form-7": {
+      "provider": "Send PDF for Contact Form 7",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Form companion addon.; inferred_slug: true"
+    },
+    "seo-engine-pro": {
+      "provider": "SEO Engine (Pro)",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "SEO tooling; usually no visitor trackers unless analytics module enabled.; inferred_slug: true"
+    },
+    "shipping-live-rates-and-access-points-for-ups-for-woocommerce": {
+      "provider": "Shipping Live Rates and Access Points for UPS for WooCommerce",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true Checkout shipping/tax widget: consent Embeds & Widgets; loads when checkout triggers rates/validation.",
+      "service_key": "ups"
+    },
+    "shipping-live-rates-for-usps-for-woocommerce": {
+      "provider": "Shipping Live Rates for USPS for WooCommerce",
+      "category": "functional",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true Checkout shipping/tax widget: consent Embeds & Widgets; loads when checkout triggers rates/validation.",
+      "service_key": "usps"
+    },
+    "shortcodes-by-united-themes": {
+      "provider": "Shortcodes by United Themes",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "simple-sitemap": {
+      "provider": "Simple Sitemap",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "SEO tooling; usually no visitor trackers unless analytics module enabled.; inferred_slug: true"
+    },
+    "simply-disable-comments": {
+      "provider": "Simply Disable Comments",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "site-kit-by-google": {
+      "provider": "Site Kit by Google",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "siteground-central": {
+      "provider": "SiteGround Central",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "smart-slider-3": {
+      "provider": "Smart Slider 3",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "smart-slider-3-pro": {
+      "provider": "Smart Slider 3 Pro",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "social-wall": {
+      "provider": "Social Wall",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "inferred_slug: true"
+    },
+    "speed-optimizer": {
+      "provider": "Speed Optimizer",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Performance/cache infrastructure.; inferred_slug: true"
+    },
+    "store-vacation-lite-for-woocommerce": {
+      "provider": "Store Vacation Lite for WooCommerce",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "stratum-widgets-for-elementor": {
+      "provider": "Stratum Widgets for Elementor",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "Elementor companion — review front-end widgets for third-party embeds.; inferred_slug: true",
+      "service_key": "elementor"
+    },
+    "svg-support": {
+      "provider": "SVG Support",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "temporary-login": {
+      "provider": "Temporary Login",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "text-unfold-for-elementor": {
+      "provider": "Text Unfold For Elementor",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "Elementor companion — review front-end widgets for third-party embeds.; inferred_slug: true",
+      "service_key": "elementor"
+    },
+    "the7-elements": {
+      "provider": "The7 Elements",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "theme-my-login": {
+      "provider": "Theme My Login",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "themerex-addons": {
+      "provider": "ThemeREX Addons",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "themerex-updater": {
+      "provider": "ThemeREX Updater",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "thumbpress": {
+      "provider": "ThumbPress",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "ticket-tailor-event-ticketing-registration": {
+      "provider": "Ticket Tailor — Event Ticketing & Registration",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "timed-content": {
+      "provider": "Timed Content",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "twice-commerce-easy-rental-booking-system": {
+      "provider": "Twice Commerce - Easy Rental Booking System",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "twitter-by-united-themes": {
+      "provider": "Twitter by United Themes",
+      "category": "marketing",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "inferred_slug: true"
+    },
+    "uberchart": {
+      "provider": "UberChart",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "ultimate-addons-for-elementor-uae": {
+      "provider": "Ultimate Addons for Elementor (UAE)",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "Elementor companion — review front-end widgets for third-party embeds.; inferred_slug: true",
+      "service_key": "elementor"
+    },
+    "ultimate-addons-for-wpbakery-page-builder": {
+      "provider": "Ultimate Addons for WPBakery Page Builder",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "ultra-addons-for-contact-form-7": {
+      "provider": "Ultra Addons for Contact Form 7",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Form companion addon.; inferred_slug: true"
+    },
+    "under-construction": {
+      "provider": "Under Construction",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "universal-consent-privacy-framework-alpha": {
+      "provider": "Universal Consent & Privacy Framework (Alpha)",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "unlimited-elements-for-elementor": {
+      "provider": "Unlimited Elements for Elementor",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "Elementor companion — review front-end widgets for third-party embeds.; inferred_slug: true",
+      "service_key": "elementor"
+    },
+    "user-menus": {
+      "provider": "User Menus",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "user-role-editor": {
+      "provider": "User Role Editor",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "user-switching": {
+      "provider": "User Switching",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "variation-swatches-for-woocommerce": {
+      "provider": "Variation Swatches for WooCommerce",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "video-conferencing-with-zoom-pro": {
+      "provider": "Video Conferencing with Zoom Pro",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "visual-composer": {
+      "provider": "Visual Composer",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "wc-hide-shipping-methods": {
+      "provider": "WC Hide Shipping Methods",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "web-accessibility-wcag-scanning-guided-fixes-usability-widget": {
+      "provider": "Web Accessibility - WCAG Scanning, Guided Fixes, Usability Widget",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "widget-importer-exporter": {
+      "provider": "Widget Importer & Exporter",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin backup/migration/import tool.; inferred_slug: true"
+    },
+    "widgets-for-google-reviews": {
+      "provider": "Widgets for Google Reviews",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "woo-product-add-ons": {
+      "provider": "Woo Product Add-ons",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "wp-all-export-acf-export-add-on": {
+      "provider": "WP All Export - ACF Export Add-On",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin backup/migration/import tool.; inferred_slug: true"
+    },
+    "wp-all-export-acf-export-add-on-pro": {
+      "provider": "WP All Export - ACF Export Add-On Pro",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin backup/migration/import tool.; inferred_slug: true"
+    },
+    "wp-all-export-gravity-forms-add-on": {
+      "provider": "WP All Export - Gravity Forms Add-On",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin backup/migration/import tool.; inferred_slug: true"
+    },
+    "wp-all-export-woocommerce-export-add-on-pro": {
+      "provider": "WP All Export - WooCommerce Export Add-On Pro",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin backup/migration/import tool.; inferred_slug: true"
+    },
+    "wp-all-export-woocommerce-product-export-add-on": {
+      "provider": "WP All Export - WooCommerce Product Export Add-On",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin backup/migration/import tool.; inferred_slug: true"
+    },
+    "wp-all-import-acf-add-on-free": {
+      "provider": "WP All Import - ACF Add-On Free",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin backup/migration/import tool.; inferred_slug: true"
+    },
+    "wp-all-import-acf-add-on-pro": {
+      "provider": "WP All Import - ACF Add-On Pro",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin backup/migration/import tool.; inferred_slug: true"
+    },
+    "wp-all-import-gravity-forms-add-on": {
+      "provider": "WP All Import - Gravity Forms Add-On",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin backup/migration/import tool.; inferred_slug: true"
+    },
+    "wp-all-import-woocommerce-import-add-on-pro": {
+      "provider": "WP All Import - WooCommerce Import Add-On Pro",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin backup/migration/import tool.; inferred_slug: true"
+    },
+    "wp-all-import-wp-jobsearch-add-on": {
+      "provider": "WP All Import Wp Jobsearch Add-On",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Admin backup/migration/import tool.; inferred_slug: true"
+    },
+    "wp-edit-username": {
+      "provider": "WP Edit Username",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "wp-logo-showcase-responsive-slider-and-carousel": {
+      "provider": "WP Logo Showcase Responsive Slider and Carousel",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "wp-meteor": {
+      "provider": "WP Meteor",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Performance/cache infrastructure.; inferred_slug: true"
+    },
+    "wp-rss-aggregator": {
+      "provider": "WP RSS Aggregator",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "wp-voting-contest-lite": {
+      "provider": "WP Voting Contest Lite",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "wpdm-elementor": {
+      "provider": "WPDM - Elementor",
+      "category": "preferences",
+      "treatment": "consent",
+      "importance": "non_essential",
+      "note": "Elementor companion — review front-end widgets for third-party embeds.; inferred_slug: true",
+      "service_key": "elementor"
+    },
+    "wpematico": {
+      "provider": "WPeMatico",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "wpfront-notification-bar": {
+      "provider": "WPFront Notification Bar",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "yith-woocommerce-ajax-product-filter": {
+      "provider": "YITH WooCommerce Ajax Product Filter",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "yith-woocommerce-ajax-product-filter-premium": {
+      "provider": "YITH WooCommerce Ajax Product Filter Premium",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "yith-woocommerce-ajax-search": {
+      "provider": "YITH WooCommerce Ajax Search",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "yith-woocommerce-compare": {
+      "provider": "YITH WooCommerce Compare",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "yith-woocommerce-gift-cards": {
+      "provider": "YITH WooCommerce Gift Cards",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "yith-woocommerce-gift-cards-premium": {
+      "provider": "YITH WooCommerce Gift Cards Premium",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "yith-woocommerce-product-gallery-image-zoom": {
+      "provider": "YITH WooCommerce Product Gallery & Image Zoom",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "yith-woocommerce-quick-view": {
+      "provider": "YITH WooCommerce Quick View",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "WooCommerce companion — checkout trackers classified via payment/ads fingerprints.; inferred_slug: true",
+      "service_key": "woocommerce"
+    },
+    "ymc-filter": {
+      "provider": "YMC Filter",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    },
+    "zozothemes-core": {
+      "provider": "Zozothemes Core",
+      "category": "necessary",
+      "treatment": "ignore",
+      "importance": "ignore",
+      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+    }
+  },
+  "themes": {
+    "hello-elementor": {
+      "provider": "Hello Elementor theme",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required"
+    }
+  }
+}
