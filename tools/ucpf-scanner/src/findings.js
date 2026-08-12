@@ -5,7 +5,7 @@
 import { normalizeRequestKey } from './hash.js';
 import { shouldIgnoreCookieLeak, shouldIgnoreUrlLeak } from './noise.js';
 
-/** Fail findings for CI / pass UI */
+/** Fail findings for CI / pass UI — active pre-consent / opt-out leaks only. */
 export const FAIL_FINDINGS = [
   'incorrectly_loaded_before_consent',
   'still_loaded_after_reject',
@@ -14,8 +14,11 @@ export const FAIL_FINDINGS = [
   'category_mismatch',
 ];
 
+/** Soft warnings — cookies left in the jar after withdraw (cleanup), not “tracking still firing”. */
+export const WARN_FINDINGS = ['retained_after_revoke'];
+
 const TRACKING_RE =
-  /google-analytics|googletagmanager|g\/collect|doubleclick|facebook|hotjar|clarity|cloudflareinsights|segment\.|mixpanel|tiktok|linkedin|snapchat|bing\.com\/bat|pinterest\.com\/ct|twitter\.com|t\.co\/i\/adsct/i;
+  /google-analytics|googletagmanager|g\/collect|doubleclick|facebook|hotjar|clarity|cloudflareinsights|segment\.|mixpanel|tiktok|linkedin|snapchat|bing\.com\/bat|pinterest\.com\/ct|twitter\.com|t\.co\/i\/adsct|pixel-tracking|mailchimp-woocommerce|mailchimp-for-woocommerce|-pixel\.js|tracking\.js|\/tracker\//i;
 
 /**
  * @param {Record<string, object>} sessions sessionName → session payload
@@ -91,7 +94,7 @@ export function buildFindings(sessions, cookies) {
         finding: 'still_loaded_after_reject',
         severity: 'high',
         sessions: ['no_consent', 'reject_all'],
-        reason: 'Consent-required cookie still present after reject_all.',
+        reason: 'Consent-required cookie still present after reject_all (also seen before consent).',
       });
     }
     if (consentRequired && Object.keys(dns).length && inDns) {
@@ -160,10 +163,11 @@ export function buildFindings(sessions, cookies) {
         name: meta.name,
         provider: meta.provider || '',
         category,
-        finding: 'still_loaded_after_reject',
-        severity: 'high',
-        sessions: ['revoke'],
-        reason: 'Still present after revoke session.',
+        finding: 'retained_after_revoke',
+        severity: 'medium',
+        sessions: ['accept_all', 'revoke'],
+        reason:
+          'Cookie remained after withdraw. Tracking scripts may already be stopped; leftover third-party cookies are common until cleared.',
       });
     }
   }
@@ -260,11 +264,15 @@ export function buildFindings(sessions, cookies) {
 export function summarizeFindings(findings) {
   const list = findings || [];
   const fails = list.filter((f) => FAIL_FINDINGS.includes(f.finding));
-  const info = list.filter((f) => !fails.includes(f));
+  const warns = list.filter((f) => WARN_FINDINGS.includes(f.finding));
+  const info = list.filter((f) => !fails.includes(f) && !warns.includes(f));
   return {
     total: list.length,
     fail: fails.length,
+    warn: warns.length,
     info: info.length,
+    // Pass = no pre-consent / opt-out leaks. Leftover cookies after revoke are warnings only.
     pass: fails.length === 0,
+    blocking_ok: fails.length === 0,
   };
 }

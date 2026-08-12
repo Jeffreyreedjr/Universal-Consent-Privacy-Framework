@@ -125,7 +125,7 @@ $active_log      = ( ! empty( $active_progress['log'] ) && is_array( $active_pro
 				<option value="deep"><?php esc_html_e( 'Thorough — 10 sessions × selected pages (slowest, fullest checks)', 'universal-consent-privacy-framework' ); ?></option>
 			</select>
 		</p>
-		<p class="description"><?php esc_html_e( 'Coverage is not a separate “scan type.” It only controls how many consent personas Playwright uses on the pages you selected. Each session re-walks those URLs. Raise UCPF_SCANNER_BROWSER_TIMEOUT_MS on the scanner host for very large selections.', 'universal-consent-privacy-framework' ); ?></p>
+		<p class="description"><?php esc_html_e( 'Coverage is not a separate “scan type.” It only controls how many consent personas Playwright uses on the pages you selected. Each session re-walks those URLs. Speed ≈ pages × coverage — Light + fewer pages is fastest; Thorough is for compliance. Prefer lowering UCPF_SCANNER_SETTLE_MS / PAGE_GAP_MS over raising Chromium concurrency.', 'universal-consent-privacy-framework' ); ?></p>
 		<p id="ucpf-scan-selection-hint" class="description ucpf-scan-selection-hint" hidden></p>
 	</div>
 
@@ -135,7 +135,12 @@ $active_log      = ( ! empty( $active_progress['log'] ) && is_array( $active_pro
 		<?php if ( $scanner_ready ) : ?>
 			<div class="ucpf-scanner-run__primary">
 				<h3 class="ucpf-scanner-run__heading"><?php esc_html_e( 'Playwright scan (recommended)', 'universal-consent-privacy-framework' ); ?></h3>
-				<p class="description"><?php esc_html_e( 'Calls the Scanner API from Advanced Settings (self-hosted Playwright / Chromium). Uses the pages and consent coverage above. Progress and logs are saved on this WordPress site — you can leave this page and the scan keeps running; Stop still works when you return.', 'universal-consent-privacy-framework' ); ?></p>
+				<p class="description"><?php esc_html_e( 'Calls the Scanner API from Advanced Settings (self-hosted Playwright / Chromium). Uses the pages and consent coverage above. Progress and logs are saved on this WordPress site — you can leave this page and the scan keeps running; reopen Cookie Scanner (or any WP admin screen) to see status. Stop still works when you return.', 'universal-consent-privacy-framework' ); ?></p>
+				<p class="notice notice-warning inline"><strong><?php esc_html_e( 'Scanner API + plugin:', 'universal-consent-privacy-framework' ); ?></strong> <?php esc_html_e( 'Multi-page Playwright scans require both this plugin and a redeployed Scanner API (tools/ucpf-scanner) that honors exactPaths. Updating the plugin alone is not enough if the scanner host is still on an older build.', 'universal-consent-privacy-framework' ); ?></p>
+				<p>
+					<label><input type="checkbox" id="ucpf-playwright-merge-auth" value="1" /> <?php esc_html_e( 'Also capture logged-in cookies after Playwright (helper, homepage once) — optional inventory completeness', 'universal-consent-privacy-framework' ); ?></label>
+				</p>
+				<p class="description"><?php esc_html_e( 'Playwright stays guest-only for consent proof. When checked, WordPress merges one logged-in HTTP pass into the inventory after import (no WP login inside Chromium).', 'universal-consent-privacy-framework' ); ?></p>
 				<p class="ucpf-scanner-run__actions">
 					<button type="button" class="button button-primary button-hero" id="ucpf-deep-scan"><?php esc_html_e( 'Run Playwright scan', 'universal-consent-privacy-framework' ); ?></button>
 					<button type="button" class="button button-link-delete" id="ucpf-stop-scan"<?php echo $active_job ? '' : ' hidden'; ?>><?php esc_html_e( 'Stop scan', 'universal-consent-privacy-framework' ); ?></button>
@@ -236,6 +241,7 @@ $active_log      = ( ! empty( $active_progress['log'] ) && is_array( $active_pro
 			echo esc_html( implode( "\n", array_slice( $active_log, -12 ) ) );
 		}
 		?></pre>
+		<p class="description ucpf-scan-progress__leave-hint"><?php esc_html_e( 'Safe to leave this page — reopen Cookie Scanner (or any admin screen) to see status. The job keeps running on the scanner host. Browser DevTools console is per-tab and will not mirror progress in another tab.', 'universal-consent-privacy-framework' ); ?></p>
 	</div>
 	<div id="ucpf-pages-status" class="ucpf-wizard__status" hidden></div>
 
@@ -364,7 +370,7 @@ $active_log      = ( ! empty( $active_progress['log'] ) && is_array( $active_pro
 			<div class="ucpf-verify-banner notice notice-info inline" id="ucpf-verify-banner">
 				<p>
 					<strong><?php esc_html_e( 'These findings verify live blocking.', 'universal-consent-privacy-framework' ); ?></strong>
-					<?php esc_html_e( 'Fix Cookie review / Script Registry (enable blocking for consent-required services), then re-run Playwright to clear FAILs. The WordPress helper scan is inventory only — it cannot verify blocking.', 'universal-consent-privacy-framework' ); ?>
+					<?php esc_html_e( 'Fix Cookie review / Script Registry for pre-consent leaks (Loaded before consent), then re-run Playwright. Leftover cookies after revoke are cleanup warnings — not active tracking. The WordPress helper scan is inventory only — it cannot verify blocking.', 'universal-consent-privacy-framework' ); ?>
 				</p>
 				<p class="description" style="margin:0.35rem 0 0;">
 					<?php esc_html_e( 'Re-verify uses a fast Playwright pass (Light sessions on pages from the last scan; Standard only if GPC/DNS fails remain). Use Run Playwright scan below for a full inventory crawl.', 'universal-consent-privacy-framework' ); ?>
@@ -493,21 +499,77 @@ $active_log      = ( ! empty( $active_progress['log'] ) && is_array( $active_pro
 		<?php if ( ! empty( $last_scan['findings_summary'] ) && is_array( $last_scan['findings_summary'] ) ) : ?>
 			<?php
 			$fs = $last_scan['findings_summary'];
-			$fs_pass = ! empty( $fs['pass'] );
+			$ucpf_fail_codes = array(
+				'incorrectly_loaded_before_consent',
+				'still_loaded_after_reject',
+				'still_loaded_after_dns',
+				'still_loaded_after_gpc',
+				'category_mismatch',
+			);
+			$ucpf_disp_fail  = isset( $fs['fail'] ) ? (int) $fs['fail'] : 0;
+			$ucpf_disp_warn  = isset( $fs['warn'] ) ? (int) $fs['warn'] : 0;
+			$ucpf_disp_info  = isset( $fs['info'] ) ? (int) $fs['info'] : 0;
+			$ucpf_disp_total = isset( $fs['total'] ) ? (int) $fs['total'] : 0;
+			if ( ! empty( $last_scan['findings'] ) && is_array( $last_scan['findings'] ) ) {
+				$ucpf_disp_fail = 0;
+				$ucpf_disp_warn = 0;
+				$ucpf_disp_info = 0;
+				foreach ( $last_scan['findings'] as $ucpf_fr ) {
+					$ucpf_fc      = isset( $ucpf_fr['finding'] ) ? (string) $ucpf_fr['finding'] : '';
+					$ucpf_fsess   = isset( $ucpf_fr['sessions'] ) && is_array( $ucpf_fr['sessions'] ) ? $ucpf_fr['sessions'] : array();
+					$ucpf_freason = isset( $ucpf_fr['reason'] ) ? strtolower( (string) $ucpf_fr['reason'] ) : '';
+					if ( 'still_loaded_after_reject' === $ucpf_fc ) {
+						$ucpf_rev_only = in_array( 'revoke', $ucpf_fsess, true ) && ! in_array( 'no_consent', $ucpf_fsess, true ) && ! in_array( 'reject_all', $ucpf_fsess, true );
+						if ( $ucpf_rev_only || false !== strpos( $ucpf_freason, 'after revoke' ) ) {
+							$ucpf_fc = 'retained_after_revoke';
+						}
+					}
+					if ( in_array( $ucpf_fc, $ucpf_fail_codes, true ) ) {
+						++$ucpf_disp_fail;
+					} elseif ( 'retained_after_revoke' === $ucpf_fc ) {
+						++$ucpf_disp_warn;
+					} else {
+						++$ucpf_disp_info;
+					}
+				}
+				$ucpf_disp_total = count( $last_scan['findings'] );
+			}
+			$fs_pass   = ( 0 === $ucpf_disp_fail );
+			$fs_border = $fs_pass
+				? ( $ucpf_disp_warn > 0 ? 'var(--ucpf-admin-warn, #b45309)' : 'var(--ucpf-admin-ok, #0b5cad)' )
+				: 'var(--ucpf-admin-fail, #b91c1c)';
+			if ( $fs_pass && 0 === $ucpf_disp_warn ) {
+				$fs_headline = __( 'Blocking looks good', 'universal-consent-privacy-framework' );
+			} elseif ( $fs_pass ) {
+				$fs_headline = __( 'Blocking OK — cookie cleanup warnings', 'universal-consent-privacy-framework' );
+			} else {
+				$fs_headline = __( 'Pre-consent / opt-out issues found', 'universal-consent-privacy-framework' );
+			}
 			?>
-			<div class="ucpf-card ucpf-findings-summary" style="margin:1rem 0;padding:1rem 1.25rem;border-left:4px solid <?php echo $fs_pass ? 'var(--ucpf-admin-ok, #0b5cad)' : 'var(--ucpf-admin-fail, #b91c1c)'; ?>;">
-				<h2 style="margin-top:0;"><?php esc_html_e( 'Consent differential (pass / fail)', 'universal-consent-privacy-framework' ); ?></h2>
-				<p class="description"><?php esc_html_e( 'Compares cookies and tracking-like requests across consent states. Technical finding only — not a legal determination.', 'universal-consent-privacy-framework' ); ?></p>
+			<div class="ucpf-card ucpf-findings-summary" style="margin:1rem 0;padding:1rem 1.25rem;border-left:4px solid <?php echo esc_attr( $fs_border ); ?>;">
+				<h2 style="margin-top:0;"><?php esc_html_e( 'Consent differential', 'universal-consent-privacy-framework' ); ?></h2>
+				<p class="description"><?php esc_html_e( 'Compares cookies across consent personas (fresh visit, reject, accept, revoke). Critical issues mean cookies appeared when they should not — not “your Network tab is full of trackers.” Technical check only.', 'universal-consent-privacy-framework' ); ?></p>
 				<p>
-					<strong><?php echo $fs_pass ? esc_html__( 'PASS', 'universal-consent-privacy-framework' ) : esc_html__( 'FAIL', 'universal-consent-privacy-framework' ); ?></strong>
+					<strong><?php echo esc_html( $fs_headline ); ?></strong>
 					—
 					<?php
-					printf(
-						/* translators: 1: fail count, 2: total findings */
-						esc_html__( '%1$d fail · %2$d total findings', 'universal-consent-privacy-framework' ),
-						isset( $fs['fail'] ) ? (int) $fs['fail'] : 0,
-						isset( $fs['total'] ) ? (int) $fs['total'] : 0
-					);
+					if ( $fs_pass ) {
+						printf(
+							/* translators: 1: warn count, 2: info count, 3: total */
+							esc_html__( '%1$d cleanup warnings · %2$d info · %3$d total', 'universal-consent-privacy-framework' ),
+							absint( $ucpf_disp_warn ),
+							absint( $ucpf_disp_info ),
+							absint( $ucpf_disp_total )
+						);
+					} else {
+						printf(
+							/* translators: 1: critical fail count, 2: warn count, 3: total */
+							esc_html__( '%1$d critical · %2$d cleanup warnings · %3$d total', 'universal-consent-privacy-framework' ),
+							absint( $ucpf_disp_fail ),
+							absint( $ucpf_disp_warn ),
+							absint( $ucpf_disp_total )
+						);
+					}
 					?>
 					<?php if ( ! empty( $last_scan['scan_profile'] ) ) : ?>
 						<span class="description">(<?php
@@ -528,6 +590,9 @@ $active_log      = ( ! empty( $active_progress['log'] ) && is_array( $active_pro
 						?>)</span>
 					<?php endif; ?>
 				</p>
+				<?php if ( $fs_pass && $ucpf_disp_warn > 0 ) : ?>
+					<p class="description" style="margin-bottom:0;"><?php esc_html_e( 'Leftover cookies after Accept → Revoke usually mean the jar was not cleared — not that trackers are still firing. Fix pre-consent leaks first if any appear below.', 'universal-consent-privacy-framework' ); ?></p>
+				<?php endif; ?>
 			</div>
 		<?php endif; ?>
 
@@ -552,10 +617,36 @@ $active_log      = ( ! empty( $active_progress['log'] ) && is_array( $active_pro
 					'still_loaded_after_gpc',
 					'category_mismatch',
 				);
+				$finding_labels = array(
+					'incorrectly_loaded_before_consent' => __( 'Loaded before consent', 'universal-consent-privacy-framework' ),
+					'still_loaded_after_reject'         => __( 'Still after reject', 'universal-consent-privacy-framework' ),
+					'still_loaded_after_dns'            => __( 'Still with DNS opt-out', 'universal-consent-privacy-framework' ),
+					'still_loaded_after_gpc'            => __( 'Still with GPC', 'universal-consent-privacy-framework' ),
+					'retained_after_revoke'             => __( 'Left after revoke (cleanup)', 'universal-consent-privacy-framework' ),
+					'correctly_loaded_after_accept'     => __( 'OK after accept', 'universal-consent-privacy-framework' ),
+					'removed_after_revocation'          => __( 'Cleared on revoke', 'universal-consent-privacy-framework' ),
+					'blocked_before_consent'            => __( 'Present before consent (necessary)', 'universal-consent-privacy-framework' ),
+					'category_mismatch'                 => __( 'Category mismatch', 'universal-consent-privacy-framework' ),
+					'indeterminate'                     => __( 'Indeterminate', 'universal-consent-privacy-framework' ),
+				);
 				foreach ( $last_scan['findings'] as $finding_row ) :
-					$fcode = isset( $finding_row['finding'] ) ? $finding_row['finding'] : '';
-					$is_fail = in_array( $fcode, $fail_codes, true );
-					$rem = \UCPF\Privacy_Scan_Importer::remediation_for_signal(
+					$fcode       = isset( $finding_row['finding'] ) ? $finding_row['finding'] : '';
+					$fsess       = isset( $finding_row['sessions'] ) && is_array( $finding_row['sessions'] ) ? $finding_row['sessions'] : array();
+					$freason_raw = isset( $finding_row['reason'] ) ? (string) $finding_row['reason'] : '';
+					if ( 'still_loaded_after_reject' === $fcode ) {
+						$rev_only = in_array( 'revoke', $fsess, true ) && ! in_array( 'no_consent', $fsess, true ) && ! in_array( 'reject_all', $fsess, true );
+						if ( $rev_only || false !== stripos( $freason_raw, 'after revoke' ) ) {
+							$fcode = 'retained_after_revoke';
+							if ( '' === $freason_raw || false !== stripos( $freason_raw, 'still present after revoke' ) ) {
+								$freason_raw = __( 'Cookie remained after withdraw. Tracking scripts may already be stopped; leftover third-party cookies are common until cleared.', 'universal-consent-privacy-framework' );
+							}
+						}
+					}
+					$is_fail   = in_array( $fcode, $fail_codes, true );
+					$is_warn   = ( 'retained_after_revoke' === $fcode );
+					$row_class = $is_fail ? 'ucpf-row--critical' : ( $is_warn ? 'ucpf-row--warn' : '' );
+					$flabel    = isset( $finding_labels[ $fcode ] ) ? $finding_labels[ $fcode ] : $fcode;
+					$rem       = \UCPF\Privacy_Scan_Importer::remediation_for_signal(
 						isset( $finding_row['type'] ) ? $finding_row['type'] : '',
 						isset( $finding_row['name'] ) ? $finding_row['name'] : '',
 						isset( $finding_row['provider'] ) ? $finding_row['provider'] : ''
@@ -566,20 +657,24 @@ $active_log      = ( ! empty( $active_progress['log'] ) && is_array( $active_pro
 						$rem['action']       = ! empty( $finding_row['action'] ) ? $finding_row['action'] : $rem['action'];
 					}
 					?>
-					<tr class="<?php echo $is_fail ? 'ucpf-row--critical' : ''; ?>">
-						<td class="ucpf-cell-verdict"><code><?php echo esc_html( $fcode ); ?></code></td>
+					<tr class="<?php echo esc_attr( $row_class ); ?>">
+						<td class="ucpf-cell-verdict"><code title="<?php echo esc_attr( $fcode ); ?>"><?php echo esc_html( $flabel ); ?></code></td>
 						<td class="ucpf-cell-type"><?php echo esc_html( isset( $finding_row['type'] ) ? $finding_row['type'] : '' ); ?></td>
 						<td class="ucpf-cell-name"><code><?php echo esc_html( isset( $finding_row['name'] ) ? $finding_row['name'] : '' ); ?></code></td>
 						<td class="ucpf-cell-sev">
 							<?php if ( $is_fail ) : ?>
 								<span class="ucpf-badge ucpf-badge--alert"><?php echo esc_html( isset( $finding_row['severity'] ) ? $finding_row['severity'] : 'high' ); ?></span>
+							<?php elseif ( $is_warn ) : ?>
+								<span class="ucpf-badge ucpf-badge--warn"><?php esc_html_e( 'cleanup', 'universal-consent-privacy-framework' ); ?></span>
 							<?php else : ?>
 								<span class="ucpf-badge"><?php echo esc_html( isset( $finding_row['severity'] ) ? $finding_row['severity'] : 'info' ); ?></span>
 							<?php endif; ?>
 						</td>
-						<td class="ucpf-cell-reason"><?php echo esc_html( isset( $finding_row['reason'] ) ? $finding_row['reason'] : '' ); ?></td>
+						<td class="ucpf-cell-reason"><?php echo esc_html( $freason_raw ); ?></td>
 						<td class="ucpf-cell-actions">
-							<?php if ( ! $is_fail ) : ?>
+							<?php if ( $is_warn ) : ?>
+								<span class="description"><?php esc_html_e( 'Optional: clear cookies on withdraw', 'universal-consent-privacy-framework' ); ?></span>
+							<?php elseif ( ! $is_fail ) : ?>
 								—
 							<?php elseif ( ! empty( $rem['service_key'] ) ) : ?>
 								<a class="button button-small" href="#ucpf-service-<?php echo esc_attr( $rem['service_key'] ); ?>">
@@ -703,6 +798,111 @@ $active_log      = ( ! empty( $active_progress['log'] ) && is_array( $active_pro
 				</tbody>
 			</table>
 			</div>
+		<?php endif; ?>
+
+		<?php
+		$suspicious_scripts = array();
+		if ( ! empty( $last_scan['suspicious_scripts'] ) && is_array( $last_scan['suspicious_scripts'] ) ) {
+			$suspicious_scripts = $last_scan['suspicious_scripts'];
+		}
+		$ignored_sus = \UCPF\Suspicion::get_ignored_patterns();
+		?>
+		<?php if ( ! empty( $suspicious_scripts ) ) : ?>
+		<div class="ucpf-card" id="ucpf-suspicious-scripts" style="margin:1.5rem 0;padding:1rem 1.25rem;border-left:4px solid #d63638;">
+			<h2 style="margin-top:0;"><?php esc_html_e( 'Suspicious scripts (needs review)', 'universal-consent-privacy-framework' ); ?></h2>
+			<p class="description">
+				<?php esc_html_e( 'Path/filename heuristics flagged these as tracking-like (e.g. pixel-tracking.js). Apply a site override to keep them gated, or Ignore if they are false positives. They are fail-closed as marketing until resolved.', 'universal-consent-privacy-framework' ); ?>
+			</p>
+			<div class="ucpf-table-scroll">
+			<table class="widefat striped ucpf-unknown-table" id="ucpf-suspicious-scripts-table">
+				<thead><tr>
+					<th><?php esc_html_e( 'URL / path', 'universal-consent-privacy-framework' ); ?></th>
+					<th><?php esc_html_e( 'Suggested', 'universal-consent-privacy-framework' ); ?></th>
+					<th><?php esc_html_e( 'Confidence', 'universal-consent-privacy-framework' ); ?></th>
+					<th><?php esc_html_e( 'Pattern', 'universal-consent-privacy-framework' ); ?></th>
+					<th class="ucpf-cell-actions"><?php esc_html_e( 'Actions', 'universal-consent-privacy-framework' ); ?></th>
+				</tr></thead>
+				<tbody>
+				<?php foreach ( $suspicious_scripts as $sus ) : ?>
+					<?php
+					$url     = isset( $sus['url'] ) ? (string) $sus['url'] : '';
+					$pattern = isset( $sus['pattern'] ) ? (string) $sus['pattern'] : \UCPF\Suspicion::suggest_pattern_from_url( $url );
+					$cat     = ! empty( $sus['suggested_category'] ) ? (string) $sus['suggested_category'] : 'marketing';
+					if ( $pattern && in_array( strtolower( $pattern ), $ignored_sus, true ) ) {
+						continue;
+					}
+					?>
+					<tr data-url="<?php echo esc_attr( $url ); ?>" data-pattern="<?php echo esc_attr( $pattern ); ?>" data-category="<?php echo esc_attr( $cat ); ?>" data-label="<?php echo esc_attr( isset( $sus['provider'] ) ? (string) $sus['provider'] : '' ); ?>">
+						<td><code style="word-break:break-all;"><?php echo esc_html( $url ); ?></code>
+							<?php if ( ! empty( $sus['note'] ) ) : ?>
+								<br /><span class="description"><?php echo esc_html( (string) $sus['note'] ); ?></span>
+							<?php endif; ?>
+						</td>
+						<td>
+							<select class="ucpf-sus-category">
+								<?php foreach ( array( 'marketing', 'analytics', 'preferences', 'functional', 'security' ) as $opt ) : ?>
+									<option value="<?php echo esc_attr( $opt ); ?>" <?php selected( $cat, $opt ); ?>><?php echo esc_html( $opt ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</td>
+						<td><?php echo esc_html( isset( $sus['suspicion'] ) ? (string) $sus['suspicion'] : 'medium' ); ?></td>
+						<td><code><?php echo esc_html( $pattern ); ?></code></td>
+						<td class="ucpf-cell-actions">
+							<button type="button" class="button button-primary ucpf-sus-apply"><?php esc_html_e( 'Apply override', 'universal-consent-privacy-framework' ); ?></button>
+							<button type="button" class="button ucpf-sus-ignore"><?php esc_html_e( 'Ignore', 'universal-consent-privacy-framework' ); ?></button>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+				</tbody>
+			</table>
+			</div>
+			<p class="description" id="ucpf-sus-status" hidden></p>
+		</div>
+		<script>
+		(function () {
+			if (!window.ucpfAdmin) return;
+			var statusEl = document.getElementById('ucpf-sus-status');
+			function flash(msg) {
+				if (!statusEl) return;
+				statusEl.hidden = false;
+				statusEl.textContent = msg;
+			}
+			function postSus(body, row) {
+				fetch(ucpfAdmin.restUrl + 'catalog-suggestions/apply', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': ucpfAdmin.nonce },
+					body: JSON.stringify(body)
+				}).then(function (r) { return r.json(); }).then(function (data) {
+					flash((data && data.message) || 'Done.');
+					if (data && data.success && row) {
+						row.style.opacity = '0.45';
+					}
+				}).catch(function () { flash('Request failed.'); });
+			}
+			document.querySelectorAll('.ucpf-sus-apply').forEach(function (btn) {
+				btn.addEventListener('click', function () {
+					var row = btn.closest('tr');
+					postSus({
+						url: row.getAttribute('data-url'),
+						pattern: row.getAttribute('data-pattern'),
+						category: (row.querySelector('.ucpf-sus-category') || {}).value || 'marketing',
+						label: row.getAttribute('data-label') || '',
+						action: 'apply'
+					}, row);
+				});
+			});
+			document.querySelectorAll('.ucpf-sus-ignore').forEach(function (btn) {
+				btn.addEventListener('click', function () {
+					var row = btn.closest('tr');
+					postSus({
+						pattern: row.getAttribute('data-pattern'),
+						url: row.getAttribute('data-url'),
+						action: 'ignore'
+					}, row);
+				});
+			});
+		})();
+		</script>
 		<?php endif; ?>
 
 		<?php

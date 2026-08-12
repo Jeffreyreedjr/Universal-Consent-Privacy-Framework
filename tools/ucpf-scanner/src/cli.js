@@ -180,9 +180,16 @@ async function main() {
   const json = JSON.stringify(report, null, 2);
 
   const failCount = report.findings_summary?.fail || 0;
+  const warnCount = report.findings_summary?.warn || 0;
   const leakCount = Array.isArray(report.consent_leaks) ? report.consent_leaks.length : 0;
   if (failCount) {
-    console.error(`Findings FAIL: ${failCount} (see findings[] — not a legal determination)`);
+    console.error(
+      `Findings CRITICAL: ${failCount} (pre-consent / opt-out leaks — see findings[]; not a legal determination)`
+    );
+  } else if (warnCount) {
+    console.error(
+      `Blocking OK; ${warnCount} cleanup warning(s) (cookies left after revoke — usually not active tracking)`
+    );
   }
   if (leakCount) {
     console.error(`Consent leaks flagged: ${leakCount} (legacy; prefer findings[])`);

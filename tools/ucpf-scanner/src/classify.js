@@ -12,6 +12,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const RULES_PATH = path.join(__dirname, '..', 'rules', 'classification.json');
 const PLUGIN_PATHS = path.join(__dirname, '..', 'rules', 'plugin-paths.json');
 const FINGERPRINTS_PATH = path.join(__dirname, '..', 'rules', 'plugin-fingerprints.json');
+const SUSPICION_PATH = path.join(__dirname, '..', 'rules', 'suspicion.json');
 
 /** @type {Array<object>} */
 let rules = [];
@@ -21,6 +22,8 @@ let pathMap = { plugins: {}, themes: {} };
 let fingerprints = [];
 /** @type {Map<string, object>} */
 let fingerprintsBySlug = new Map();
+/** @type {{ allowlist: string[], rules: object[], gate_needles: string[] }} */
+let suspicion = { allowlist: [], rules: [], gate_needles: [] };
 
 /**
  * @param {object} fp
@@ -51,6 +54,16 @@ export function loadRules() {
   } catch {
     fingerprints = [];
   }
+  try {
+    const rawSus = JSON.parse(fs.readFileSync(SUSPICION_PATH, 'utf8'));
+    suspicion = {
+      allowlist: Array.isArray(rawSus.allowlist) ? rawSus.allowlist : [],
+      rules: Array.isArray(rawSus.rules) ? rawSus.rules : [],
+      gate_needles: Array.isArray(rawSus.gate_needles) ? rawSus.gate_needles : [],
+    };
+  } catch {
+    suspicion = { allowlist: [], rules: [], gate_needles: [] };
+  }
   fingerprintsBySlug = new Map();
   for (const fp of fingerprints) {
     if (fp && fp.slug) {
@@ -73,6 +86,70 @@ export function loadRules() {
     }
   }
   return rules;
+}
+
+/**
+ * Filename / path segment for suspicion (ignore query string).
+ * @param {string} value
+ */
+function suspicionPath(value) {
+  let v = String(value || '').toLowerCase();
+  try {
+    if (/^https?:\/\//i.test(v)) {
+      const u = new URL(v);
+      v = u.pathname || v;
+    }
+  } catch {
+    /* keep */
+  }
+  const q = v.indexOf('?');
+  if (q >= 0) v = v.slice(0, q);
+  return v;
+}
+
+/**
+ * Generic tracking-like path heuristics (URL only — not script body).
+ * @param {string} value
+ * @returns {object|null}
+ */
+export function classifySuspicion(value) {
+  const pathOnly = suspicionPath(value);
+  if (!pathOnly) return null;
+  for (const a of suspicion.allowlist || []) {
+    if (a && pathOnly.includes(String(a).toLowerCase())) {
+      return null;
+    }
+  }
+  for (const rule of suspicion.rules || []) {
+    for (const m of rule.match || []) {
+      const needle = String(m).toLowerCase();
+      if (!needle || !pathOnly.includes(needle)) continue;
+      const category = toUcpfCategory(rule.category || 'marketing');
+      const treatment = rule.treatment || 'consent';
+      return {
+        category,
+        provider: rule.provider || 'Suspected tracker',
+        treatment,
+        importance: importanceFrom(category, treatment, 'non_essential'),
+        matched: true,
+        rule: `suspicion:${needle}`,
+        note: rule.note || '',
+        suspicion: rule.suspicion || 'high',
+        suggested_category: category,
+        status: 'needs_review',
+        layer: 'suspicion',
+      };
+    }
+  }
+  return null;
+}
+
+/**
+ * Needles for runtime gates (PHP mirrors this list).
+ * @returns {string[]}
+ */
+export function getSuspicionGateNeedles() {
+  return [...(suspicion.gate_needles || [])];
 }
 
 /**
@@ -332,7 +409,27 @@ export function classifyValue(value, type = 'cookie', extra = {}) {
   // 3) Plugin / theme path identity.
   if (type !== 'cookie' && type !== 'storage_key') {
     const fromPath = classifyPluginPath(v);
-    if (fromPath) return fromPath;
+    if (fromPath) {
+      // Unknown / unclassified plugin assets: try suspicion before accepting weak plugin label.
+      if (fromPath.category === 'unclassified' || fromPath.importance === 'unclassified') {
+        const sus = classifySuspicion(v);
+        if (sus) {
+          return {
+            ...sus,
+            provider: fromPath.provider ? `${fromPath.provider} (suspected tracking)` : sus.provider,
+            slug: fromPath.slug || '',
+            note: [fromPath.note, sus.note].filter(Boolean).join(' '),
+          };
+        }
+      }
+      return fromPath;
+    }
+  }
+
+  // 4) Generic tracking path/filename suspicion (site-agnostic long tail).
+  if (type !== 'cookie' && type !== 'storage_key') {
+    const sus = classifySuspicion(v);
+    if (sus) return sus;
   }
 
   return {

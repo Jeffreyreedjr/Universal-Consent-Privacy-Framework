@@ -10,9 +10,9 @@ $total      = isset( $logs['total'] ) ? max( 0, (int) $logs['total'] ) : 0;
 $per_page   = isset( $logs['per_page'] ) ? max( 1, (int) $logs['per_page'] ) : 50;
 $retention  = isset( $retention_days ) ? max( 1, (int) $retention_days ) : 360;
 $filters    = isset( $logs['filters'] ) && is_array( $logs['filters'] ) ? $logs['filters'] : array();
-$view       = isset( $logs['view'] ) ? sanitize_key( (string) $logs['view'] ) : 'events';
-if ( 'visitors' !== $view ) {
-	$view = 'events';
+$view       = isset( $logs['view'] ) ? sanitize_key( (string) $logs['view'] ) : 'by_day';
+if ( ! in_array( $view, array( 'events', 'visitors', 'by_day' ), true ) ) {
+	$view = 'by_day';
 }
 
 $filter_uuid      = isset( $filters['uuid'] ) ? (string) $filters['uuid'] : '';
@@ -38,26 +38,18 @@ if ( '' !== $filter_date_to ) {
 }
 $base_url = add_query_arg( $base_args, admin_url( 'admin.php' ) );
 
-$events_url = add_query_arg(
-	array_merge(
-		$base_args,
-		array(
-			'view'  => 'events',
-			'paged' => false,
-		)
-	),
-	admin_url( 'admin.php' )
-);
-$visitors_url = add_query_arg(
-	array_merge(
-		$base_args,
-		array(
-			'view'  => 'visitors',
-			'paged' => false,
-		)
-	),
-	admin_url( 'admin.php' )
-);
+$tab_url = static function ( $tab_view ) use ( $base_args ) {
+	return add_query_arg(
+		array_merge(
+			$base_args,
+			array(
+				'view'  => $tab_view,
+				'paged' => false,
+			)
+		),
+		admin_url( 'admin.php' )
+	);
+};
 
 /**
  * Format category JSON for display.
@@ -89,39 +81,44 @@ $ucpf_actions = array(
 	'save_preferences' => __( 'Save preferences', 'universal-consent-privacy-framework' ),
 	'withdraw'         => __( 'Withdraw', 'universal-consent-privacy-framework' ),
 );
+
+$desc = '';
+if ( 'by_day' === $view ) {
+	$desc = sprintf(
+		/* translators: 1: retention days, 2: group count */
+		__( 'Grouped by visitor UUID and UTC date (latest state that day + how many change rows). Real preference changes are logged; identical re-saves are skipped; rapid spam is rate-limited. Retained about %1$d days. Showing %2$s groups.', 'universal-consent-privacy-framework' ),
+		$retention,
+		number_format_i18n( $total )
+	);
+} elseif ( 'visitors' === $view ) {
+	$desc = sprintf(
+		/* translators: 1: retention days, 2: visitor count */
+		__( 'One row per visitor UUID (lifetime). Preference changes are kept; identical re-saves and flood spam are suppressed. Retained about %1$d days. Showing %2$s visitors.', 'universal-consent-privacy-framework' ),
+		$retention,
+		number_format_i18n( $total )
+	);
+} else {
+	$desc = sprintf(
+		/* translators: 1: retention days, 2: event count */
+		__( 'Raw change events. Each meaningful consent change is a row; anti-spam collapses burst floods and caps rows per visitor per day. Retained about %1$d days. Showing %2$s events.', 'universal-consent-privacy-framework' ),
+		$retention,
+		number_format_i18n( $total )
+	);
+}
 ?>
 <div class="wrap ucpf-admin">
 	<h1><?php esc_html_e( 'Consent Logs', 'universal-consent-privacy-framework' ); ?></h1>
-	<p class="description">
-		<?php
-		if ( 'visitors' === $view ) {
-			echo esc_html(
-				sprintf(
-					/* translators: 1: retention days, 2: visitor count */
-					__( 'Privacy-minimized consent events (UUID, action, categories, timestamps — no IP). Rapid identical clicks are collapsed; real preference changes are kept. Retained about %1$d days. Showing %2$s visitors.', 'universal-consent-privacy-framework' ),
-					$retention,
-					number_format_i18n( $total )
-				)
-			);
-		} else {
-			echo esc_html(
-				sprintf(
-					/* translators: 1: retention days, 2: event count */
-					__( 'Privacy-minimized consent events (UUID, action, categories, timestamps — no IP). Rapid identical clicks are collapsed; real preference changes are kept. Retained about %1$d days. Showing %2$s events.', 'universal-consent-privacy-framework' ),
-					$retention,
-					number_format_i18n( $total )
-				)
-			);
-		}
-		?>
-	</p>
+	<p class="description"><?php echo esc_html( $desc ); ?></p>
 
 	<nav class="nav-tab-wrapper ucpf-logs-tabs" aria-label="<?php echo esc_attr__( 'Consent log views', 'universal-consent-privacy-framework' ); ?>">
-		<a href="<?php echo esc_url( $events_url ); ?>" class="nav-tab <?php echo 'events' === $view ? 'nav-tab-active' : ''; ?>">
-			<?php esc_html_e( 'Events', 'universal-consent-privacy-framework' ); ?>
+		<a href="<?php echo esc_url( $tab_url( 'by_day' ) ); ?>" class="nav-tab <?php echo 'by_day' === $view ? 'nav-tab-active' : ''; ?>">
+			<?php esc_html_e( 'By day', 'universal-consent-privacy-framework' ); ?>
 		</a>
-		<a href="<?php echo esc_url( $visitors_url ); ?>" class="nav-tab <?php echo 'visitors' === $view ? 'nav-tab-active' : ''; ?>">
+		<a href="<?php echo esc_url( $tab_url( 'visitors' ) ); ?>" class="nav-tab <?php echo 'visitors' === $view ? 'nav-tab-active' : ''; ?>">
 			<?php esc_html_e( 'Visitors', 'universal-consent-privacy-framework' ); ?>
+		</a>
+		<a href="<?php echo esc_url( $tab_url( 'events' ) ); ?>" class="nav-tab <?php echo 'events' === $view ? 'nav-tab-active' : ''; ?>">
+			<?php esc_html_e( 'Events', 'universal-consent-privacy-framework' ); ?>
 		</a>
 	</nav>
 
@@ -205,7 +202,65 @@ $ucpf_actions = array(
 	<?php endif; ?>
 
 	<div class="ucpf-table-scroll" tabindex="0" aria-label="<?php echo esc_attr__( 'Consent logs table', 'universal-consent-privacy-framework' ); ?>">
-	<?php if ( 'visitors' === $view ) : ?>
+	<?php if ( 'by_day' === $view ) : ?>
+		<table class="widefat striped">
+			<thead>
+				<tr>
+					<th scope="col"><?php esc_html_e( 'Date (UTC)', 'universal-consent-privacy-framework' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'UUID', 'universal-consent-privacy-framework' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Latest action', 'universal-consent-privacy-framework' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Categories', 'universal-consent-privacy-framework' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Region', 'universal-consent-privacy-framework' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Changes', 'universal-consent-privacy-framework' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Last update (UTC)', 'universal-consent-privacy-framework' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Day detail', 'universal-consent-privacy-framework' ); ?></th>
+				</tr>
+			</thead>
+			<tbody>
+			<?php if ( ! $items ) : ?>
+				<tr>
+					<td colspan="8">
+						<?php esc_html_e( 'No day groups match these filters.', 'universal-consent-privacy-framework' ); ?>
+					</td>
+				</tr>
+			<?php else : ?>
+				<?php foreach ( $items as $log ) : ?>
+					<?php
+					$uuid    = isset( $log['consent_uuid'] ) ? (string) $log['consent_uuid'] : '';
+					$log_day = isset( $log['log_day'] ) ? (string) $log['log_day'] : '';
+					if ( '' === $log_day && ! empty( $log['created_at'] ) ) {
+						$log_day = substr( (string) $log['created_at'], 0, 10 );
+					}
+					$day_url = add_query_arg(
+						array(
+							'page'      => 'ucpf-logs',
+							'view'      => 'events',
+							'uuid'      => $uuid,
+							'date_from' => $log_day,
+							'date_to'   => $log_day,
+						),
+						admin_url( 'admin.php' )
+					);
+					?>
+					<tr>
+						<td><?php echo esc_html( $log_day ); ?></td>
+						<td><code><?php echo esc_html( $uuid ); ?></code></td>
+						<td><?php echo esc_html( isset( $log['action'] ) ? (string) $log['action'] : '' ); ?></td>
+						<td><?php echo esc_html( $ucpf_format_cats( isset( $log['categories'] ) ? $log['categories'] : '' ) ); ?></td>
+						<td><?php echo esc_html( ! empty( $log['region'] ) ? (string) $log['region'] : '—' ); ?></td>
+						<td><?php echo esc_html( isset( $log['event_count'] ) ? number_format_i18n( (int) $log['event_count'] ) : '1' ); ?></td>
+						<td><?php echo esc_html( isset( $log['created_at'] ) ? (string) $log['created_at'] : '' ); ?></td>
+						<td>
+							<a href="<?php echo esc_url( $day_url ); ?>">
+								<?php esc_html_e( 'View day', 'universal-consent-privacy-framework' ); ?>
+							</a>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+			<?php endif; ?>
+			</tbody>
+		</table>
+	<?php elseif ( 'visitors' === $view ) : ?>
 		<table class="widefat striped">
 			<thead>
 				<tr>

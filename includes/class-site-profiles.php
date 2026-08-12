@@ -78,16 +78,15 @@ class Site_Profiles {
 	 * @return string
 	 */
 	public static function current() {
-		$stored = Settings::get( 'site_profile', '' );
-		if ( is_string( $stored ) && '' !== $stored ) {
-			return self::sanitize( $stored );
+		$stored = sanitize_key( (string) Settings::get( 'site_profile', '' ) );
+		if ( in_array( $stored, self::keys(), true ) ) {
+			return $stored;
 		}
 		return self::detect();
 	}
 
 	/**
-	 * Apply profile side effects: scan URL pack + include_auth.
-	 * Does not auto-enable marketing/analytics services (still scan/detect driven).
+	 * Persist profile + refresh scan URL defaults for that profile.
 	 *
 	 * @param string $profile Profile key.
 	 * @return array{profile:string, urls:int, include_auth:bool}
@@ -95,15 +94,26 @@ class Site_Profiles {
 	public static function apply( $profile ) {
 		$profile = self::sanitize( $profile );
 		Settings::update( array( 'site_profile' => $profile ) );
+		return self::apply_scan_defaults( $profile );
+	}
 
-		$scanner   = Cookie_Scanner::instance();
-		$selection = $scanner->get_saved_selection();
-		$urls      = isset( $selection['urls'] ) && is_array( $selection['urls'] ) ? $selection['urls'] : array();
+	/**
+	 * Refresh scanner URL selection for a profile without writing site_profile again.
+	 * Safe to call from update_option hooks (no Settings::update recursion).
+	 *
+	 * @param string $profile Profile key.
+	 * @return array{profile:string, urls:int, include_auth:bool}
+	 */
+	public static function apply_scan_defaults( $profile ) {
+		$profile = self::sanitize( $profile );
+
+		$scanner      = Cookie_Scanner::instance();
+		$selection    = $scanner->get_saved_selection();
+		$urls         = isset( $selection['urls'] ) && is_array( $selection['urls'] ) ? $selection['urls'] : array();
 		$include_auth = ! empty( $selection['include_auth'] );
 
 		$home = home_url( '/' );
 		if ( $home && empty( $urls[ $home ] ) ) {
-			// Normalize via save_selection later; seed label.
 			$urls[ $home ] = __( 'Homepage', 'universal-consent-privacy-framework' );
 		}
 
@@ -123,10 +133,10 @@ class Site_Profiles {
 
 		$saved = $scanner->save_selection(
 			array(
-				'urls'         => $urls,
-				'depth'        => isset( $selection['depth'] ) ? $selection['depth'] : 'standard',
-				'browser_crawl'=> isset( $selection['browser_crawl'] ) ? (bool) $selection['browser_crawl'] : true,
-				'include_auth' => $include_auth,
+				'urls'          => $urls,
+				'depth'         => isset( $selection['depth'] ) ? $selection['depth'] : 'standard',
+				'browser_crawl' => isset( $selection['browser_crawl'] ) ? (bool) $selection['browser_crawl'] : true,
+				'include_auth'  => $include_auth,
 			)
 		);
 

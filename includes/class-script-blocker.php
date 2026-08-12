@@ -412,7 +412,8 @@ class Script_Blocker {
 				break;
 
 			default:
-				if ( is_callable( $service['loader'] ) ) {
+				// Only allow Closure loaders registered in PHP — never string callables from import/JSON.
+				if ( isset( $service['loader'] ) && $service['loader'] instanceof \Closure ) {
 					call_user_func( $service['loader'] );
 				}
 				break;
@@ -471,27 +472,11 @@ class Script_Blocker {
 	 * @return string
 	 */
 	public function filter_style_tag( $html, $handle, $href, $media ) {
-		if ( is_admin() || empty( $href ) ) {
-			return $html;
-		}
-
-		$match = $this->match_blocked_asset( $href );
-		if ( ! $match ) {
-			return $html;
-		}
-
-		// Consent-gated stylesheet placeholder; original link was already enqueued.
-		// Tag + rel value are split so Plugin Check does not flag NonEnqueuedStylesheet.
-		return sprintf(
-			'<%1$s rel="%2$s" data-ucpf-deferred="1" data-ucpf-category="%3$s" data-ucpf-service="%4$s" data-href="%5$s" media="%6$s" id="%7$s-css" />' . "\n",
-			'link',
-			'stylesheet',
-			esc_attr( $match['category'] ),
-			esc_attr( $match['key'] ),
-			esc_url( $href ),
-			esc_attr( $media ? $media : 'all' ),
-			esc_attr( $handle )
-		);
+		unset( $handle, $href, $media );
+		// Never consent-gate stylesheets. Deferring CSS (empty or data: href) unstyles
+		// the whole site and triggers browser MIME text/html errors. Gate scripts /
+		// iframes / network only — CSS does not set tracking cookies.
+		return $html;
 	}
 
 	/**
@@ -501,13 +486,57 @@ class Script_Blocker {
 	 * @return array{key:string,category:string}|null
 	 */
 	private function match_blocked_asset( $url ) {
+		$url = (string) $url;
+		if ( '' === $url ) {
+			return null;
+		}
+
+		// Stylesheets are never consent-gated (layout).
+		if ( preg_match( '/\.css(\?|#|$)/i', $url ) || false !== stripos( $url, '/elementor/css/' ) ) {
+			return null;
+		}
+
+		// Theme / Elementor / WP core — never soft-defer (CF + builders must stay untouched).
+		if ( \ucpf_is_site_layout_asset( $url ) ) {
+			return null;
+		}
+
+		// Amelia Booking is a first-party WP form (like Gravity Forms) — never soft-defer.
+		if ( false !== stripos( $url, '/ameliabooking/' ) || false !== stripos( $url, 'wpamelia' ) ) {
+			return null;
+		}
+
+		// UserWay accessibility toolbar — never soft-defer (ADA / assistive tech).
+		if (
+			false !== stripos( $url, 'cdn.userway.org' ) ||
+			false !== stripos( $url, 'api.userway.org' ) ||
+			false !== stripos( $url, 'userway.org' )
+		) {
+			return null;
+		}
+
+		// Path/filename suspicion (pixel-tracking.js, etc.) — fail-closed as marketing.
+		$sus = Suspicion::match_needle( $url );
+		if ( $sus ) {
+			// Already consented — do not rewrite to text/plain (loader would re-activate anyway).
+			if ( Consent_Manager::instance()->has_consent( 'marketing' ) ) {
+				return null;
+			}
+			if ( apply_filters( 'ucpf_should_block_script', true, array( 'key' => 'suspicion', 'category' => 'marketing' ), '', $url ) ) {
+				return array(
+					'key'      => 'suspicion',
+					'category' => 'marketing',
+				);
+			}
+		}
+
 		$registry = Script_Registry::instance();
 		foreach ( $registry->get_services() as $key => $service ) {
 			if ( ! $registry->should_block_service( $service ) ) {
 				continue;
 			}
 			foreach ( (array) $service['script_patterns'] as $pattern ) {
-				if ( ! $pattern || false === strpos( $url, $pattern ) ) {
+				if ( ! $pattern || false === stripos( $url, (string) $pattern ) ) {
 					continue;
 				}
 				if ( apply_filters( 'ucpf_should_block_script', true, $service, '', $url ) ) {
@@ -600,47 +629,7 @@ class Script_Blocker {
 					if ( is_string( $replaced ) ) {
 						$html = $replaced;
 					}
-
-					// Soft-defer matching stylesheet / preload links (Typekit, Google Fonts, kits).
-					$link_replaced = preg_replace_callback(
-						'#<link([^>]*' . preg_quote( $pattern, '#' ) . '[^>]*)/?>#is',
-						static function ( $m ) use ( $key, $category ) {
-							$attrs = $m[1];
-							if ( ! preg_match( '/\brel\s*=\s*([\'"])(stylesheet|preload)\1/i', $attrs ) ) {
-								return $m[0];
-							}
-							$href = '';
-							if ( preg_match( '/\bhref\s*=\s*([\'"])(.*?)\1/i', $attrs, $hm ) ) {
-								$href = $hm[2];
-							}
-							if ( '' === $href ) {
-								return $m[0];
-							}
-							$media = 'all';
-							if ( preg_match( '/\bmedia\s*=\s*([\'"])(.*?)\1/i', $attrs, $mm ) ) {
-								$media = $mm[2];
-							}
-							$id = '';
-							if ( preg_match( '/\bid\s*=\s*([\'"])(.*?)\1/i', $attrs, $im ) ) {
-								$id = $im[2];
-							}
-							return sprintf(
-								'<%1$s rel="%2$s" data-ucpf-deferred="1" data-ucpf-category="%3$s" data-ucpf-service="%4$s" data-href="%5$s" media="%6$s"%7$s />',
-								'link',
-								'stylesheet',
-								esc_attr( $category ),
-								esc_attr( $key ),
-								esc_url( $href ),
-								esc_attr( $media ),
-								$id ? ' id="' . esc_attr( $id ) . '"' : ''
-							);
-						},
-						$html,
-						20
-					);
-					if ( is_string( $link_replaced ) ) {
-						$html = $link_replaced;
-					}
+					// Do not rewrite <link rel="stylesheet"> — CSS is never consent-gated.
 				}
 			}
 

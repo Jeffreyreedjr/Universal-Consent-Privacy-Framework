@@ -22,6 +22,20 @@ class Admin {
 	private static $instance = null;
 
 	/**
+	 * Whether Cloudflare zone resolve should run on shutdown.
+	 *
+	 * @var bool
+	 */
+	private $cf_zone_resolve_pending = false;
+
+	/**
+	 * Re-entry guard for zone resolve.
+	 *
+	 * @var bool
+	 */
+	private static $cf_zone_resolve_running = false;
+
+	/**
 	 * Menu slug.
 	 *
 	 * @var string
@@ -45,11 +59,74 @@ class Admin {
 	 */
 	public function init() {
 		add_action( 'admin_menu', array( $this, 'register_menus' ) );
+		add_action( 'network_admin_menu', array( $this, 'register_network_menus' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_menu_assets' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
+		add_action( 'admin_notices', array( $this, 'maybe_active_scan_notice' ) );
+		add_action( 'admin_notices', array( $this, 'maybe_elementor_css_notice' ) );
+		add_action( 'admin_init', array( $this, 'maybe_dismiss_elementor_css_notice' ) );
 		add_action( 'admin_post_ucpf_save_wizard', array( $this, 'handle_wizard_save' ) );
 		add_action( 'admin_post_ucpf_export_logs', array( $this, 'handle_export_logs' ) );
+		add_action( 'admin_post_ucpf_purge_cloudflare', array( $this, 'handle_purge_cloudflare' ) );
+		add_action( 'admin_post_ucpf_save_network_settings', array( $this, 'handle_save_network_settings' ) );
+		add_action( 'admin_post_ucpf_promote_network_settings', array( $this, 'handle_promote_network_settings' ) );
+		add_action( 'admin_post_ucpf_clear_network_overrides', array( $this, 'handle_clear_network_overrides' ) );
+		add_action( 'admin_post_ucpf_promote_network_from_site', array( $this, 'handle_promote_network_from_site' ) );
+		add_action( 'update_option_' . Settings::OPTION_KEY, array( $this, 'maybe_schedule_cloudflare_zone_resolve' ), 20, 2 );
+		add_action( 'shutdown', array( $this, 'maybe_run_cloudflare_zone_resolve' ), 20 );
+	}
+
+	/**
+	 * After Cloudflare credentials save, schedule Zone ID resolve on shutdown (never inline).
+	 *
+	 * Inline resolve + Settings::update during options.php previously looped until OOM
+	 * because form sanitize discarded programmatic cloudflare_zone_id writes.
+	 *
+	 * @param mixed $old Previous option.
+	 * @param mixed $new New option.
+	 * @return void
+	 */
+	public function maybe_schedule_cloudflare_zone_resolve( $old, $new ) {
+		unset( $old );
+		if ( Settings::is_internal_update() ) {
+			return;
+		}
+		if ( ! is_array( $new ) || empty( $new['cloudflare_purge_enabled'] ) ) {
+			return;
+		}
+		$zone = isset( $new['cloudflare_zone_id'] ) ? preg_replace( '/[^a-zA-Z0-9]/', '', (string) $new['cloudflare_zone_id'] ) : '';
+		if ( is_string( $zone ) && '' !== $zone ) {
+			return;
+		}
+		$domain = Cloudflare_Cache::sanitize_domain( isset( $new['cloudflare_domain'] ) ? (string) $new['cloudflare_domain'] : '' );
+		if ( '' === $domain ) {
+			$domain = Cloudflare_Cache::sanitize_domain( Cloudflare_Cache::default_domain() );
+		}
+		if ( '' === $domain || ! Settings::secret_is_set( 'cloudflare_api_token' ) ) {
+			return;
+		}
+		$this->cf_zone_resolve_pending = true;
+	}
+
+	/**
+	 * Resolve Cloudflare Zone ID once per request after options are stable.
+	 *
+	 * @return void
+	 */
+	public function maybe_run_cloudflare_zone_resolve() {
+		if ( ! $this->cf_zone_resolve_pending || self::$cf_zone_resolve_running ) {
+			return;
+		}
+		$this->cf_zone_resolve_pending = false;
+		self::$cf_zone_resolve_running = true;
+		try {
+			Cloudflare_Cache::instance()->resolve_and_store_zone_id( true );
+		} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+			// Never take down admin saves if CF API misbehaves.
+		} finally {
+			self::$cf_zone_resolve_running = false;
+		}
 	}
 
 	/**
@@ -96,6 +173,118 @@ class Admin {
 	}
 
 	/**
+	 * Network Admin menu (multisite connection defaults).
+	 */
+	public function register_network_menus() {
+		if ( ! is_multisite() ) {
+			return;
+		}
+		add_menu_page(
+			Brand::product_name(),
+			Brand::menu_title(),
+			'manage_network_options',
+			'ucpf-network',
+			array( $this, 'render_network_settings' ),
+			'dashicons-shield',
+			58
+		);
+	}
+
+	/**
+	 * Network settings screen.
+	 */
+	public function render_network_settings() {
+		if ( ! current_user_can( 'manage_network_options' ) ) {
+			wp_die( esc_html__( 'You do not have permission to manage network settings.', 'universal-consent-privacy-framework' ) );
+		}
+		$file = UCPF_PLUGIN_DIR . 'admin/views/network-settings.php';
+		if ( ! is_readable( $file ) ) {
+			wp_die( esc_html__( 'Admin view missing.', 'universal-consent-privacy-framework' ) );
+		}
+		include $file;
+	}
+
+	/**
+	 * Save network connection settings.
+	 */
+	public function handle_save_network_settings() {
+		if ( ! is_multisite() || ! current_user_can( 'manage_network_options' ) ) {
+			wp_die( esc_html__( 'Forbidden.', 'universal-consent-privacy-framework' ) );
+		}
+		check_admin_referer( 'ucpf_save_network_settings' );
+		$ok = Network_Settings::update( Network_Settings::sanitize( wp_unslash( $_POST ) ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized in Network_Settings::sanitize.
+		$redirect = add_query_arg(
+			'ucpf_net',
+			$ok ? 'saved' : 'error',
+			network_admin_url( 'admin.php?page=ucpf-network' )
+		);
+		wp_safe_redirect( $redirect );
+		exit;
+	}
+
+	/**
+	 * Promote a chosen blog's connection settings to the network option.
+	 */
+	public function handle_promote_network_settings() {
+		if ( ! is_multisite() || ! current_user_can( 'manage_network_options' ) ) {
+			wp_die( esc_html__( 'Forbidden.', 'universal-consent-privacy-framework' ) );
+		}
+		check_admin_referer( 'ucpf_promote_network_settings' );
+		$blog_id = isset( $_POST['blog_id'] ) ? (int) $_POST['blog_id'] : 0;
+		$ok      = false;
+		if ( $blog_id > 0 && get_site( $blog_id ) ) {
+			switch_to_blog( $blog_id );
+			$ok = Network_Settings::promote_from_current_site();
+			restore_current_blog();
+		}
+		$redirect = add_query_arg(
+			'ucpf_net',
+			$ok ? 'promoted' : 'error',
+			network_admin_url( 'admin.php?page=ucpf-network' )
+		);
+		wp_safe_redirect( $redirect );
+		exit;
+	}
+
+	/**
+	 * Promote from the current site (Advanced settings button).
+	 */
+	public function handle_promote_network_from_site() {
+		if ( ! is_multisite() || ! current_user_can( 'manage_network_options' ) ) {
+			wp_die( esc_html__( 'Forbidden.', 'universal-consent-privacy-framework' ) );
+		}
+		check_admin_referer( 'ucpf_promote_network_from_site' );
+		$ok = Network_Settings::promote_from_current_site();
+		$redirect = add_query_arg(
+			array(
+				'page'     => 'ucpf-advanced',
+				'ucpf_net' => $ok ? 'promoted' : 'error',
+			),
+			admin_url( 'admin.php' )
+		);
+		wp_safe_redirect( $redirect );
+		exit;
+	}
+
+	/**
+	 * Clear network-capable keys on every blog.
+	 */
+	public function handle_clear_network_overrides() {
+		if ( ! is_multisite() || ! current_user_can( 'manage_network_options' ) ) {
+			wp_die( esc_html__( 'Forbidden.', 'universal-consent-privacy-framework' ) );
+		}
+		check_admin_referer( 'ucpf_clear_network_overrides' );
+		Network_Settings::clear_all_site_overrides();
+		$redirect = add_query_arg(
+			'ucpf_net',
+			'cleared',
+			network_admin_url( 'admin.php?page=ucpf-network' )
+		);
+		wp_safe_redirect( $redirect );
+		exit;
+	}
+
+	/**
 	 * Sidebar menu icon CSS on every admin screen (icon must look right outside UCPF pages).
 	 */
 	public function enqueue_menu_assets() {
@@ -105,6 +294,89 @@ class Admin {
 			array(),
 			ucpf_asset_version( 'admin/css/admin-menu.css' )
 		);
+	}
+
+	/**
+	 * Site-wide notice while an interactive Playwright scan is running.
+	 */
+	public function maybe_active_scan_notice() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		$active = Active_Scan::instance()->get_for_rest();
+		if ( empty( $active['active'] ) || empty( $active['job']['job_id'] ) ) {
+			return;
+		}
+		$job     = $active['job'];
+		$job_id  = (string) $job['job_id'];
+		$msg     = ! empty( $job['progress']['message'] )
+			? (string) $job['progress']['message']
+			: ( ! empty( $job['message'] ) ? (string) $job['message'] : __( 'Playwright scan in progress.', 'universal-consent-privacy-framework' ) );
+		$pct     = isset( $job['progress']['percent'] ) ? (int) round( (float) $job['progress']['percent'] ) : 0;
+		$scanner = admin_url( 'admin.php?page=ucpf-scanner' );
+		$line    = sprintf(
+			/* translators: 1: percent complete, 2: job id, 3: status message */
+			__( 'UCPF Playwright scan running (%1$d%% · job %2$s): %3$s', 'universal-consent-privacy-framework' ),
+			$pct,
+			$job_id,
+			$msg
+		);
+		echo '<div class="notice notice-info is-dismissible ucpf-active-scan-notice" id="ucpf-active-scan-notice"><p>';
+		echo esc_html( $line );
+		echo ' <a href="' . esc_url( $scanner ) . '">' . esc_html__( 'Open Cookie Scanner', 'universal-consent-privacy-framework' ) . '</a>';
+		echo ' · <button type="button" class="button-link" id="ucpf-active-scan-notice-stop">' . esc_html__( 'Stop scan', 'universal-consent-privacy-framework' ) . '</button>';
+		echo '</p></div>';
+
+		// Lightweight stop handler on screens that may not load full admin.js (non-UCPF pages).
+		$hook = isset( $GLOBALS['hook_suffix'] ) ? (string) $GLOBALS['hook_suffix'] : '';
+		if ( false === strpos( $hook, 'ucpf' ) ) {
+			$rest = esc_url( rest_url( 'ucpf/v1/scan/cancel' ) );
+			$nonce = wp_create_nonce( 'wp_rest' );
+			echo '<script>(function(){var b=document.getElementById("ucpf-active-scan-notice-stop");if(!b)return;b.addEventListener("click",function(){b.disabled=true;fetch(' . wp_json_encode( $rest ) . ',{method:"POST",headers:{"Content-Type":"application/json","X-WP-Nonce":' . wp_json_encode( $nonce ) . '},body:JSON.stringify({job_id:' . wp_json_encode( $job_id ) . '})}).then(function(){window.location.reload();}).catch(function(){b.disabled=false;});});})();</script>';
+		}
+	}
+
+	/**
+	 * After UCPF / plugin updates cleared Elementor CSS cache — one dismissible tip.
+	 *
+	 * @return void
+	 */
+	public function maybe_elementor_css_notice() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		if ( ! get_option( 'ucpf_elementor_css_notice', false ) ) {
+			return;
+		}
+		$dismiss = wp_nonce_url(
+			add_query_arg( 'ucpf_dismiss_elementor_css', '1' ),
+			'ucpf_dismiss_elementor_css'
+		);
+		echo '<div class="notice notice-warning is-dismissible"><p>';
+		echo esc_html__(
+			'UCPF cleared Elementor CSS cache after an update and queued a Cloudflare purge. Hard-refresh the front end once. If styles still show MIME text/html: enable Automatic Cloudflare purge (API token) under Advanced → Cloudflare, Purge Everything once, and keep an explicit Bypass (not only a Cache Everything exclusion) for /wp-content/uploads/elementor/css/ — see docs/CLOUDFLARE-CACHE.md.',
+			'universal-consent-privacy-framework'
+		);
+		echo ' <a href="' . esc_url( $dismiss ) . '">' . esc_html__( 'Dismiss', 'universal-consent-privacy-framework' ) . '</a>';
+		echo '</p></div>';
+	}
+
+	/**
+	 * Dismiss Elementor CSS rebuild notice.
+	 *
+	 * @return void
+	 */
+	public function maybe_dismiss_elementor_css_notice() {
+		if ( empty( $_GET['ucpf_dismiss_elementor_css'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			return;
+		}
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		check_admin_referer( 'ucpf_dismiss_elementor_css' );
+		delete_option( 'ucpf_elementor_css_notice' );
+		wp_safe_redirect( remove_query_arg( array( 'ucpf_dismiss_elementor_css', '_wpnonce' ) ) );
+		exit;
 	}
 
 	/**
@@ -157,8 +429,10 @@ class Admin {
 				'scannerApiUrl'      => Privacy_Scan_Importer::api_base(),
 				'scannerConfigured'  => (bool) Privacy_Scan_Importer::api_base(),
 				'advancedSettingsUrl'=> admin_url( 'admin.php?page=ucpf-advanced' ),
+				'scannerPageUrl'     => admin_url( 'admin.php?page=ucpf-scanner' ),
 				'contributeIssueUrl' => Cookie_Knowledge::contribute_issue_url(),
 				'reverifyHint'       => Privacy_Scan_Importer::reverify_hint_from_last_scan(),
+				'activeScan'         => Active_Scan::instance()->get_for_rest(),
 			)
 		);
 
@@ -293,12 +567,25 @@ class Admin {
 	 * @return array
 	 */
 	public function sanitize_settings( $input ) {
-		if ( ! is_array( $input ) ) {
-			return Settings::all();
+		// Programmatic Settings::update() — accept the already-merged allowlisted row.
+		if ( Settings::is_internal_update() ) {
+			if ( ! is_array( $input ) ) {
+				return Settings::raw();
+			}
+			$allowed = array_flip( array_keys( Settings::defaults() ) );
+			$clean   = array_intersect_key( $input, $allowed );
+			$clean   = wp_parse_args( $clean, Settings::defaults() );
+			return Settings::prepare_for_storage( $clean );
 		}
 
-		$current = Settings::all();
-		$clean   = array_merge( $current, $input );
+		if ( ! is_array( $input ) ) {
+			return Settings::prepare_for_storage( Settings::all() );
+		}
+
+		$current_raw = Settings::raw();
+		$current     = Settings::all();
+		// Start from current settings only — never merge raw unsanitized input.
+		$clean       = $current;
 
 		$clean['banner_layout'] = isset( $input['banner_layout'] ) && in_array( $input['banner_layout'], array( 'bar', 'modal', 'corner' ), true )
 			? $input['banner_layout']
@@ -339,14 +626,27 @@ class Admin {
 			$clean['output_buffer_blocking']   = ! empty( $input['output_buffer_blocking'] );
 			$clean['remote_registry_enabled']  = ! empty( $input['remote_registry_enabled'] );
 			$clean['consent_logging']          = ! empty( $input['consent_logging'] );
+			$clean['login_security_notice']    = ! empty( $input['login_security_notice'] );
 			$clean['delete_data_on_uninstall'] = ! empty( $input['delete_data_on_uninstall'] );
 			if ( isset( $input['site_profile'] ) ) {
 				$profile = Site_Profiles::sanitize( $input['site_profile'] );
 				if ( Site_Profiles::WOOCOMMERCE === $profile && ! Cookie_Scanner::instance()->is_woo_active() ) {
 					$profile = Site_Profiles::BASIC;
 				}
+				$prev_profile = isset( $current['site_profile'] ) ? (string) $current['site_profile'] : '';
 				$clean['site_profile'] = $profile;
-				Site_Profiles::apply( $profile );
+				// Never call Settings::update / Site_Profiles::apply inside sanitize (recursion + OOM).
+				if ( $profile !== $prev_profile ) {
+					$pending_profile = $profile;
+					add_action(
+						'update_option_' . Settings::OPTION_KEY,
+						static function () use ( $pending_profile ) {
+							Site_Profiles::apply_scan_defaults( $pending_profile );
+						},
+						5,
+						0
+					);
+				}
 			}
 			if ( isset( $input['remote_registry_url'] ) ) {
 				$clean['remote_registry_url'] = esc_url_raw( $input['remote_registry_url'] );
@@ -358,20 +658,32 @@ class Admin {
 				Audit_Log::instance()->recompute_expires( $days );
 			}
 			if ( isset( $input['scanner_api_url'] ) ) {
-				$clean['scanner_api_url'] = esc_url_raw( $input['scanner_api_url'] );
+				$clean['scanner_api_url'] = Settings::normalize_url( (string) $input['scanner_api_url'] );
 			}
 			if ( array_key_exists( 'scanner_api_key', $input ) ) {
-				$clean['scanner_api_key'] = sanitize_text_field( (string) $input['scanner_api_key'] );
+				$key_in = Settings::sanitize_secret( (string) $input['scanner_api_key'] );
+				// Empty password field = keep existing key (do not wipe).
+				if ( '' !== $key_in ) {
+					$clean['scanner_api_key'] = $key_in;
+				}
 			}
 			if ( isset( $input['registry_mode'] ) ) {
 				$rm = sanitize_key( (string) $input['registry_mode'] );
-				$clean['registry_mode'] = in_array( $rm, array( 'local', 'agency', 'community', 'disabled' ), true ) ? $rm : 'local';
+				if ( is_multisite() && '' === $rm ) {
+					$clean['registry_mode'] = '';
+				} else {
+					$clean['registry_mode'] = in_array( $rm, array( 'local', 'agency', 'community', 'disabled' ), true ) ? $rm : 'local';
+				}
 			}
 			if ( isset( $input['privacy_api_url'] ) ) {
-				$clean['privacy_api_url'] = esc_url_raw( (string) $input['privacy_api_url'] );
+				$clean['privacy_api_url'] = Settings::normalize_url( (string) $input['privacy_api_url'] );
 			}
 			if ( array_key_exists( 'privacy_api_key', $input ) ) {
-				$clean['privacy_api_key'] = sanitize_text_field( (string) $input['privacy_api_key'] );
+				$key_in = Settings::sanitize_secret( (string) $input['privacy_api_key'] );
+				// Empty password field = keep existing key (do not wipe).
+				if ( '' !== $key_in ) {
+					$clean['privacy_api_key'] = $key_in;
+				}
 			}
 			if ( isset( $input['privacy_controller_id'] ) ) {
 				$clean['privacy_controller_id'] = sanitize_key( (string) $input['privacy_controller_id'] );
@@ -403,6 +715,26 @@ class Admin {
 				);
 				$clean['scheduled_scan_notify_email'] = implode( ', ', $emails );
 			}
+
+			$clean['cloudflare_purge_enabled']        = ! empty( $input['cloudflare_purge_enabled'] );
+			$clean['cloudflare_purge_on_updates']     = ! empty( $input['cloudflare_purge_on_updates'] );
+			$clean['cloudflare_purge_on_ucpf_update'] = ! empty( $input['cloudflare_purge_on_ucpf_update'] );
+			$clean['elementor_clear_css_on_updates']  = ! empty( $input['elementor_clear_css_on_updates'] );
+			if ( isset( $input['cloudflare_domain'] ) ) {
+				$clean['cloudflare_domain'] = Cloudflare_Cache::sanitize_domain( (string) $input['cloudflare_domain'] );
+				// Domain change invalidates cached Zone ID until next resolve.
+				if ( $clean['cloudflare_domain'] !== Cloudflare_Cache::sanitize_domain( (string) Settings::get( 'cloudflare_domain', '' ) ) ) {
+					$clean['cloudflare_zone_id'] = '';
+				}
+			}
+			if ( array_key_exists( 'cloudflare_api_token', $input ) ) {
+				$token_in = Settings::sanitize_secret( (string) $input['cloudflare_api_token'] );
+				// Empty password field = keep existing token (do not wipe).
+				if ( '' !== $token_in ) {
+					$clean['cloudflare_api_token'] = $token_in;
+					$clean['cloudflare_zone_id']   = '';
+				}
+			}
 		}
 
 		if ( ! empty( $input['_ucpf_pages_form'] ) ) {
@@ -411,19 +743,26 @@ class Admin {
 			$clean['do_not_sell_page_url']                  = isset( $input['do_not_sell_page_url'] ) ? esc_url_raw( (string) $input['do_not_sell_page_url'] ) : '';
 		}
 
-		unset( $clean['_ucpf_tracking_form'], $clean['_ucpf_banner_form'], $clean['_ucpf_advanced_form'], $clean['_ucpf_pages_form'] );
-
 		if ( isset( $input['google_consent_mode'] ) ) {
 			$mode = sanitize_key( $input['google_consent_mode'] );
 			$clean['google_consent_mode'] = in_array( $mode, array( 'off', 'basic', 'advanced' ), true ) ? $mode : 'basic';
 		}
 
 		$allowed_modes = Jurisdiction::instance()->get_pack_ids();
-		$mode          = sanitize_key( isset( $clean['compliance_mode'] ) ? $clean['compliance_mode'] : 'strict_gdpr' );
-		$clean['compliance_mode'] = in_array( $mode, $allowed_modes, true ) ? $mode : 'strict_gdpr';
-		$clean['contact_email']   = sanitize_email( isset( $clean['contact_email'] ) ? $clean['contact_email'] : '' );
-		$clean['business_name']   = sanitize_text_field( isset( $clean['business_name'] ) ? $clean['business_name'] : '' );
-		$clean['custom_css']      = isset( $clean['custom_css'] ) ? wp_strip_all_tags( (string) $clean['custom_css'] ) : '';
+		if ( isset( $input['compliance_mode'] ) ) {
+			$mode = sanitize_key( (string) $input['compliance_mode'] );
+			$clean['compliance_mode'] = in_array( $mode, $allowed_modes, true ) ? $mode : 'strict_gdpr';
+		}
+
+		if ( array_key_exists( 'contact_email', $input ) ) {
+			$clean['contact_email'] = sanitize_email( (string) $input['contact_email'] );
+		}
+		if ( array_key_exists( 'business_name', $input ) ) {
+			$clean['business_name'] = sanitize_text_field( (string) $input['business_name'] );
+		}
+		if ( array_key_exists( 'custom_css', $input ) ) {
+			$clean['custom_css'] = Theme_Manager::instance()->sanitize_custom_css( $input['custom_css'] );
+		}
 
 		if ( array_key_exists( 'logo_url', $input ) ) {
 			$clean['logo_url'] = esc_url_raw( (string) $input['logo_url'] );
@@ -432,24 +771,45 @@ class Admin {
 		if ( array_key_exists( 'accent_2_color', $input ) ) {
 			$raw2 = is_string( $input['accent_2_color'] ) ? $input['accent_2_color'] : '';
 			$hex2 = $raw2 ? sanitize_hex_color( $raw2 ) : '';
-			$clean['accent_2_color'] = $hex2 ? $hex2 : sanitize_text_field( $raw2 );
+			$clean['accent_2_color'] = $hex2 ? $hex2 : '';
 		}
 
 		if ( array_key_exists( 'surface_color', $input ) ) {
 			$raw_s = is_string( $input['surface_color'] ) ? $input['surface_color'] : '';
 			$hex_s = $raw_s ? sanitize_hex_color( $raw_s ) : '';
-			$clean['surface_color'] = $hex_s ? $hex_s : sanitize_text_field( $raw_s );
+			$clean['surface_color'] = $hex_s ? $hex_s : '';
 		}
 
 		if ( array_key_exists( 'accent_color', $input ) ) {
 			$raw = is_string( $input['accent_color'] ) ? $input['accent_color'] : '';
 			$hex = $raw ? sanitize_hex_color( $raw ) : '';
-			$clean['accent_color'] = $hex ? $hex : sanitize_text_field( $raw );
-		} else {
-			$clean['accent_color'] = isset( $current['accent_color'] ) && is_string( $current['accent_color'] ) ? $current['accent_color'] : '';
+			$clean['accent_color'] = $hex ? $hex : '';
 		}
 
-		return $clean;
+		// Drop any non-setting keys that may have been present on prior merges / forms.
+		$allowed_keys = array_keys( Settings::defaults() );
+		$clean        = array_intersect_key( $clean, array_flip( $allowed_keys ) );
+
+		$clean = wp_parse_args( $clean, Settings::defaults() );
+
+		// Keep already-sealed secrets from the DB unless this form posted a new plaintext value.
+		// Re-revealing then re-sealing every save changes ciphertext and fights update_option.
+		foreach ( Secrets::KEYS as $secret_key ) {
+			$posted_new = false;
+			if ( array_key_exists( $secret_key, $input ) ) {
+				$candidate = Settings::sanitize_secret( (string) $input[ $secret_key ] );
+				if ( '' !== $candidate ) {
+					$posted_new           = true;
+					$clean[ $secret_key ] = $candidate;
+				}
+			}
+			if ( ! $posted_new && array_key_exists( $secret_key, $current_raw ) ) {
+				$clean[ $secret_key ] = $current_raw[ $secret_key ];
+			}
+		}
+
+		// Seal API secrets before WordPress writes the option row.
+		return Settings::prepare_for_storage( $clean );
 	}
 
 	/**
@@ -749,15 +1109,57 @@ class Admin {
 			$checks[] = array(
 				'id'           => 'unknown_cookies',
 				'group'        => 'scan',
-				'label'        => __( 'Unknown cookies (drift queue)', 'universal-consent-privacy-framework' ),
-				'status'       => 'warn',
+				'label'        => __( 'Unknown cookies (coverage gap)', 'universal-consent-privacy-framework' ),
+				'status'       => 'fail',
 				'detail'       => sprintf(
 					/* translators: %d: count */
-					_n( '%d unknown cookie needs a category (defaults to consent until reviewed).', '%d unknown cookies need a category (default to consent until reviewed).', $unknown_n, 'universal-consent-privacy-framework' ),
+					_n( '%d unknown cookie still needs a category before go-live coverage is complete.', '%d unknown cookies still need categories before go-live coverage is complete.', $unknown_n, 'universal-consent-privacy-framework' ),
 					$unknown_n
 				),
 				'action_url'   => admin_url( 'admin.php?page=ucpf-scanner#ucpf-cookie-review' ),
 				'action_label' => __( 'Review on Scanner', 'universal-consent-privacy-framework' ),
+			);
+		}
+
+		$sus_n = 0;
+		if ( ! empty( $scan['suspicious_scripts'] ) && is_array( $scan['suspicious_scripts'] ) ) {
+			$ignored = Suspicion::get_ignored_patterns();
+			foreach ( $scan['suspicious_scripts'] as $row ) {
+				if ( ! is_array( $row ) ) {
+					continue;
+				}
+				$pat = isset( $row['pattern'] ) ? strtolower( (string) $row['pattern'] ) : '';
+				if ( $pat && in_array( $pat, $ignored, true ) ) {
+					continue;
+				}
+				++$sus_n;
+			}
+		}
+		if ( $sus_n > 0 ) {
+			$checks[] = array(
+				'id'           => 'suspicious_scripts',
+				'group'        => 'scan',
+				'label'        => __( 'Suspicious scripts', 'universal-consent-privacy-framework' ),
+				'status'       => 'fail',
+				'detail'       => sprintf(
+					/* translators: %d: count */
+					_n( '%d tracking-like script needs Apply override or Ignore.', '%d tracking-like scripts need Apply override or Ignore.', $sus_n, 'universal-consent-privacy-framework' ),
+					$sus_n
+				),
+				'action_url'   => admin_url( 'admin.php?page=ucpf-scanner#ucpf-suspicious-scripts' ),
+				'action_label' => __( 'Review scripts', 'universal-consent-privacy-framework' ),
+			);
+		}
+
+		if ( $blocker_on && ( $unknown_n > 0 || $sus_n > 0 ) ) {
+			$checks[] = array(
+				'id'           => 'blocker_coverage',
+				'group'        => 'consent',
+				'label'        => __( 'Blocker vs coverage', 'universal-consent-privacy-framework' ),
+				'status'       => 'warn',
+				'detail'       => __( 'Script blocker is on, but Cookie Review still has unclassified cookies or unresolved suspicious scripts. Finish reviewing so coverage matches the inventory.', 'universal-consent-privacy-framework' ),
+				'action_url'   => admin_url( 'admin.php?page=ucpf-scanner#ucpf-cookie-review' ),
+				'action_label' => __( 'Open Cookie Review', 'universal-consent-privacy-framework' ),
 			);
 		}
 
@@ -930,6 +1332,18 @@ class Admin {
 		$wizard_max = 11;
 		$step       = max( 1, (int) Settings::get( 'wizard_step' ) );
 
+		// Honor redirect hint after Save and Continue (defense if option write races).
+		if ( isset( $_GET['ucpf_wstep'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display sync only.
+			$hint = max( 1, min( $wizard_max, (int) wp_unslash( $_GET['ucpf_wstep'] ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			if ( $hint !== $step && current_user_can( 'manage_options' ) ) {
+				// Prefer stored step when it already advanced; otherwise adopt hint.
+				if ( $hint > $step ) {
+					Settings::update( array( 'wizard_step' => $hint ) );
+					$step = $hint;
+				}
+			}
+		}
+
 		// One-time: Scanner API step inserted before Website Scan (old steps 5–10 → 6–11).
 		if ( ! get_option( 'ucpf_wizard_api_step_v1', false ) ) {
 			if ( $step >= 5 && $step <= 10 && ! Settings::get( 'wizard_completed' ) ) {
@@ -1017,7 +1431,7 @@ class Admin {
 	 * @return array<string,string>
 	 */
 	private function parse_log_list_args_from_request() {
-		$view = 'events';
+		$view = 'by_day';
 		$uuid = '';
 		$action = '';
 		$date_from = '';
@@ -1120,15 +1534,38 @@ class Admin {
 			$update['contact_email'] = sanitize_email( wp_unslash( $_POST['contact_email'] ) );
 		}
 
-		// Scanner API (wizard step before Website Scan).
+		// Scanner API (wizard step before Website Scan) — same keys as Advanced Settings.
 		if ( isset( $_POST['scanner_api_url'] ) ) {
-			$update['scanner_api_url'] = esc_url_raw( wp_unslash( $_POST['scanner_api_url'] ) );
+			$update['scanner_api_url'] = Settings::normalize_url( sanitize_text_field( wp_unslash( $_POST['scanner_api_url'] ) ) );
 		}
 		if ( array_key_exists( 'scanner_api_key', $_POST ) ) {
-			$key_in = sanitize_text_field( wp_unslash( $_POST['scanner_api_key'] ) );
+			$key_in = Settings::sanitize_secret( sanitize_text_field( wp_unslash( $_POST['scanner_api_key'] ) ) );
 			// Empty password field = keep existing key (do not wipe).
 			if ( '' !== $key_in ) {
 				$update['scanner_api_key'] = $key_in;
+			}
+		}
+
+		// Cloudflare purge (wizard Visitors step — optional) — same keys as Advanced.
+		if ( 1 === $step || isset( $_POST['cloudflare_domain'] ) || isset( $_POST['cloudflare_purge_enabled'] ) ) {
+			if ( 1 === $step ) {
+				$update['cloudflare_purge_enabled']        = ! empty( $_POST['cloudflare_purge_enabled'] );
+				$update['cloudflare_purge_on_updates']     = ! empty( $_POST['cloudflare_purge_on_updates'] );
+				$update['cloudflare_purge_on_ucpf_update'] = ! empty( $_POST['cloudflare_purge_on_ucpf_update'] );
+			}
+			if ( isset( $_POST['cloudflare_domain'] ) ) {
+				$domain = Cloudflare_Cache::sanitize_domain( sanitize_text_field( wp_unslash( $_POST['cloudflare_domain'] ) ) );
+				$update['cloudflare_domain'] = $domain;
+				if ( $domain !== Cloudflare_Cache::sanitize_domain( (string) Settings::get( 'cloudflare_domain', '' ) ) ) {
+					$update['cloudflare_zone_id'] = '';
+				}
+			}
+			if ( array_key_exists( 'cloudflare_api_token', $_POST ) ) {
+				$token_in = Settings::sanitize_secret( sanitize_text_field( wp_unslash( $_POST['cloudflare_api_token'] ) ) );
+				if ( '' !== $token_in ) {
+					$update['cloudflare_api_token'] = $token_in;
+					$update['cloudflare_zone_id']   = '';
+				}
 			}
 		}
 
@@ -1139,10 +1576,23 @@ class Admin {
 			$update['do_not_sell_page_url'] = esc_url_raw( wp_unslash( $_POST['do_not_sell_page_url'] ) );
 		}
 
+		$coverage_blocked = 0;
 		$bool_fields = array( 'consent_logging', 'respect_dnt_gpc', 'banner_enabled', 'blocker_enabled' );
 		foreach ( $bool_fields as $field ) {
 			if ( isset( $_POST[ $field ] ) ) {
 				$update[ $field ] = (bool) (int) $_POST[ $field ];
+			}
+		}
+
+		// Coverage gate: do not enable blocker while unclassified cookies remain.
+		if ( ! empty( $update['blocker_enabled'] ) ) {
+			$scan_chk = Cookie_Scanner::instance()->get_last_scan();
+			$unk      = ( is_array( $scan_chk ) && ! empty( $scan_chk['unknown_cookies'] ) && is_array( $scan_chk['unknown_cookies'] ) )
+				? count( $scan_chk['unknown_cookies'] )
+				: 0;
+			if ( $unk > 0 ) {
+				$update['blocker_enabled'] = false;
+				$coverage_blocked          = $unk;
 			}
 		}
 
@@ -1252,12 +1702,42 @@ class Admin {
 				$update['wizard_completed'] = true;
 			}
 		} else {
+			// Default: stay. If direction missing (some browsers drop submit name), advance when Continue intent is clear.
 			$update['wizard_step'] = $step;
+		}
+
+		// Always persist step first so a later failure cannot strand the visitor on step 1.
+		if ( isset( $update['wizard_step'] ) ) {
+			$next_step = max( 1, min( $wizard_max, (int) $update['wizard_step'] ) );
+			$update['wizard_step'] = $next_step;
 		}
 
 		Settings::update( $update );
 
-		wp_safe_redirect( admin_url( 'admin.php?page=ucpf-wizard' ) );
+		// Force-write step if update_option short-circuited as "unchanged".
+		if ( isset( $update['wizard_step'] ) && (int) Settings::get( 'wizard_step' ) !== (int) $update['wizard_step'] ) {
+			$all                = wp_parse_args( Settings::raw(), Settings::defaults() );
+			$all['wizard_step'] = (int) $update['wizard_step'];
+			if ( ! empty( $update['wizard_completed'] ) ) {
+				$all['wizard_completed'] = true;
+			}
+			$all = array_intersect_key( $all, array_flip( array_keys( Settings::defaults() ) ) );
+			update_option( Settings::OPTION_KEY, Settings::prepare_for_storage( $all ), null );
+		}
+
+		$redirect_step = isset( $update['wizard_step'] ) ? (int) $update['wizard_step'] : $step;
+		$redirect      = add_query_arg(
+			array(
+				'page'       => 'ucpf-wizard',
+				'ucpf_wstep' => $redirect_step,
+				'ucpf_saved' => '1',
+			),
+			admin_url( 'admin.php' )
+		);
+		if ( ! empty( $coverage_blocked ) ) {
+			$redirect = add_query_arg( 'ucpf_coverage_blocked', (int) $coverage_blocked, $redirect );
+		}
+		wp_safe_redirect( $redirect );
 		exit;
 	}
 
@@ -1279,6 +1759,31 @@ class Admin {
 		header( 'Content-Disposition: attachment; filename=ucpf-consent-logs.csv' );
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV download body; cells are escaped in Audit_Log::export_csv().
 		echo $csv;
+		exit;
+	}
+
+	/**
+	 * Manual Cloudflare edge purge (admin-post).
+	 *
+	 * @return void
+	 */
+	public function handle_purge_cloudflare() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Unauthorized', 'universal-consent-privacy-framework' ) );
+		}
+		check_admin_referer( 'ucpf_purge_cloudflare' );
+
+		// Manual: run immediately (still respects 10-minute API lock).
+		$result = Cloudflare_Cache::instance()->purge_edge( 'manual' );
+		$redirect = add_query_arg(
+			array(
+				'page'           => 'ucpf-advanced',
+				'ucpf_tab'       => 'cloudflare',
+				'ucpf_cf_purged' => ! empty( $result['ok'] ) ? '1' : '0',
+			),
+			admin_url( 'admin.php' )
+		);
+		wp_safe_redirect( $redirect );
 		exit;
 	}
 

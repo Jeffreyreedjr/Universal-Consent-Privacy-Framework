@@ -38,14 +38,17 @@ Each cookie / tracking-like request may receive:
 | `blocked_before_consent` | Necessary present pre-consent (informational) |
 | `incorrectly_loaded_before_consent` | Consent-required signal before any action |
 | `correctly_loaded_after_accept` | Appears after accept only |
-| `still_loaded_after_reject` | Still present after reject / revoke |
+| `still_loaded_after_reject` | Still present after reject (also seen before consent) |
+| `retained_after_revoke` | Set after accept, still in jar after revoke (cleanup warning — not a “tracking still on” fail) |
 | `still_loaded_after_dns` | Still present with first-party `ucpf_dns` opt-out cookie |
 | `still_loaded_after_gpc` | Still present with `Sec-GPC` / navigator GPC on |
 | `removed_after_revocation` | Cleared after revoke |
 | `category_mismatch` | Category vs behavior conflict |
 | `indeterminate` | Insufficient evidence |
 
-Fail set for CI / pass UI: `incorrectly_loaded_before_consent`, `still_loaded_after_reject`, `still_loaded_after_dns`, `still_loaded_after_gpc`, `category_mismatch`.
+Fail set for CI / pass UI (blocking / pre-consent leaks): `incorrectly_loaded_before_consent`, `still_loaded_after_reject`, `still_loaded_after_dns`, `still_loaded_after_gpc`, `category_mismatch`.
+
+Warn (cleanup only): `retained_after_revoke` — does **not** fail the differential or CI exit code.
 
 The `dns_opt_out` session injects `ucpf_dns` (sale/sharing/targeted/profiling/nonessential denied) before navigation and runs light interactions / recipes so cookieless beacons are exercised.
 

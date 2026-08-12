@@ -212,8 +212,17 @@ class Privacy_Scan_Importer {
 
 				// Resolve provider string → catalog service key when possible.
 				$svc_key = '';
-				if ( $provider ) {
+				if ( ! empty( $row['service_key'] ) ) {
+					$svc_key = sanitize_key( (string) $row['service_key'] );
+				}
+				if ( ! $svc_key && $provider ) {
 					$svc_key = self::resolve_service_key( $provider, is_string( $pattern ) ? $pattern : '' );
+				}
+				if ( $svc_key && Scan_Noise_Filter::should_omit_detected_service( $svc_key ) ) {
+					continue;
+				}
+				if ( $provider && self::is_ignored_provider_label( $provider ) ) {
+					continue;
 				}
 
 				if ( ! $cat && ! $provider && ! $svc_key ) {
@@ -221,6 +230,9 @@ class Privacy_Scan_Importer {
 				}
 
 				$key = $svc_key ? $svc_key : ( $provider ? sanitize_key( $provider ) : sanitize_key( $type . '_' . md5( (string) $pattern ) ) );
+				if ( Scan_Noise_Filter::should_omit_detected_service( $key ) ) {
+					continue;
+				}
 				$results[] = array(
 					'type'               => 'playwright_' . $type,
 					'service'            => $key,
@@ -244,9 +256,18 @@ class Privacy_Scan_Importer {
 			if ( ! is_array( $svc ) || empty( $svc['provider'] ) ) {
 				continue;
 			}
-			$key = self::resolve_service_key( $svc['provider'], isset( $svc['url'] ) ? (string) $svc['url'] : '' );
+			if ( self::is_ignored_provider_label( $svc['provider'] ) ) {
+				continue;
+			}
+			$key = '';
+			if ( ! empty( $svc['service_key'] ) ) {
+				$key = sanitize_key( (string) $svc['service_key'] );
+			}
 			if ( ! $key ) {
-				$key = sanitize_key( $svc['provider'] );
+				$key = self::resolve_service_key( $svc['provider'], isset( $svc['url'] ) ? (string) $svc['url'] : '' );
+			}
+			if ( ! $key || Scan_Noise_Filter::should_omit_detected_service( $key ) ) {
+				continue;
 			}
 			$detected[ $key ] = true;
 		}
@@ -370,6 +391,7 @@ class Privacy_Scan_Importer {
 			'consent_leaks'      => $consent_leaks,
 			'findings'           => $findings,
 			'findings_summary'   => $findings_summary,
+			'suspicious_scripts' => self::sanitize_suspicious_scripts( isset( $report['suspicious_scripts'] ) ? $report['suspicious_scripts'] : array() ),
 			'request_diffs'      => $request_diffs,
 			'cookie_phases'      => self::summarize_cookie_phases( isset( $report['cookie_phases'] ) ? $report['cookie_phases'] : array() ),
 			'sessions'           => isset( $report['sessions'] ) ? $report['sessions'] : array(),
@@ -606,6 +628,14 @@ class Privacy_Scan_Importer {
 	 */
 	public static function select_detected_services( array $keys ) {
 		$keys = array_values( array_unique( array_filter( array_map( 'sanitize_key', $keys ) ) ) );
+		$keys = array_values(
+			array_filter(
+				$keys,
+				static function ( $key ) {
+					return $key && ! Scan_Noise_Filter::should_omit_detected_service( $key );
+				}
+			)
+		);
 		if ( ! $keys ) {
 			return;
 		}
@@ -796,6 +826,11 @@ class Privacy_Scan_Importer {
 			'mailerlite'               => array( 'mailerlite', 'mlcdn.com' ),
 			'userway'                  => array( 'userway', 'cdn.userway.org', 'api.userway.org' ),
 			'jotform'                  => array( 'jotform', 'jotfor.ms', 'cdn.jotfor.ms' ),
+			'facebook_feed'            => array( 'facebook feed', 'custom facebook feed', 'smash balloon', 'customfacebookfeed', 'smashballoon' ),
+			'recaptcha'                => array( 'recaptcha', 'google recaptcha', 'gravity forms recaptcha', 'gravityformsrecaptcha', 'gformsrecaptcha' ),
+			'vimeo'                    => array( 'vimeo', 'player.vimeo.com', 'vimeo embeds' ),
+			'meta_pixel'               => array( 'meta pixel', 'facebook pixel', 'fbq(', 'connect.facebook.net' ),
+			'google_pay'               => array( 'google pay', 'pay.google.com', 'googlepay' ),
 			'elementor'                => array( 'elementor' ),
 			'google_maps'              => array( 'wp go maps', 'wp google maps', 'wpgmza', 'wp-google-maps', 'google maps', 'mapster' ),
 			'wp_consent_api'           => array( 'wp consent api', 'wp_consent_' ),
@@ -826,7 +861,40 @@ class Privacy_Scan_Importer {
 			}
 		}
 
-		return $provider ? sanitize_key( $provider ) : '';
+		// Do not invent catalog keys from free-text provider labels (Complianz GDPR → complianzgdpr).
+		return '';
+	}
+
+	/**
+	 * Competing CMP / noise provider labels that should never become "detected services".
+	 *
+	 * @param string $provider Provider label.
+	 * @return bool
+	 */
+	public static function is_ignored_provider_label( $provider ) {
+		$p = strtolower( trim( (string) $provider ) );
+		if ( '' === $p ) {
+			return true;
+		}
+		$needles = array(
+			'complianz',
+			'cookiebot',
+			'cookieyes',
+			'cookie law info',
+			'cookie notice',
+			'gdpr cookie compliance',
+			'borlabs',
+			'iubenda cookie',
+			'osano',
+			'onetrust',
+			'termly',
+		);
+		foreach ( $needles as $needle ) {
+			if ( false !== strpos( $p, $needle ) ) {
+				return true;
+			}
+		}
+		return Scan_Noise_Filter::should_omit_detected_service( sanitize_key( $provider ) );
 	}
 
 	/**
@@ -1104,18 +1172,32 @@ class Privacy_Scan_Importer {
 		if ( ! in_array( $profile, array( 'quick', 'standard', 'compliance' ), true ) ) {
 			$profile = $mapped['profile'];
 		}
-		$max_pages = isset( $options['maxPages'] ) ? absint( $options['maxPages'] ) : $mapped['maxPages'];
-		if ( $max_pages < 1 ) {
-			$max_pages = $mapped['maxPages'];
-		}
-		$max_pages = min( 100, $max_pages );
 
 		$paths = array_values( array_filter( array_map( 'strval', $paths ) ) );
-		$paths = array_slice( $paths, 0, $max_pages );
+		// WordPress admin curated this list — never thin it with depth presets.
+		$exact = ! isset( $options['exactPaths'] ) || ! empty( $options['exactPaths'] );
+		$path_count = count( $paths );
+		if ( $exact ) {
+			$max_pages = max(
+				$path_count,
+				isset( $options['maxPages'] ) ? absint( $options['maxPages'] ) : 0,
+				1
+			);
+			$max_pages = min( Cookie_Scanner::MAX_PICKER_URLS, max( 1, $max_pages ) );
+			// Keep every selected path; do not array_slice by depth maxPages.
+		} else {
+			$max_pages = isset( $options['maxPages'] ) ? absint( $options['maxPages'] ) : $mapped['maxPages'];
+			if ( $max_pages < 1 ) {
+				$max_pages = $mapped['maxPages'];
+			}
+			$max_pages = min( Cookie_Scanner::MAX_PICKER_URLS, $max_pages );
+			$paths     = array_slice( $paths, 0, $max_pages );
+		}
 
 		$scan_options = array(
-			'profile'  => $profile,
-			'maxPages' => $max_pages,
+			'profile'    => $profile,
+			'maxPages'   => max( $max_pages, count( $paths ), 1 ),
+			'exactPaths' => $exact,
 		);
 		if ( ! empty( $options['interact'] ) ) {
 			$scan_options['interact'] = true;
@@ -1318,6 +1400,7 @@ class Privacy_Scan_Importer {
 			'still_loaded_after_reject',
 			'still_loaded_after_dns',
 			'still_loaded_after_gpc',
+			'retained_after_revoke',
 			'removed_after_revocation',
 			'category_mismatch',
 			'indeterminate',
@@ -1339,6 +1422,21 @@ class Privacy_Scan_Importer {
 			if ( Scan_Noise_Filter::should_ignore_leak( $type, $name ) ) {
 				continue;
 			}
+			$sessions = isset( $row['sessions'] ) && is_array( $row['sessions'] ) ? array_map( 'sanitize_key', $row['sessions'] ) : array();
+			$reason   = isset( $row['reason'] ) ? sanitize_text_field( $row['reason'] ) : '';
+			$severity = isset( $row['severity'] ) ? sanitize_key( $row['severity'] ) : 'info';
+			// Legacy reports used still_loaded_after_reject for revoke leftovers — soft-warn only.
+			if ( 'still_loaded_after_reject' === $finding ) {
+				$is_revoke_only = in_array( 'revoke', $sessions, true ) && ! in_array( 'no_consent', $sessions, true ) && ! in_array( 'reject_all', $sessions, true );
+				$reason_l       = strtolower( $reason );
+				if ( $is_revoke_only || false !== strpos( $reason_l, 'after revoke' ) ) {
+					$finding  = 'retained_after_revoke';
+					$severity = 'medium';
+					if ( '' === $reason || false !== strpos( $reason_l, 'still present after revoke' ) ) {
+						$reason = __( 'Cookie remained after withdraw. Tracking scripts may already be stopped; leftover third-party cookies are common until cleared.', 'universal-consent-privacy-framework' );
+					}
+				}
+			}
 			$out[] = array_merge(
 				array(
 					'type'     => $type,
@@ -1346,9 +1444,9 @@ class Privacy_Scan_Importer {
 					'provider' => isset( $row['provider'] ) ? sanitize_text_field( $row['provider'] ) : '',
 					'category' => isset( $row['category'] ) ? sanitize_key( $row['category'] ) : '',
 					'finding'  => $finding,
-					'severity'=> isset( $row['severity'] ) ? sanitize_key( $row['severity'] ) : 'info',
-					'sessions' => isset( $row['sessions'] ) && is_array( $row['sessions'] ) ? array_map( 'sanitize_key', $row['sessions'] ) : array(),
-					'reason'   => isset( $row['reason'] ) ? sanitize_text_field( $row['reason'] ) : '',
+					'severity'=> $severity,
+					'sessions' => $sessions,
+					'reason'   => $reason,
 				),
 				self::remediation_for_signal(
 					$type,
@@ -1365,7 +1463,8 @@ class Privacy_Scan_Importer {
 	 * @param array $findings Sanitized findings.
 	 * @return array
 	 */
-	private static function sanitize_findings_summary( $summary, array $findings ) {
+	private static function sanitize_findings_summary( $summary, array $findings ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter
+		unset( $summary ); // Always recompute from sanitized findings (legacy over-counted revoke leftovers).
 		$fail_findings = array(
 			'incorrectly_loaded_before_consent',
 			'still_loaded_after_reject',
@@ -1373,23 +1472,30 @@ class Privacy_Scan_Importer {
 			'still_loaded_after_gpc',
 			'category_mismatch',
 		);
+		$warn_findings = array( 'retained_after_revoke' );
 		$fail          = 0;
+		$warn          = 0;
 		foreach ( $findings as $f ) {
-			if ( ! empty( $f['finding'] ) && in_array( $f['finding'], $fail_findings, true ) ) {
+			if ( empty( $f['finding'] ) ) {
+				continue;
+			}
+			$code = (string) $f['finding'];
+			if ( in_array( $code, $fail_findings, true ) ) {
 				++$fail;
+			} elseif ( in_array( $code, $warn_findings, true ) ) {
+				++$warn;
 			}
 		}
 		$total = count( $findings );
-		if ( is_array( $summary ) ) {
-			$total = isset( $summary['total'] ) ? absint( $summary['total'] ) : $total;
-			$fail  = isset( $summary['fail'] ) ? absint( $summary['fail'] ) : $fail;
-		}
-		$info = max( 0, $total - $fail );
+		// Prefer recomputed counts from sanitized findings (legacy reports over-counted revoke leftovers as fail).
+		$info = max( 0, $total - $fail - $warn );
 		return array(
-			'total' => $total,
-			'fail'  => $fail,
-			'info'  => $info,
-			'pass'  => 0 === $fail,
+			'total'       => $total,
+			'fail'        => $fail,
+			'warn'        => $warn,
+			'info'        => $info,
+			'pass'        => 0 === $fail,
+			'blocking_ok' => 0 === $fail,
 		);
 	}
 
@@ -1514,6 +1620,49 @@ class Privacy_Scan_Importer {
 				? sanitize_text_field( $score['disclaimer'] )
 				: __( 'Technical automated checks only — not a GDPR compliance determination or legal audit.', 'universal-consent-privacy-framework' ),
 		);
+	}
+
+	/**
+	 * Sanitize suspicious script rows from Playwright report.
+	 *
+	 * @param array $rows Raw rows.
+	 * @return array
+	 */
+	public static function sanitize_suspicious_scripts( $rows ) {
+		if ( ! is_array( $rows ) ) {
+			return array();
+		}
+		$out = array();
+		foreach ( $rows as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+			$url = isset( $row['url'] ) ? esc_url_raw( (string) $row['url'] ) : '';
+			if ( ! $url && ! empty( $row['host'] ) ) {
+				$url = sanitize_text_field( (string) $row['host'] );
+			}
+			if ( '' === $url ) {
+				continue;
+			}
+			$pattern = Suspicion::suggest_pattern_from_url( $url );
+			$out[]   = array(
+				'url'                => $url,
+				'host'               => isset( $row['host'] ) ? sanitize_text_field( (string) $row['host'] ) : '',
+				'provider'           => isset( $row['provider'] ) ? sanitize_text_field( (string) $row['provider'] ) : '',
+				'category'           => self::map_category( isset( $row['category'] ) ? $row['category'] : 'marketing' ),
+				'suggested_category' => self::map_category( isset( $row['suggested_category'] ) ? $row['suggested_category'] : ( isset( $row['category'] ) ? $row['category'] : 'marketing' ) ),
+				'suspicion'          => isset( $row['suspicion'] ) ? sanitize_key( (string) $row['suspicion'] ) : 'medium',
+				'treatment'          => 'consent',
+				'status'             => 'needs_review',
+				'note'               => isset( $row['note'] ) ? sanitize_text_field( (string) $row['note'] ) : '',
+				'rule'               => isset( $row['rule'] ) ? sanitize_text_field( (string) $row['rule'] ) : '',
+				'pattern'            => $pattern,
+			);
+			if ( count( $out ) >= 100 ) {
+				break;
+			}
+		}
+		return $out;
 	}
 
 	/**

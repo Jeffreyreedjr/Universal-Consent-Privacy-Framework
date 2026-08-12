@@ -50,13 +50,21 @@ $nav = array(
 
 $selected_services = isset( $settings['selected_services'] ) && is_array( $settings['selected_services'] ) ? $settings['selected_services'] : array();
 $doc_sources       = isset( $settings['document_sources'] ) && is_array( $settings['document_sources'] ) ? $settings['document_sources'] : array();
-$scanner_url       = isset( $settings['scanner_api_url'] ) ? (string) $settings['scanner_api_url'] : '';
-$scanner_key       = isset( $settings['scanner_api_key'] ) ? (string) $settings['scanner_api_key'] : '';
+$scanner_url       = is_multisite()
+	? (string) \UCPF\Network_Settings::site_override_value( 'scanner_api_url' )
+	: ( isset( $settings['scanner_api_url'] ) ? (string) $settings['scanner_api_url'] : '' );
+$scanner_key_set   = \UCPF\Settings::secret_is_set( 'scanner_api_key' );
 $scanner_ready     = (bool) \UCPF\Privacy_Scan_Importer::api_base();
 $wizard_max_step   = 11;
 ?>
 <div class="wrap ucpf-admin ucpf-wizard">
 	<h1><?php esc_html_e( 'Setup Wizard', 'universal-consent-privacy-framework' ); ?></h1>
+	<?php
+	$ucpf_saved = isset( $_GET['ucpf_saved'] ) ? sanitize_text_field( wp_unslash( $_GET['ucpf_saved'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	if ( '1' === $ucpf_saved ) :
+		?>
+		<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Settings saved. Wizard and Advanced Settings share the same values.', 'universal-consent-privacy-framework' ); ?></p></div>
+	<?php endif; ?>
 	<p class="description"><?php esc_html_e( 'Helps support privacy compliance. Final legal review is the site owner\'s responsibility.', 'universal-consent-privacy-framework' ); ?></p>
 
 	<div class="ucpf-wizard__layout">
@@ -95,21 +103,69 @@ $wizard_max_step   = 11;
 				<input type="hidden" name="wizard_step" value="<?php echo esc_attr( $step ); ?>" />
 
 				<?php if ( 1 === $step ) : ?>
+					<?php
+					$pack_ids     = \UCPF\Jurisdiction::instance()->get_pack_ids();
+					$mode_current = isset( $settings['compliance_mode'] ) ? (string) $settings['compliance_mode'] : 'strict_gdpr';
+					if ( ! in_array( $mode_current, $pack_ids, true ) ) {
+						$mode_current = 'strict_gdpr';
+					}
+					$cf_purge_on   = ! empty( $settings['cloudflare_purge_enabled'] );
+					$cf_domain     = isset( $settings['cloudflare_domain'] ) ? (string) $settings['cloudflare_domain'] : '';
+					if ( '' === $cf_domain ) {
+						$cf_domain = \UCPF\Cloudflare_Cache::default_domain();
+					}
+					$cf_token_set  = \UCPF\Settings::secret_is_set( 'cloudflare_api_token' );
+					$cf_on_updates = ! isset( $settings['cloudflare_purge_on_updates'] ) || ! empty( $settings['cloudflare_purge_on_updates'] );
+					$cf_on_ucpf    = ! isset( $settings['cloudflare_purge_on_ucpf_update'] ) || ! empty( $settings['cloudflare_purge_on_ucpf_update'] );
+					?>
 					<h2><?php esc_html_e( 'Visitors', 'universal-consent-privacy-framework' ); ?></h2>
 					<p><?php esc_html_e( 'Choose the default privacy mode for your visitors. This sets banner and blocking defaults.', 'universal-consent-privacy-framework' ); ?></p>
 					<fieldset class="ucpf-wizard__fieldset">
-						<label><input type="radio" name="compliance_mode" value="strict_gdpr" <?php checked( $settings['compliance_mode'], 'strict_gdpr' ); ?> /> <?php esc_html_e( 'European Union (GDPR / ePrivacy) — strict', 'universal-consent-privacy-framework' ); ?></label>
-						<label><input type="radio" name="compliance_mode" value="us_baseline" <?php checked( $settings['compliance_mode'], 'us_baseline' ); ?> /> <?php esc_html_e( 'United States privacy baseline', 'universal-consent-privacy-framework' ); ?></label>
-						<label><input type="radio" name="compliance_mode" value="us_california" <?php checked( $settings['compliance_mode'], 'us_california' ); ?> /> <?php esc_html_e( 'California CPRA', 'universal-consent-privacy-framework' ); ?></label>
-						<label><input type="radio" name="compliance_mode" value="us_colorado" <?php checked( $settings['compliance_mode'], 'us_colorado' ); ?> /> <?php esc_html_e( 'Colorado CPA', 'universal-consent-privacy-framework' ); ?></label>
-						<label><input type="radio" name="compliance_mode" value="us_connecticut" <?php checked( $settings['compliance_mode'], 'us_connecticut' ); ?> /> <?php esc_html_e( 'Connecticut CTDPA', 'universal-consent-privacy-framework' ); ?></label>
-						<label><input type="radio" name="compliance_mode" value="us_virginia" <?php checked( $settings['compliance_mode'], 'us_virginia' ); ?> /> <?php esc_html_e( 'Virginia VCDPA', 'universal-consent-privacy-framework' ); ?></label>
-						<label><input type="radio" name="compliance_mode" value="br_lgpd" <?php checked( $settings['compliance_mode'], 'br_lgpd' ); ?> /> <?php esc_html_e( 'Brazil LGPD', 'universal-consent-privacy-framework' ); ?></label>
-						<label><input type="radio" name="compliance_mode" value="ca_quebec" <?php checked( $settings['compliance_mode'], 'ca_quebec' ); ?> /> <?php esc_html_e( 'Quebec Law 25', 'universal-consent-privacy-framework' ); ?></label>
-						<label><input type="radio" name="compliance_mode" value="global_balanced" <?php checked( $settings['compliance_mode'], 'global_balanced' ); ?> /> <?php esc_html_e( 'Global balanced', 'universal-consent-privacy-framework' ); ?></label>
-						<label><input type="radio" name="compliance_mode" value="custom" <?php checked( $settings['compliance_mode'], 'custom' ); ?> /> <?php esc_html_e( 'Custom', 'universal-consent-privacy-framework' ); ?></label>
+						<label><input type="radio" name="compliance_mode" value="strict_gdpr" <?php checked( $mode_current, 'strict_gdpr' ); ?> /> <?php esc_html_e( 'European Union (GDPR / ePrivacy) — strict', 'universal-consent-privacy-framework' ); ?></label>
+						<label><input type="radio" name="compliance_mode" value="us_baseline" <?php checked( $mode_current, 'us_baseline' ); ?> /> <?php esc_html_e( 'United States privacy baseline', 'universal-consent-privacy-framework' ); ?></label>
+						<label><input type="radio" name="compliance_mode" value="us_california" <?php checked( $mode_current, 'us_california' ); ?> /> <?php esc_html_e( 'California CPRA', 'universal-consent-privacy-framework' ); ?></label>
+						<label><input type="radio" name="compliance_mode" value="us_colorado" <?php checked( $mode_current, 'us_colorado' ); ?> /> <?php esc_html_e( 'Colorado CPA', 'universal-consent-privacy-framework' ); ?></label>
+						<label><input type="radio" name="compliance_mode" value="us_connecticut" <?php checked( $mode_current, 'us_connecticut' ); ?> /> <?php esc_html_e( 'Connecticut CTDPA', 'universal-consent-privacy-framework' ); ?></label>
+						<label><input type="radio" name="compliance_mode" value="us_virginia" <?php checked( $mode_current, 'us_virginia' ); ?> /> <?php esc_html_e( 'Virginia VCDPA', 'universal-consent-privacy-framework' ); ?></label>
+						<label><input type="radio" name="compliance_mode" value="br_lgpd" <?php checked( $mode_current, 'br_lgpd' ); ?> /> <?php esc_html_e( 'Brazil LGPD', 'universal-consent-privacy-framework' ); ?></label>
+						<label><input type="radio" name="compliance_mode" value="ca_quebec" <?php checked( $mode_current, 'ca_quebec' ); ?> /> <?php esc_html_e( 'Quebec Law 25', 'universal-consent-privacy-framework' ); ?></label>
+						<label><input type="radio" name="compliance_mode" value="global_balanced" <?php checked( $mode_current, 'global_balanced' ); ?> /> <?php esc_html_e( 'Global balanced', 'universal-consent-privacy-framework' ); ?></label>
+						<label><input type="radio" name="compliance_mode" value="custom" <?php checked( $mode_current, 'custom' ); ?> /> <?php esc_html_e( 'Custom', 'universal-consent-privacy-framework' ); ?></label>
 					</fieldset>
 					<p class="description"><?php esc_html_e( 'Packs set consent model, copy, and GPC defaults. They help support privacy workflows — they are not a compliance guarantee. Optional geo routing (Advanced) maps US visitors to the US privacy baseline and EEA/UK to strict GDPR; unknown country fails closed to GDPR.', 'universal-consent-privacy-framework' ); ?></p>
+
+					<h3><?php esc_html_e( 'Cloudflare cache purge (optional)', 'universal-consent-privacy-framework' ); ?></h3>
+					<p><?php esc_html_e( 'If this site sits behind Cloudflare, enter your domain and an API token so UCPF can purge the edge cache after plugin updates. Zone ID is resolved automatically. You can skip and configure later under Advanced → Cloudflare.', 'universal-consent-privacy-framework' ); ?></p>
+					<table class="form-table">
+						<tr>
+							<th scope="row"><?php esc_html_e( 'Enable purge', 'universal-consent-privacy-framework' ); ?></th>
+							<td>
+								<label><input type="checkbox" name="cloudflare_purge_enabled" value="1" <?php checked( $cf_purge_on ); ?> /> <?php esc_html_e( 'Purge Cloudflare cache on plugin / theme / UCPF updates', 'universal-consent-privacy-framework' ); ?></label>
+							</td>
+						</tr>
+						<tr>
+							<th><label for="ucpf-wizard-cf-domain"><?php esc_html_e( 'Domain', 'universal-consent-privacy-framework' ); ?></label></th>
+							<td>
+								<input type="text" class="regular-text" id="ucpf-wizard-cf-domain" name="cloudflare_domain" value="<?php echo esc_attr( $cf_domain ); ?>" placeholder="example.com" autocomplete="off" />
+								<p class="description"><?php esc_html_e( 'The hostname on your Cloudflare zone (usually this site’s domain).', 'universal-consent-privacy-framework' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th><label for="ucpf-wizard-cf-token"><?php esc_html_e( 'API Token', 'universal-consent-privacy-framework' ); ?></label></th>
+							<td>
+								<input type="password" class="regular-text" id="ucpf-wizard-cf-token" name="cloudflare_api_token" value="" autocomplete="new-password" placeholder="<?php echo $cf_token_set ? esc_attr__( '•••••••• (leave blank to keep)', 'universal-consent-privacy-framework' ) : ''; ?>" />
+								<p class="description"><?php esc_html_e( 'Token needs Zone → Cache Purge and Zone → Zone → Read. Leave blank when saving to keep an existing token. Stored encrypted; or set UCPF_CLOUDFLARE_API_TOKEN in wp-config.php.', 'universal-consent-privacy-framework' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row"><?php esc_html_e( 'When to purge', 'universal-consent-privacy-framework' ); ?></th>
+							<td>
+								<label style="display:block;margin-bottom:0.35rem;"><input type="checkbox" name="cloudflare_purge_on_updates" value="1" <?php checked( $cf_on_updates ); ?> /> <?php esc_html_e( 'Any plugin or theme update', 'universal-consent-privacy-framework' ); ?></label>
+								<label style="display:block;"><input type="checkbox" name="cloudflare_purge_on_ucpf_update" value="1" <?php checked( $cf_on_ucpf ); ?> /> <?php esc_html_e( 'UCPF activate / upgrade', 'universal-consent-privacy-framework' ); ?></label>
+								<p class="description"><?php esc_html_e( 'Debounced (~60s) and rate-limited (max once per 10 minutes) so bulk updates do not spam Cloudflare.', 'universal-consent-privacy-framework' ); ?></p>
+							</td>
+						</tr>
+					</table>
 
 				<?php elseif ( 2 === $step ) : ?>
 					<h2><?php esc_html_e( 'Documents', 'universal-consent-privacy-framework' ); ?></h2>
@@ -195,18 +251,27 @@ $wizard_max_step   = 11;
 						<tr>
 							<th><label for="ucpf-wizard-scanner-api-url"><?php esc_html_e( 'Scanner API URL', 'universal-consent-privacy-framework' ); ?></label></th>
 							<td>
-								<input type="url" class="regular-text" id="ucpf-wizard-scanner-api-url" name="scanner_api_url" value="<?php echo esc_attr( $scanner_url ); ?>" placeholder="https://scanner.example.com" autocomplete="off" />
+								<input type="url" class="regular-text" id="ucpf-wizard-scanner-api-url" name="scanner_api_url" value="<?php echo esc_attr( $scanner_url ); ?>" placeholder="<?php echo is_multisite() ? esc_attr__( 'Leave blank to use network default', 'universal-consent-privacy-framework' ) : 'https://scanner.example.com'; ?>" autocomplete="off" />
 								<p class="description"><?php esc_html_e( 'Base URL of your scanner service (no trailing slash required).', 'universal-consent-privacy-framework' ); ?></p>
+								<?php if ( is_multisite() && ! \UCPF\Network_Settings::site_has_override( 'scanner_api_url' ) && \UCPF\Privacy_Scan_Importer::api_base() ) : ?>
+									<p class="description"><em><?php esc_html_e( 'Using network default', 'universal-consent-privacy-framework' ); ?></em>: <code><?php echo esc_html( (string) \UCPF\Privacy_Scan_Importer::api_base() ); ?></code></p>
+								<?php endif; ?>
 							</td>
 						</tr>
 						<tr>
 							<th><label for="ucpf-wizard-scanner-api-key"><?php esc_html_e( 'Scanner API key', 'universal-consent-privacy-framework' ); ?></label></th>
 							<td>
-								<input type="password" class="regular-text" id="ucpf-wizard-scanner-api-key" name="scanner_api_key" value="" placeholder="<?php echo $scanner_key ? esc_attr__( 'Key saved — leave blank to keep', 'universal-consent-privacy-framework' ) : ''; ?>" autocomplete="new-password" />
-								<?php if ( $scanner_key ) : ?>
-									<p class="description"><?php esc_html_e( 'A key is already saved. Leave blank to keep it, or enter a new key to replace it.', 'universal-consent-privacy-framework' ); ?></p>
+								<input type="password" class="regular-text" id="ucpf-wizard-scanner-api-key" name="scanner_api_key" value="" placeholder="<?php echo $scanner_key_set ? esc_attr__( '•••••••• (leave blank to keep)', 'universal-consent-privacy-framework' ) : ''; ?>" autocomplete="new-password" />
+								<?php if ( $scanner_key_set ) : ?>
+									<p class="description"><?php esc_html_e( 'A key is already saved (encrypted). Leave blank to keep it, or enter a new key to replace it.', 'universal-consent-privacy-framework' ); ?></p>
+									<?php if ( is_multisite() && ! \UCPF\Network_Settings::site_has_override( 'scanner_api_key' ) && \UCPF\Network_Settings::secret_is_set( 'scanner_api_key' ) ) : ?>
+										<p class="description"><em><?php esc_html_e( 'Using network default key', 'universal-consent-privacy-framework' ); ?></em></p>
+									<?php endif; ?>
 								<?php else : ?>
-									<p class="description"><?php esc_html_e( 'Must match the key on your scanner host. Prefer UCPF_SCANNER_API_KEY in wp-config.php on production.', 'universal-consent-privacy-framework' ); ?></p>
+									<p class="description"><?php esc_html_e( 'Must match the key on your scanner host. Prefer UCPF_SCANNER_API_KEY in wp-config.php on production (never stored in the database).', 'universal-consent-privacy-framework' ); ?></p>
+								<?php endif; ?>
+								<?php if ( is_multisite() ) : ?>
+									<p class="description"><a href="<?php echo esc_url( network_admin_url( 'admin.php?page=ucpf-network' ) ); ?>"><?php esc_html_e( 'Network Admin → set shared scanner defaults once', 'universal-consent-privacy-framework' ); ?></a></p>
 								<?php endif; ?>
 							</td>
 						</tr>
@@ -540,6 +605,47 @@ $wizard_max_step   = 11;
 				<?php else : ?>
 					<h2><?php esc_html_e( 'Finish', 'universal-consent-privacy-framework' ); ?></h2>
 					<p><?php esc_html_e( 'Almost there. Enable the consent banner and script blocker to go live.', 'universal-consent-privacy-framework' ); ?></p>
+					<?php if ( ! empty( $_GET['ucpf_coverage_blocked'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only admin notice. ?>
+						<div class="notice notice-error inline">
+							<p>
+								<?php
+								echo esc_html(
+									sprintf(
+										/* translators: %d: unknown cookie count */
+										__( 'Script blocker was not enabled: %d unknown cookie(s) still need a category in Cookie Review.', 'universal-consent-privacy-framework' ),
+										(int) $_GET['ucpf_coverage_blocked'] // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+									)
+								);
+								?>
+							</p>
+						</div>
+					<?php endif; ?>
+					<?php
+					$ucpf_finish_scan = \UCPF\Cookie_Scanner::instance()->get_last_scan();
+					$ucpf_unk_n      = ( is_array( $ucpf_finish_scan ) && ! empty( $ucpf_finish_scan['unknown_cookies'] ) && is_array( $ucpf_finish_scan['unknown_cookies'] ) )
+						? count( $ucpf_finish_scan['unknown_cookies'] )
+						: 0;
+					$ucpf_sus_n      = ( is_array( $ucpf_finish_scan ) && ! empty( $ucpf_finish_scan['suspicious_scripts'] ) && is_array( $ucpf_finish_scan['suspicious_scripts'] ) )
+						? count( $ucpf_finish_scan['suspicious_scripts'] )
+						: 0;
+					if ( $ucpf_unk_n > 0 || $ucpf_sus_n > 0 ) :
+						?>
+						<div class="notice notice-error inline">
+							<p>
+								<?php
+								echo esc_html(
+									sprintf(
+										/* translators: 1: unknown cookies, 2: suspicious scripts */
+										__( 'Coverage incomplete: %1$d unknown cookie(s), %2$d suspicious script(s). Review them on Cookie Scanner before enabling the script blocker. Enabling the blocker will be blocked until unknown cookies are classified.', 'universal-consent-privacy-framework' ),
+										$ucpf_unk_n,
+										$ucpf_sus_n
+									)
+								);
+								?>
+								<a href="<?php echo esc_url( admin_url( 'admin.php?page=ucpf-scanner#ucpf-cookie-review' ) ); ?>"><?php esc_html_e( 'Open Cookie Review', 'universal-consent-privacy-framework' ); ?></a>
+							</p>
+						</div>
+					<?php endif; ?>
 					<table class="form-table">
 						<tr>
 							<th><?php esc_html_e( 'Show consent banner', 'universal-consent-privacy-framework' ); ?></th>
@@ -581,14 +687,21 @@ $wizard_max_step   = 11;
 
 				<div class="ucpf-wizard__footer">
 					<?php if ( $step > 1 ) : ?>
-						<button type="submit" class="button" name="wizard_direction" value="prev" formnovalidate><?php esc_html_e( 'Previous', 'universal-consent-privacy-framework' ); ?></button>
+						<button type="submit" class="button ucpf-wizard__btn-prev" name="wizard_direction" value="prev" formnovalidate><?php esc_html_e( 'Previous', 'universal-consent-privacy-framework' ); ?></button>
 					<?php endif; ?>
-					<button type="submit" class="button" name="wizard_direction" value="stay" formnovalidate><?php esc_html_e( 'Save', 'universal-consent-privacy-framework' ); ?></button>
+					<?php
+					/*
+					 * Continue/Finish must be the first *advancing* submit in DOM order so
+					 * Enter in text fields (e.g. Cloudflare domain) advances instead of
+					 * activating Save (stay). CSS order keeps Save left of the primary CTA.
+					 */
+					?>
 					<?php if ( $step < 11 ) : ?>
-						<button type="submit" class="button button-primary" name="wizard_direction" value="next"><?php esc_html_e( 'Save and Continue', 'universal-consent-privacy-framework' ); ?></button>
+						<button type="submit" class="button button-primary ucpf-wizard__btn-next" name="wizard_direction" value="next" formnovalidate><?php esc_html_e( 'Save and Continue', 'universal-consent-privacy-framework' ); ?></button>
 					<?php else : ?>
-						<button type="submit" class="button button-primary" name="wizard_direction" value="finish"><?php esc_html_e( 'Finish', 'universal-consent-privacy-framework' ); ?></button>
+						<button type="submit" class="button button-primary ucpf-wizard__btn-next" name="wizard_direction" value="finish" formnovalidate><?php esc_html_e( 'Finish', 'universal-consent-privacy-framework' ); ?></button>
 					<?php endif; ?>
+					<button type="submit" class="button ucpf-wizard__btn-stay" name="wizard_direction" value="stay" formnovalidate><?php esc_html_e( 'Save', 'universal-consent-privacy-framework' ); ?></button>
 				</div>
 			</form>
 		</main>

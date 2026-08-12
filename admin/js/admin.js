@@ -281,7 +281,98 @@
     deepPollTimer: null,
     deepFailStreak: 0,
     deepJobId: null,
+    /** true when this tab owns REST polling for the deep scan */
+    deepPollLeader: false,
+    deepTabId: 't' + String(Date.now()) + '-' + Math.random().toString(36).slice(2, 8),
   };
+
+  var deepScanChannel = null;
+  try {
+    if (typeof BroadcastChannel !== 'undefined') {
+      deepScanChannel = new BroadcastChannel('ucpf-deep-scan');
+    }
+  } catch (eChan) {
+    deepScanChannel = null;
+  }
+
+  function deepScanBroadcast(msg) {
+    if (!deepScanChannel || !msg) {
+      return;
+    }
+    try {
+      msg.tabId = scanRuntime.deepTabId;
+      deepScanChannel.postMessage(msg);
+    } catch (ePost) { /* ignore */ }
+  }
+
+  function claimDeepPollLeadership(jobId) {
+    scanRuntime.deepPollLeader = true;
+    scanRuntime.deepJobId = jobId || scanRuntime.deepJobId;
+    deepScanBroadcast({ type: 'leader', jobId: scanRuntime.deepJobId });
+  }
+
+  function releaseDeepPollLeadership() {
+    if (scanRuntime.deepPollLeader) {
+      deepScanBroadcast({ type: 'leader-gone', jobId: scanRuntime.deepJobId });
+    }
+    scanRuntime.deepPollLeader = false;
+  }
+
+  if (deepScanChannel) {
+    deepScanChannel.onmessage = function (ev) {
+      var data = ev && ev.data ? ev.data : null;
+      if (!data || data.tabId === scanRuntime.deepTabId) {
+        return;
+      }
+      if (data.type === 'leader' && data.jobId) {
+        // Another tab claimed leadership — stop our poller and mirror.
+        if (scanRuntime.deepPollLeader && scanRuntime.deepJobId === data.jobId) {
+          scanRuntime.deepPollLeader = false;
+          if (scanRuntime.deepPollTimer) {
+            window.clearTimeout(scanRuntime.deepPollTimer);
+            scanRuntime.deepPollTimer = null;
+          }
+        }
+        scanRuntime.deepJobId = data.jobId;
+        setScanBusy(true);
+        $('#ucpf-stop-scan').prop('hidden', false);
+      } else if (data.type === 'progress') {
+        scanRuntime.deepJobId = data.jobId || scanRuntime.deepJobId;
+        if (data.progress) {
+          showScanProgress(data.progress, data.attempt || 0, $('#ucpf-scan-status'));
+        }
+        if (data.statusText) {
+          setStatus('#ucpf-scan-status', data.statusText, !!data.isError);
+        }
+        setScanBusy(true);
+        $('#ucpf-stop-scan').prop('hidden', false);
+      } else if (data.type === 'done') {
+        scanRuntime.deepJobId = null;
+        setScanBusy(false);
+        if (data.statusText) {
+          setStatus('#ucpf-scan-status', data.statusText, !!data.isError);
+        }
+        if (data.reload) {
+          window.setTimeout(function () { window.location.reload(); }, 1000);
+        } else {
+          hideScanProgress();
+        }
+      } else if (data.type === 'stop') {
+        scanRuntime.cancelled = true;
+        if (scanRuntime.deepPollTimer) {
+          window.clearTimeout(scanRuntime.deepPollTimer);
+          scanRuntime.deepPollTimer = null;
+        }
+        setStatus('#ucpf-scan-status', 'Stopping scan — closing Chromium on scanner…');
+      } else if (data.type === 'leader-gone' && data.jobId && !scanRuntime.deepPollLeader) {
+        // Previous leader left — take over if we still have the Scanner UI.
+        if ($('#ucpf-scan-progress').length || $('#ucpf-deep-scan').length) {
+          claimDeepPollLeadership(data.jobId);
+          pollDeepScan(data.jobId, '#ucpf-scan-status', 0);
+        }
+      }
+    };
+  }
 
   var scanPickerState = {
     selected: {},
@@ -410,6 +501,14 @@
     if (saved && typeof saved.include_auth === 'boolean' && $('#ucpf-scan-auth').length) {
       $('#ucpf-scan-auth').prop('checked', !!saved.include_auth);
     }
+    if ($('#ucpf-playwright-merge-auth').length) {
+      if (saved && typeof saved.merge_logged_in === 'boolean') {
+        $('#ucpf-playwright-merge-auth').prop('checked', !!saved.merge_logged_in);
+      } else if (saved && typeof saved.include_auth === 'boolean' && saved.include_auth) {
+        // wp_login profile / helper auth remembered — default merge on for inventory completeness.
+        $('#ucpf-playwright-merge-auth').prop('checked', true);
+      }
+    }
 
     if (opts.resetSelection) {
       scanPickerState.selected = defaultScanSelection(scanPickerState.available);
@@ -496,6 +595,7 @@
       depth: currentScanDepth(),
       browser_crawl: $('#ucpf-scan-browser').is(':checked'),
       include_auth: $('#ucpf-scan-auth').is(':checked'),
+      merge_logged_in: $('#ucpf-playwright-merge-auth').is(':checked'),
     };
   }
 
@@ -554,6 +654,40 @@
     return Object.keys(scanPickerState.selected).filter(function (url) {
       return !!scanPickerState.selected[url];
     }).length;
+  }
+
+  /**
+   * Reconcile scanPickerState.selected with live checkbox DOM so a stale
+   * in-memory map cannot send a 1-page list while many boxes are checked.
+   */
+  function syncSelectionFromDom() {
+    if (!$('#ucpf-scanner-pages').length) {
+      return;
+    }
+    var next = {};
+    $('#ucpf-scanner-pages .ucpf-scan-page-cb:checked').each(function () {
+      var url = normalizeSiteUrl($(this).attr('data-url') || '');
+      var label = $(this).attr('data-label') || url;
+      if (url) {
+        next[url] = label;
+      }
+    });
+    // Keep custom URLs that may not be in the checklist yet.
+    Object.keys(scanPickerState.selected || {}).forEach(function (url) {
+      if (scanPickerState.selected[url] && !next[url]) {
+        var stillChecked = $('#ucpf-scanner-pages .ucpf-scan-page-cb').filter(function () {
+          return normalizeSiteUrl($(this).attr('data-url') || '') === url;
+        });
+        if (!stillChecked.length) {
+          next[url] = scanPickerState.selected[url];
+        } else if (stillChecked.is(':checked')) {
+          next[url] = scanPickerState.selected[url];
+        }
+      }
+    });
+    if (Object.keys(next).length) {
+      scanPickerState.selected = next;
+    }
   }
 
   function updateSelectionHint(suggested) {
@@ -618,15 +752,23 @@
   function pathFromSiteUrl(url) {
     try {
       var path = new URL(url, scanPickerState.homeUrl || window.location.origin).pathname || '/';
+      if (path !== '/' && path.slice(-1) === '/') {
+        path = path.slice(0, -1);
+      }
       return path || '/';
     } catch (e) {
       return '/';
     }
   }
 
-  function selectedUrlDefs() {
+  /**
+   * @param {number} [limit] Cap — Playwright uses picker max (200); browser crawl uses maxCrawl.
+   */
+  function selectedUrlDefs(limit) {
     var out = [];
-    var max = scanPickerState.maxCrawl || 80;
+    var max = typeof limit === 'number' && limit > 0
+      ? limit
+      : (scanPickerState.maxCrawl || 80);
     Object.keys(scanPickerState.selected).forEach(function (url) {
       if (!scanPickerState.selected[url]) {
         return;
@@ -904,7 +1046,7 @@
     persistScanSelection(false);
   });
 
-  $(document).on('change', '#ucpf-scan-browser, #ucpf-scan-auth', function () {
+  $(document).on('change', '#ucpf-scan-browser, #ucpf-scan-auth, #ucpf-playwright-merge-auth', function () {
     persistScanSelection(false);
   });
 
@@ -1176,6 +1318,8 @@
 
   function hardStopScan($status) {
     scanRuntime.cancelled = true;
+    deepScanBroadcast({ type: 'stop', jobId: scanRuntime.deepJobId });
+    releaseDeepPollLeadership();
     if (scanRuntime.abortController) {
       try {
         scanRuntime.abortController.abort();
@@ -1215,6 +1359,7 @@
           ', unclassified: ' + (data.inventory.unknown_cookies || 0) +
           ', signals: ' + (data.inventory.results || 0) + '. Reloading…';
         setStatus($status || '#ucpf-scan-status', msg);
+        deepScanBroadcast({ type: 'done', statusText: msg, reload: true });
         window.setTimeout(function () { window.location.reload(); }, 1100);
         return;
       }
@@ -1226,11 +1371,17 @@
       }
       hideScanProgress();
       setStatus($status || '#ucpf-scan-status', msg, !!(data && data.remote_error));
+      deepScanBroadcast({ type: 'done', statusText: msg, isError: !!(data && data.remote_error) });
       scanRuntime.deepJobId = null;
     }).catch(function () {
       setScanBusy(false);
       hideScanProgress();
       setStatus($status || '#ucpf-scan-status', 'Scan stopped locally. If this site’s Chromium is still running, use Stop again, or Advanced → Emergency reset (admin only — affects all sites on that scanner).', true);
+      deepScanBroadcast({
+        type: 'done',
+        statusText: 'Scan stopped locally.',
+        isError: true,
+      });
       scanRuntime.deepJobId = null;
     });
   }
@@ -1380,7 +1531,7 @@
       var job = payload && payload.job ? payload.job : null;
       var active = !!(payload && payload.active && job && job.job_id);
       if (!active) {
-        if (job && job.imported && job.state && (job.state === 'completed' || job.state === 'cancelled')) {
+        if (job && job.imported && job.state && (job.state === 'completed' || job.state === 'cancelled' || job.state === 'failed')) {
           // Recently finished while away — leave status hint; inventory already on page from last load.
           setStatus(
             '#ucpf-scan-status',
@@ -1398,6 +1549,7 @@
       scanRuntime.deepJobId = job.job_id;
       scanRuntime.abortController = (typeof AbortController !== 'undefined') ? new AbortController() : null;
       setScanBusy(true);
+      $('#ucpf-stop-scan').prop('hidden', false);
       var progress = job.progress && typeof job.progress === 'object' ? job.progress : {};
       if (!progress.message && job.message) {
         progress.message = job.message;
@@ -1411,20 +1563,32 @@
           ' (saved on this site — safe to leave again). Polling…'
       );
       showScanProgress(progress, job.poll_count || 0, $('#ucpf-scan-status'));
+      claimDeepPollLeadership(job.job_id);
       pollDeepScan(job.job_id, '#ucpf-scan-status', 0);
-    }).catch(function () {
-      /* no active job or REST unavailable */
+    }).catch(function (err) {
+      var msg = (err && err.message) ? err.message : 'Could not check active Playwright scan status.';
+      setStatus('#ucpf-scan-status', msg + ' Open Cookie Scanner again or check Advanced → Scanner API.', true);
+      $('#ucpf-scan-status').prop('hidden', false);
     });
   }
 
   resumeActiveDeepScan();
 
+  $(document).on('click', '#ucpf-active-scan-notice-stop', function (e) {
+    e.preventDefault();
+    hardStopScan('#ucpf-scan-status');
+  });
+
   function pollDeepScan(jobId, $status, attempt) {
     attempt = attempt || 0;
+    if (!scanRuntime.deepPollLeader && attempt > 0) {
+      return;
+    }
     if (scanRuntime.cancelled) {
       setScanBusy(false);
       hideScanProgress();
       setStatus($status, 'Scan stopped.');
+      releaseDeepPollLeadership();
       return;
     }
     // ~4s × 900 ≈ 60 min — covers Deep + queue wait on shared agency scanners.
@@ -1437,6 +1601,7 @@
       );
       cancelRemoteAndImport($status, jobId, 'Poll timed out').finally(function () {
         scanRuntime.deepJobId = null;
+        releaseDeepPollLeadership();
       });
       return;
     }
@@ -1450,6 +1615,7 @@
         setScanBusy(false);
         hideScanProgress();
         setStatus($status, 'Scan stopped.');
+        releaseDeepPollLeadership();
         return;
       }
       if (!job) {
@@ -1466,6 +1632,9 @@
         var msg = (job.status === 'cancelled' || job.partial)
           ? 'Partial scan imported (stopped/cancelled).'
           : 'Deep scan imported.';
+        if (job.logged_in_merged) {
+          msg += ' Logged-in helper cookies merged.';
+        }
         msg += ' Cookies: ' + (inv.cookies || 0) +
           ', unclassified: ' + (inv.unknown_cookies || 0) +
           ', signals: ' + (inv.results || 0);
@@ -1484,6 +1653,8 @@
         setScanBusy(false);
         scanRuntime.deepJobId = null;
         setStatus($status, msg);
+        deepScanBroadcast({ type: 'done', statusText: msg, reload: true });
+        releaseDeepPollLeadership();
         window.setTimeout(function () { window.location.reload(); }, 1000);
         return;
       }
@@ -1519,6 +1690,12 @@
           attempt,
           $status
         );
+        deepScanBroadcast({
+          type: 'progress',
+          jobId: jobId,
+          message: qMsg,
+          percent: typeof (job.progress && job.progress.percent) === 'number' ? job.progress.percent : 0,
+        });
         scanRuntime.deepPollTimer = window.setTimeout(function () {
           pollDeepScan(jobId, $status, attempt + 1);
         }, 4000);
@@ -1535,6 +1712,12 @@
         head += '\n' + job.progress.message;
       }
       setStatus($status, head);
+      deepScanBroadcast({
+        type: 'progress',
+        jobId: jobId,
+        message: head,
+        percent: job.progress && typeof job.progress.percent === 'number' ? job.progress.percent : undefined,
+      });
       scanRuntime.deepPollTimer = window.setTimeout(function () {
         pollDeepScan(jobId, $status, attempt + 1);
       }, 4000);
@@ -1571,10 +1754,12 @@
             jobId,
           true
         );
+        releaseDeepPollLeadership();
         return;
       }
       setScanBusy(false);
       setStatus($status, (err && err.message) ? err.message : 'Deep scan poll failed.', true);
+      releaseDeepPollLeadership();
     });
   }
 
@@ -1601,17 +1786,23 @@
     var depth = isReverify ? reverifyDepth() : currentScanDepth();
     var sessionsHint = sessionsHintForDepth(depth);
     var coverageLabel = coverageLabelForDepth(depth);
-    if (!isReverify) {
-      persistScanSelection(true);
-    }
+    var persistPromise = (!isReverify && scanPickerState.ready)
+      ? persistScanSelection(true)
+      : Promise.resolve(null);
 
-    var urlsPromise = isReverify
-      ? Promise.resolve(reverifyUrlDefs())
-      : (scanPickerState.ready
-        ? Promise.resolve(selectedUrlDefs())
-        : restGet('scan/urls?depth=' + encodeURIComponent(depth), signal).then(function (urlPayload) {
-            return (urlPayload && urlPayload.urls) ? urlPayload.urls : [];
-          }));
+    var urlsPromise = persistPromise.then(function () {
+      if (isReverify) {
+        return reverifyUrlDefs();
+      }
+      if (scanPickerState.ready) {
+        syncSelectionFromDom();
+        // Playwright honors the full picker (up to 200), not the browser-crawl cap.
+        return selectedUrlDefs(200);
+      }
+      return restGet('scan/urls?depth=' + encodeURIComponent(depth), signal).then(function (urlPayload) {
+        return (urlPayload && urlPayload.urls) ? urlPayload.urls : [];
+      });
+    });
 
     return urlsPromise.then(function (urls) {
       if (scanRuntime.cancelled) {
@@ -1620,9 +1811,31 @@
       if (!urls || !urls.length) {
         throw new Error('No pages selected. Check at least one page in the list, then start again.');
       }
+      var pathPreview = [];
+      var pathSeen = {};
+      urls.forEach(function (u) {
+        var p = (u && u.path) ? u.path : pathFromSiteUrl((u && u.url) ? u.url : u);
+        if (!p) {
+          return;
+        }
+        if (p !== '/' && p.slice(-1) === '/') {
+          p = p.slice(0, -1);
+        }
+        if (pathSeen[p]) {
+          return;
+        }
+        pathSeen[p] = true;
+        pathPreview.push(p);
+      });
+      if (urls.length > 1 && pathPreview.length < 2) {
+        throw new Error(
+          'Selected pages collapsed to a single path (' + (pathPreview[0] || '/') +
+            '). Check that each checkbox is a distinct same-site URL, then try again.'
+        );
+      }
       var profileHint = isReverify
-        ? ('Re-verify (' + coverageLabel + '): ' + urls.length + ' pages × ' + sessionsHint + ' sessions')
-        : (coverageLabel + ' coverage · ' + sessionsHint + ' sessions × selected pages');
+        ? ('Re-verify (' + coverageLabel + '): ' + pathPreview.length + ' pages × ' + sessionsHint + ' sessions')
+        : (coverageLabel + ' coverage · ' + pathPreview.length + ' page(s) · ' + sessionsHint + ' sessions · ' + pathPreview.slice(0, 8).join(', ') + (pathPreview.length > 8 ? '…' : ''));
       setStatus($status, 'Starting Playwright scan (' + profileHint + ')…');
       showScanProgress({
         percent: 0,
@@ -1634,21 +1847,37 @@
           : ('Starting Playwright scan (' + profileHint + '). Each session re-walks the URL list; unfinished pages mean time budget.'),
         log: [],
         sessions_total: sessionsHint,
+        pages_total: pathPreview.length,
       }, 0, $status);
       return startDeepScanJob(urls, depth, signal, 0).then(function (job) {
-        return { job: job, profileHint: profileHint };
+        return { job: job, profileHint: profileHint, pathsSent: pathPreview.length };
       });
     }).then(function (pack) {
       var job = pack && pack.job;
       var profileHint = (pack && pack.profileHint) || '';
+      var pathsSent = (pack && pack.pathsSent) || 0;
       if (!job || !job.id) {
         throw new Error('Scanner did not return a job id. Check Advanced → Scanner API URL/key.');
+      }
+      var pathsCount = job.paths_count || (job.paths && job.paths.length) || 0;
+      if (pathsSent > 1 && pathsCount > 0 && pathsCount < pathsSent) {
+        throw new Error(
+          'Scanner accepted ' + pathsCount + ' of ' + pathsSent +
+            ' path(s). Redeploy the Scanner API from tools/ucpf-scanner so exactPaths is honored ' +
+            '(see docs/SCANNER-SERVER.md). Updating the WordPress plugin alone is not enough.'
+        );
+      }
+      if (pathsCount > 0) {
+        profileHint = profileHint.replace(/(\d+)\s*page\(s\)/, pathsCount + ' page(s)');
       }
       scanRuntime.deepJobId = job.id;
       setStatus(
         $status,
         'Scan queued (' + job.id + ', ' + profileHint +
-          '). Progress is saved on this WordPress site — you can leave this page; Stop still works when you return.'
+          (pathsSent || pathsCount
+            ? (', sent ' + pathsSent + ' · scanner accepted ' + (pathsCount || pathsSent) + ' path(s)')
+            : '') +
+          '). Progress is saved on this WordPress site — you can leave this page; Stop still works when you return. Status also appears on other admin screens.'
       );
       showScanProgress(
         Object.assign({}, job.progress || {}, {
@@ -1657,6 +1886,7 @@
         0,
         $status
       );
+      claimDeepPollLeadership(job.id);
       pollDeepScan(job.id, $status, 0);
     }).catch(function (err) {
       console.error(err);
@@ -1689,12 +1919,42 @@
   }
 
   function startDeepScanJob(urls, depth, signal, retry) {
+    var pathList = [];
+    var pathSeen = {};
+    (urls || []).forEach(function (item) {
+      var p = '';
+      if (item && typeof item === 'object' && item.path) {
+        p = String(item.path);
+      } else if (typeof item === 'string') {
+        p = pathFromSiteUrl(item);
+      } else if (item && item.url) {
+        p = pathFromSiteUrl(item.url);
+      }
+      if (!p) {
+        return;
+      }
+      if (p !== '/' && p.slice(-1) === '/') {
+        p = p.slice(0, -1);
+      }
+      if (pathSeen[p]) {
+        return;
+      }
+      pathSeen[p] = true;
+      pathList.push(p);
+    });
+    if (!pathList.length) {
+      pathList = ['/'];
+    }
     return restPost('scan/deep', {
       url: (ucpfAdmin && ucpfAdmin.homeUrl) ? ucpfAdmin.homeUrl : window.location.origin,
       urls: urls,
+      paths: pathList,
+      merge_logged_in: $('#ucpf-playwright-merge-auth').is(':checked'),
       options: {
         depth: depth,
-        maxPages: urls.length,
+        maxPages: Math.max(pathList.length, 1),
+        exactPaths: true,
+        merge_logged_in: $('#ucpf-playwright-merge-auth').is(':checked'),
       },
     }, signal).catch(function (err) {
       var msg = (err && err.message) ? String(err.message) : '';

@@ -4,7 +4,7 @@
   "scanned_at": "2026-01-01T00:00:00.000Z",
   "pages": ["https://example.com/"],
   "options": { "profile": "standard", "interact": false },
-  "findings_summary": { "total": 1, "fail": 0, "info": 1, "pass": true },
+  "findings_summary": { "total": 1, "fail": 0, "warn": 0, "info": 1, "pass": true, "blocking_ok": true },
   "findings": [
     {
       "type": "cookie",

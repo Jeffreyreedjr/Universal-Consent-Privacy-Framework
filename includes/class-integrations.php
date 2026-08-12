@@ -38,6 +38,7 @@ class Integrations {
 	 */
 	public function init() {
 		Integrations\Google_Consent_Mode::instance()->init();
+		Integrations\Optimizer_Exclusions::instance()->init();
 
 		if ( class_exists( 'WooCommerce' ) ) {
 			Integrations\WooCommerce::instance()->init();

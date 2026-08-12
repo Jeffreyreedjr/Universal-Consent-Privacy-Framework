@@ -4,9 +4,9 @@
       "key": "google_fonts",
       "name": "Google Fonts",
       "provider": "Google",
-      "category": "functional",
-      "treatment": "consent",
-      "description": "Loads web fonts from Google Fonts CDN.",
+      "category": "necessary",
+      "treatment": "necessary",
+      "description": "Loads web fonts from Google Fonts CDN. Always allowed — layout fonts are not gated behind Embeds.",
       "privacy_url": "https://policies.google.com/privacy",
       "script_patterns": [
         "fonts.googleapis.com",
@@ -15,15 +15,15 @@
       "cookie_patterns": [],
       "cookies": [],
       "iframe_patterns": [],
-      "default_blocking": true
+      "default_blocking": false
     },
     {
       "key": "adobe_fonts",
       "name": "Adobe Fonts",
       "provider": "Adobe",
-      "category": "functional",
-      "treatment": "consent",
-      "description": "Loads web fonts from Adobe Fonts (Typekit).",
+      "category": "necessary",
+      "treatment": "necessary",
+      "description": "Loads web fonts from Adobe Fonts (Typekit). Always allowed — layout fonts are not gated behind Embeds.",
       "privacy_url": "https://www.adobe.com/privacy/policy.html",
       "script_patterns": [
         "use.typekit.net",
@@ -32,15 +32,15 @@
       "cookie_patterns": [],
       "cookies": [],
       "iframe_patterns": [],
-      "default_blocking": true
+      "default_blocking": false
     },
     {
       "key": "font_awesome",
       "name": "Font Awesome",
       "provider": "Fonticons",
-      "category": "functional",
-      "treatment": "consent",
-      "description": "Loads Font Awesome kits or CDN icon fonts from Fonticons.",
+      "category": "necessary",
+      "treatment": "necessary",
+      "description": "Loads Font Awesome kits or CDN icon fonts. Always allowed — layout icon fonts are not gated behind Embeds.",
       "privacy_url": "https://fontawesome.com/privacy",
       "script_patterns": [
         "kit.fontawesome.com",
@@ -51,7 +51,7 @@
       "cookie_patterns": [],
       "cookies": [],
       "iframe_patterns": [],
-      "default_blocking": true
+      "default_blocking": false
     }
   ]
 }

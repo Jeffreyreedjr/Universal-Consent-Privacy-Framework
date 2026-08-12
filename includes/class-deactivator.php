@@ -45,6 +45,8 @@ class Deactivator {
 		wp_clear_scheduled_hook( 'ucpf_daily_cleanup' );
 		wp_clear_scheduled_hook( Scheduled_Scan::HOOK_START );
 		wp_clear_scheduled_hook( Scheduled_Scan::HOOK_POLL );
-		flush_rewrite_rules();
+		// Keep rewrite rules intact during zip replace (deactivate→activate). Flushing
+		// here causes brief front-end 404s that Cloudflare can cache as HTML.
+		delete_option( 'ucpf_rewrite_rules_ver' );
 	}
 }

@@ -8,7 +8,16 @@
       "treatment": "consent",
       "description": "Embedded YouTube videos and related player / view-statistics cookies.",
       "privacy_url": "https://policies.google.com/privacy",
-      "script_patterns": ["youtube.com/iframe_api", "www.youtube.com/s", "youtube.com", "youtu.be", "i.ytimg.com", "yt3.ggpht.com", "jnn-pa.googleapis.com"],
+      "script_patterns": [
+        "youtube.com/iframe_api",
+        "www.youtube.com/s",
+        "youtube.com",
+        "youtu.be",
+        "i.ytimg.com",
+        "yt3.ggpht.com",
+        "jnn-pa.googleapis.com",
+        "gtm4wp-youtube"
+      ],
       "cookie_patterns": ["VISITOR_INFO1_LIVE", "YSC", "PREF", "VISITOR_PRIVACY_METADATA", "__Secure-YNID", "__Secure-ROLLOUT_TOKEN", "__Secure-YEC"],
       "cookies": [
         {
@@ -77,7 +86,7 @@
       "treatment": "consent",
       "description": "Embedded Vimeo videos.",
       "privacy_url": "https://vimeo.com/privacy",
-      "script_patterns": ["player.vimeo.com"],
+      "script_patterns": ["player.vimeo.com", "gtm4wp-vimeo"],
       "cookie_patterns": ["vuid"],
       "cookies": [
         {
@@ -139,18 +148,40 @@
       "provider": "Mapbox",
       "category": "functional",
       "treatment": "consent",
-      "description": "Mapbox GL / tiles, events, and API hosts used by map embeds.",
+      "description": "Mapbox GL / tiles, events, and API hosts used by map embeds. Also covers Mapster WP Maps plugin scripts (MapLibre/Mapbox providers).",
       "privacy_url": "https://www.mapbox.com/legal/privacy",
       "script_patterns": [
         "api.mapbox.com",
         "events.mapbox.com",
         "tiles.mapbox.com",
         "mapbox.com",
-        "mapbox.cn"
+        "mapbox.cn",
+        "mapster-wp-maps",
+        "mapster-wp-maps-pro",
+        "mapster-wp-maps-premium"
       ],
       "cookie_patterns": [],
       "cookies": [],
       "iframe_patterns": ["mapbox.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "maplibre",
+      "name": "MapLibre GL",
+      "provider": "MapLibre",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "MapLibre GL JS CDN builds and demo tiles used by Mapster and other map embeds.",
+      "privacy_url": "https://maplibre.org/",
+      "script_patterns": [
+        "unpkg.com/maplibre-gl",
+        "cdn.jsdelivr.net/npm/maplibre-gl",
+        "demotiles.maplibre.org",
+        "maplibre.org"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
       "default_blocking": true
     },
     {

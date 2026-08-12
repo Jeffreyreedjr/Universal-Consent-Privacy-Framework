@@ -867,8 +867,13 @@ class Cookie_Scanner {
 		}
 
 		$home_host = wp_parse_url( home_url( '/' ), PHP_URL_HOST );
-		if ( $home_host && strtolower( (string) $parts['host'] ) !== strtolower( (string) $home_host ) ) {
-			return '';
+		$host      = strtolower( (string) $parts['host'] );
+		if ( $home_host ) {
+			$a = preg_replace( '/^www\./i', '', strtolower( (string) $home_host ) );
+			$b = preg_replace( '/^www\./i', '', $host );
+			if ( $a !== $b ) {
+				return '';
+			}
 		}
 
 		$scheme = ! empty( $parts['scheme'] ) ? strtolower( (string) $parts['scheme'] ) : 'https';
@@ -1126,7 +1131,6 @@ class Cookie_Scanner {
 	 */
 	public function normalize_scan_urls( array $urls, $limit = 30 ) {
 		$limit = max( 1, min( self::MAX_SERVER_URLS, (int) $limit ) );
-		$home     = wp_parse_url( home_url( '/' ), PHP_URL_HOST );
 		$out      = array();
 		$seen     = array();
 
@@ -1143,16 +1147,14 @@ class Cookie_Scanner {
 			}
 			$url = esc_url_raw( $def['url'] );
 			if ( ! $url ) {
-				// Allow relative paths.
-				$path = '/' . ltrim( (string) $def['url'], '/' );
-				$url  = home_url( $path );
-				$url  = esc_url_raw( $url );
+				// Allow relative paths only (no traversal / protocol-relative).
+				$rel = $this->sanitize_scan_path( (string) $def['url'] );
+				if ( null === $rel ) {
+					continue;
+				}
+				$url = esc_url_raw( home_url( $rel ) );
 			}
-			if ( ! $url ) {
-				continue;
-			}
-			$host = wp_parse_url( $url, PHP_URL_HOST );
-			if ( $home && $host && strtolower( (string) $host ) !== strtolower( (string) $home ) ) {
+			if ( ! $url || ! $this->is_same_site_url( $url ) ) {
 				continue;
 			}
 			$key = $this->canonicalize_scan_url( $url );
@@ -1170,6 +1172,115 @@ class Cookie_Scanner {
 			}
 		}
 
+		return $out;
+	}
+
+	/**
+	 * Allowed scan hosts (home_url + site_url).
+	 *
+	 * @return string[] Lowercased hosts.
+	 */
+	public function allowed_scan_hosts() {
+		$hosts = array();
+		foreach ( array( home_url( '/' ), site_url( '/' ) ) as $base ) {
+			$host = wp_parse_url( $base, PHP_URL_HOST );
+			if ( $host ) {
+				$hosts[ strtolower( (string) $host ) ] = true;
+			}
+		}
+		return array_keys( $hosts );
+	}
+
+	/**
+	 * Whether a URL is on an allowed same-site host.
+	 *
+	 * @param string $url Absolute URL.
+	 * @return bool
+	 */
+	public function is_same_site_url( $url ) {
+		$host = wp_parse_url( (string) $url, PHP_URL_HOST );
+		if ( ! $host ) {
+			return false;
+		}
+		$host    = strtolower( (string) $host );
+		$host_nw = preg_replace( '/^www\./i', '', $host );
+		$allowed = $this->allowed_scan_hosts();
+		if ( ! $allowed ) {
+			return false;
+		}
+		foreach ( $allowed as $allowed_host ) {
+			$a = strtolower( (string) $allowed_host );
+			$a_nw = preg_replace( '/^www\./i', '', $a );
+			if ( $host === $a || $host_nw === $a_nw ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Sanitize one relative scan path (/… only). Returns null if rejected.
+	 *
+	 * @param string $path Raw path or path-like string.
+	 * @return string|null
+	 */
+	public function sanitize_scan_path( $path ) {
+		$path = trim( (string) $path );
+		if ( '' === $path ) {
+			return null;
+		}
+		// Reject absolute / protocol-relative URLs and scheme-like prefixes.
+		if ( preg_match( '#^[a-z][a-z0-9+.-]*:#i', $path ) || 0 === strpos( $path, '//' ) ) {
+			return null;
+		}
+		// Reject embedded // (protocol-relative or authority breakout) and traversal.
+		if ( false !== strpos( $path, '//' ) || false !== strpos( $path, '..' ) ) {
+			return null;
+		}
+		if ( '/' !== $path[0] ) {
+			$path = '/' . ltrim( $path, '/' );
+		}
+		// Normalize empty path to homepage.
+		if ( '/' !== $path && '' === ltrim( $path, '/' ) ) {
+			$path = '/';
+		}
+		// Only allow a safe path character set (plus query string).
+		if ( ! preg_match( '#^/[A-Za-z0-9._~:/?#\[\]@!$&\'()*+,;=%\-]*$#', $path ) ) {
+			return null;
+		}
+		return $path;
+	}
+
+	/**
+	 * Sanitize a list of relative scan paths; cap count.
+	 *
+	 * @param array $paths Raw paths.
+	 * @param int   $limit Max paths.
+	 * @return string[]
+	 */
+	public function sanitize_scan_paths( array $paths, $limit = 40 ) {
+		$limit = max( 1, min( self::MAX_PICKER_URLS, (int) $limit ) );
+		$out   = array();
+		$seen  = array();
+		foreach ( $paths as $path ) {
+			$clean = $this->sanitize_scan_path( is_scalar( $path ) ? (string) $path : '' );
+			if ( null === $clean ) {
+				continue;
+			}
+			// Collapse trailing-slash duplicates so /about and /about/ count as one page.
+			$canon = ( '/' !== $clean && '/' === substr( $clean, -1 ) ) ? rtrim( $clean, '/' ) : $clean;
+			if ( '' === $canon ) {
+				$canon = '/';
+			}
+			if ( isset( $seen[ $canon ] ) ) {
+				continue;
+			}
+			$seen[ $canon ] = true;
+			$out[]          = $canon;
+			if ( count( $out ) >= $limit ) {
+				break;
+			}
+		}
 		return $out;
 	}
 
@@ -1396,13 +1507,13 @@ class Cookie_Scanner {
 
 		$detected_keys = array();
 		foreach ( $results as $row ) {
-			if ( ! empty( $row['service'] ) ) {
-				$detected_keys[ $row['service'] ] = true;
+			if ( ! empty( $row['service'] ) && ! Scan_Noise_Filter::should_omit_detected_service( $row['service'] ) ) {
+				$detected_keys[ sanitize_key( $row['service'] ) ] = true;
 			}
 		}
 		foreach ( $cookies_found as $row ) {
-			if ( ! empty( $row['service'] ) ) {
-				$detected_keys[ $row['service'] ] = true;
+			if ( ! empty( $row['service'] ) && ! Scan_Noise_Filter::should_omit_detected_service( $row['service'] ) ) {
+				$detected_keys[ sanitize_key( $row['service'] ) ] = true;
 			}
 		}
 
@@ -1902,69 +2013,96 @@ class Cookie_Scanner {
 			}
 		}
 
+		$gravity_active = $this->is_gravity_smtp_plugin_active();
+
 		$meta = $this->get_plugin_map_meta();
 		$keys = ! empty( $meta['option_keys'] ) ? $meta['option_keys'] : array();
 		$keys = apply_filters( 'ucpf_scan_option_keys', $keys );
+		// Never sniff UCPF's own settings (selected_services self-reinforces false ESP hits).
+		// Gravity SMTP options are handled only by scan_gravity_smtp_connectors().
+		$keys = array_values(
+			array_filter(
+				(array) $keys,
+				static function ( $name ) use ( $gravity_active ) {
+					$name = (string) $name;
+					if ( 'ucpf_settings' === $name ) {
+						return false;
+					}
+					if ( $gravity_active && 0 === stripos( $name, 'gravitysmtp' ) ) {
+						return false;
+					}
+					return true;
+				}
+			)
+		);
 
+		// Host / API needles only — bare brand names match Gravity's full connector catalog.
 		$needles = array(
 			'mandrillapp.com'         => 'mailchimp_transactional',
 			'smtp.mandrillapp.com'    => 'mailchimp_transactional',
 			'mailchimp transactional' => 'mailchimp_transactional',
-			'mailchimp_transactional' => 'mailchimp_transactional',
-			'"mailchimp"'             => 'mailchimp_transactional',
-			"'mailchimp'"             => 'mailchimp_transactional',
 			'api.mailgun.net'         => 'mailgun',
 			'smtp.mailgun.org'        => 'mailgun',
-			'mailgun'                 => 'mailgun',
 			'api.sendgrid.com'        => 'sendgrid',
 			'smtp.sendgrid.net'       => 'sendgrid',
-			'sendgrid'                => 'sendgrid',
 			'smtp.postmarkapp.com'    => 'postmark',
 			'api.postmarkapp.com'     => 'postmark',
-			'postmark'                => 'postmark',
 			'email-smtp.'             => 'amazon_ses',
 			'amazonaws.com/ses'       => 'amazon_ses',
-			'amazon_ses'              => 'amazon_ses',
-			'aws_ses'                 => 'amazon_ses',
-			'"amazon"'                => 'amazon_ses',
 			'api.brevo.com'           => 'brevo_smtp',
 			'smtp-relay.brevo.com'    => 'brevo_smtp',
-			'sendinblue'              => 'brevo_smtp',
-			'brevo'                   => 'brevo_smtp',
-			'sparkpost'               => 'sparkpost',
-			'smtp2go'                 => 'smtp2go',
+			'smtp.sparkpostmail.com'  => 'sparkpost',
+			'api.sparkpost.com'       => 'sparkpost',
+			'api.smtp2go.com'         => 'smtp2go',
+			'mail-smtp2go.com'        => 'smtp2go',
 			'in-v3.mailjet.com'       => 'mailjet',
-			'mailjet'                 => 'mailjet',
-			'elasticemail'            => 'elastic_email',
 			'smtp.elasticemail.com'   => 'elastic_email',
-			'sendlayer'               => 'sendlayer',
+			'api.elasticemail.com'    => 'elastic_email',
 			'smtp.sendlayer.com'      => 'sendlayer',
-			'smtp.com'                => 'smtp_com',
 			'api.smtp.com'            => 'smtp_com',
-			'"smtpcom"'               => 'smtp_com',
 			'api.resend.com'          => 'resend',
-			'resend.com'              => 'resend',
-			'mailersend'              => 'mailersend',
-			'emailit'                 => 'emailit',
+			'api.mailersend.com'      => 'mailersend',
+			'smtp.mailersend.com'      => 'mailersend',
 			'smtp.zoho.com'           => 'zoho_mail',
-			'zoho.com/mail'           => 'zoho_mail',
-			'"zoho"'                  => 'zoho_mail',
 			'smtp.office365.com'      => 'microsoft_365_smtp',
 			'outlook.office365.com'   => 'microsoft_365_smtp',
-			'microsoft365'            => 'microsoft_365_smtp',
-			'"microsoft"'             => 'microsoft_365_smtp',
 			'smtp.gmail.com'          => 'gmail_smtp',
 			'googleapis.com/gmail'    => 'gmail_smtp',
-			'gmail'                   => 'gmail_smtp',
-			'"google"'                => 'gmail_smtp',
-			'mailtrap'                => 'mailtrap',
 			'smtp.mailtrap.io'        => 'mailtrap',
 			'send.api.mailtrap.io'    => 'mailtrap',
-			'cloudflare email'        => 'cloudflare_email',
 			'email.cloudflare'        => 'cloudflare_email',
-			'"phpmail"'               => 'php_mail',
-			'phpmail'                 => 'php_mail',
-			'"generic"'               => 'generic_smtp',
+		);
+
+		// Active mailer assignment patterns (WP Mail SMTP, FluentSMTP, etc.).
+		$mailer_assignments = array(
+			'mailchimp'     => 'mailchimp_transactional',
+			'mandrill'      => 'mailchimp_transactional',
+			'mailgun'       => 'mailgun',
+			'sendgrid'      => 'sendgrid',
+			'postmark'      => 'postmark',
+			'amazon'        => 'amazon_ses',
+			'ses'           => 'amazon_ses',
+			'aws'           => 'amazon_ses',
+			'brevo'         => 'brevo_smtp',
+			'sendinblue'    => 'brevo_smtp',
+			'sparkpost'     => 'sparkpost',
+			'smtp2go'       => 'smtp2go',
+			'mailjet'       => 'mailjet',
+			'elasticemail'  => 'elastic_email',
+			'elastic_email' => 'elastic_email',
+			'sendlayer'     => 'sendlayer',
+			'smtpcom'       => 'smtp_com',
+			'resend'        => 'resend',
+			'mailersend'    => 'mailersend',
+			'emailit'       => 'emailit',
+			'zoho'          => 'zoho_mail',
+			'microsoft'     => 'microsoft_365_smtp',
+			'outlook'       => 'microsoft_365_smtp',
+			'gmail'         => 'gmail_smtp',
+			'mailtrap'      => 'mailtrap',
+			'cloudflare'    => 'cloudflare_email',
+			'phpmail'       => 'php_mail',
+			'generic'       => 'generic_smtp',
 		);
 
 		/**
@@ -1995,45 +2133,11 @@ class Cookie_Scanner {
 				if ( false === strpos( $lower, strtolower( $needle ) ) ) {
 					continue;
 				}
-				// Ambiguous needles require an SMTP plugin.
-				$ambiguous = in_array(
-					strtolower( $needle ),
-					array(
-						'mailgun',
-						'sendgrid',
-						'postmark',
-						'brevo',
-						'sendinblue',
-						'gmail',
-						'sparkpost',
-						'smtp2go',
-						'mailjet',
-						'sendlayer',
-						'mailersend',
-						'emailit',
-						'resend.com',
-						'mailtrap',
-						'phpmail',
-						'"mailchimp"',
-						"'mailchimp'",
-						'"amazon"',
-						'"google"',
-						'"microsoft"',
-						'"zoho"',
-						'"smtpcom"',
-						'"generic"',
-						'"phpmail"',
-					),
-					true
-				);
-				if ( $ambiguous && ! $smtp_plugin_active ) {
-					continue;
-				}
 				// Never treat marketing Mailchimp list options as Mandrill unless SMTP plugin or explicit transactional needle.
 				if ( 'mailchimp_transactional' === $service_key && ! $smtp_plugin_active && false === strpos( $lower, 'mandrill' ) && false === strpos( $lower, 'transactional' ) ) {
 					continue;
 				}
-				// Cloudflare Email vs CDN — require SMTP plugin for bare cloudflare email needles.
+				// Cloudflare Email vs CDN.
 				if ( 'cloudflare_email' === $service_key && ! $smtp_plugin_active ) {
 					continue;
 				}
@@ -2056,6 +2160,45 @@ class Cookie_Scanner {
 					'page_url'           => 'wp_options',
 					'context'            => 'admin',
 				);
+			}
+
+			// Explicit mailer / primary assignment only (avoids catalog name lists).
+			if ( $smtp_plugin_active ) {
+				foreach ( $mailer_assignments as $slug => $service_key ) {
+					if ( isset( $seen[ $service_key ] ) ) {
+						continue;
+					}
+					$slug_q = preg_quote( $slug, '/' );
+					$assigned = (bool) preg_match(
+						'/(?:mailer|primary|primary_integration|integration_primary|active_mailer|provider|smtp_provider)\s*[:=]\s*[\'"]?' . $slug_q . '\b/i',
+						$value
+					) || (bool) preg_match(
+						'/"(?:mailer|primary|primary_integration|integration_primary|active_mailer|provider)"\s*:\s*"' . $slug_q . '"/i',
+						$value
+					);
+					if ( ! $assigned ) {
+						continue;
+					}
+					$seen[ $service_key ] = true;
+					$service              = Script_Registry::instance()->get_service( $service_key );
+					$findings[]           = array(
+						'type'               => 'option',
+						'service'            => $service_key,
+						'service_name'       => $service ? $service['name'] : $service_key,
+						'pattern'            => 'mailer:' . $slug,
+						'suggested_category' => 'necessary',
+						'treatment'          => 'necessary',
+						'confidence'         => 'high',
+						'blocking_status'    => 'allowed',
+						'suggested_action'   => sprintf(
+							/* translators: %s: option name */
+							__( 'Active SMTP mailer found in option: %s', 'universal-consent-privacy-framework' ),
+							$name
+						),
+						'page_url'           => 'wp_options',
+						'context'            => 'admin',
+					);
+				}
 			}
 
 			// Configured generic SMTP host without a known ESP needle.
@@ -2092,6 +2235,8 @@ class Cookie_Scanner {
 			}
 		}
 
+		$this->prune_stale_transactional_selections( $seen );
+
 		return $findings;
 	}
 
@@ -2114,7 +2259,6 @@ class Cookie_Scanner {
 		$map      = self::gravity_smtp_connector_map();
 		$slugs    = array();
 		$blob     = $this->collect_gravity_smtp_settings_blob();
-		$lower    = strtolower( $blob );
 
 		// Constants: primary / backup.
 		if ( defined( 'GRAVITYSMTP_INTEGRATION_PRIMARY' ) ) {
@@ -2136,33 +2280,29 @@ class Cookie_Scanner {
 			}
 		}
 
-		// Options blob: primary / backup fields and enabled connector keys.
+		// Options blob: primary / backup fields and enabled connector keys only.
 		if ( $blob ) {
-			if ( preg_match( '/"(?:primary|primary_integration|integration_primary)"\s*:\s*"([a-z0-9_]+)"/i', $blob, $m ) ) {
+			if ( preg_match( '/"(?:primary|primary_integration|integration_primary|primary_connection|primary_connector)"\s*:\s*"([a-z0-9_]+)"/i', $blob, $m ) ) {
 				$slugs[] = sanitize_key( $m[1] );
 			}
-			if ( preg_match( '/"(?:backup|backup_integration|integration_backup)"\s*:\s*"([a-z0-9_]+)"/i', $blob, $m ) ) {
+			if ( preg_match( '/"(?:backup|backup_integration|integration_backup|backup_connection|backup_connector)"\s*:\s*"([a-z0-9_]+)"/i', $blob, $m ) ) {
 				$slugs[] = sanitize_key( $m[1] );
 			}
 			foreach ( array_keys( $map ) as $slug ) {
-				// Match JSON object keys or event/service values used by Gravity SMTP logs/UI.
-				$quoted = '"' . $slug . '"';
-				if ( false === stripos( $lower, $quoted ) ) {
-					continue;
-				}
-				// Prefer connectors that look enabled/configured/active near the slug.
+				// Require enabled/active/configured true — never treat catalog presence as configured.
 				$enabled_hint = (bool) preg_match(
-					'/"' . preg_quote( $slug, '/' ) . '"\s*:\s*\{[^}]{0,800}?"(?:enabled|active|configured)"\s*:\s*(?:true|1|"1"|"true")/is',
+					'/"' . preg_quote( $slug, '/' ) . '"\s*:\s*\{[^}]{0,1200}?"(?:enabled|active|configured|is_enabled|is_active)"\s*:\s*(?:true|1|"1"|"true")/is',
 					$blob
 				);
 				$loose_enabled = (bool) preg_match(
-					'/"(?:enabled|active|configured)"\s*:\s*(?:true|1|"1"|"true")[^}]{0,400}?"' . preg_quote( $slug, '/' ) . '"/is',
+					'/"(?:enabled|active|configured|is_enabled|is_active)"\s*:\s*(?:true|1|"1"|"true")[^}]{0,400}?"' . preg_quote( $slug, '/' ) . '"/is',
 					$blob
 				);
-				if ( $enabled_hint || $loose_enabled || preg_match( '/"service"\s*:\s*"' . preg_quote( $slug, '/' ) . '"/i', $blob ) ) {
-					$slugs[] = $slug;
-				} elseif ( count( $slugs ) < 1 && false !== stripos( $lower, $quoted ) ) {
-					// At least one connector mentioned — include when nothing else resolved yet.
+				$is_primary = (bool) preg_match(
+					'/"' . preg_quote( $slug, '/' ) . '"\s*:\s*\{[^}]{0,1200}?"(?:is_primary|primary)"\s*:\s*(?:true|1|"1"|"true")/is',
+					$blob
+				);
+				if ( $enabled_hint || $loose_enabled || $is_primary ) {
 					$slugs[] = $slug;
 				}
 			}
@@ -2267,6 +2407,8 @@ class Cookie_Scanner {
 			'gravitysmtp_primary',
 			'gravitysmtp_app_settings',
 			'gravitysmtp_plugin_settings',
+			'gravitysmtp_connector_settings',
+			'gravitysmtp_email_log_settings',
 		);
 		/**
 		 * Filter Gravity SMTP option names inspected for connectors.
@@ -2292,6 +2434,44 @@ class Cookie_Scanner {
 			}
 		}
 		return implode( "\n", $parts );
+	}
+
+	/**
+	 * Drop ESP keys previously auto-selected from a bad scan when they are no longer detected.
+	 *
+	 * @param array<string,bool> $detected_map Service key => true.
+	 * @return void
+	 */
+	private function prune_stale_transactional_selections( array $detected_map ) {
+		$esp = array_values( self::gravity_smtp_connector_map() );
+		$esp = array_merge( $esp, self::transactional_provider_keys() );
+		$esp = array_values( array_unique( array_map( 'sanitize_key', $esp ) ) );
+		$esp_lookup = array_fill_keys( $esp, true );
+
+		$selected = Settings::get( 'selected_services', array() );
+		if ( ! is_array( $selected ) || ! $selected ) {
+			return;
+		}
+		$changed = false;
+		$kept    = array();
+		foreach ( $selected as $key ) {
+			$key = sanitize_key( (string) $key );
+			if ( '' === $key ) {
+				continue;
+			}
+			if ( Scan_Noise_Filter::should_omit_detected_service( $key ) ) {
+				$changed = true;
+				continue;
+			}
+			if ( isset( $esp_lookup[ $key ] ) && 'transactional_email' !== $key && empty( $detected_map[ $key ] ) ) {
+				$changed = true;
+				continue;
+			}
+			$kept[] = $key;
+		}
+		if ( $changed ) {
+			Settings::update( array( 'selected_services' => array_values( array_unique( $kept ) ) ) );
+		}
 	}
 
 	/**
@@ -2618,7 +2798,6 @@ class Cookie_Scanner {
 		$findings = array();
 		$meta     = $this->get_plugin_map_meta();
 		$keys     = ! empty( $meta['option_keys'] ) ? $meta['option_keys'] : array(
-			'ucpf_settings',
 			'google_analytics_4',
 			'gtm4wp-options',
 		);
@@ -2629,6 +2808,14 @@ class Cookie_Scanner {
 		 * @param array $keys Option keys.
 		 */
 		$keys = apply_filters( 'ucpf_scan_option_keys', $keys );
+		$keys = array_values(
+			array_filter(
+				(array) $keys,
+				static function ( $name ) {
+					return 'ucpf_settings' !== (string) $name;
+				}
+			)
+		);
 
 		$needles = array(
 			'G-'              => array( 'service' => 'google_analytics_4', 'category' => 'analytics' ),
@@ -2833,6 +3020,92 @@ class Cookie_Scanner {
 	}
 
 	/**
+	 * After a Playwright (guest) import, optionally merge one logged-in homepage
+	 * HTTP pass into the stored inventory (no Playwright WP login).
+	 *
+	 * @return array|\WP_Error Updated last-scan payload or error.
+	 */
+	public function merge_logged_in_homepage_into_last_scan() {
+		$last = $this->get_last_scan();
+		if ( empty( $last ) || ! is_array( $last ) ) {
+			return new \WP_Error(
+				'ucpf_no_scan',
+				__( 'No stored scan to merge into. Run a Playwright scan first.', 'universal-consent-privacy-framework' )
+			);
+		}
+
+		$url     = home_url( '/' );
+		$fetched = $this->fetch_page( $url, true );
+		if ( is_wp_error( $fetched ) ) {
+			return $fetched;
+		}
+
+		$cookies_found = array();
+		$unknown       = array();
+		foreach ( (array) $fetched['cookies'] as $cookie_name ) {
+			$this->classify_cookie_name( $cookie_name, $url, 'logged_in', 'header', $cookies_found, $unknown );
+		}
+
+		$existing = isset( $last['cookies'] ) && is_array( $last['cookies'] ) ? $last['cookies'] : array();
+		$by_key   = array();
+		foreach ( $existing as $i => $row ) {
+			if ( ! is_array( $row ) || empty( $row['name'] ) ) {
+				continue;
+			}
+			$key            = strtolower( $row['name'] . '|' . ( isset( $row['service'] ) ? $row['service'] : '' ) );
+			$by_key[ $key ] = $i;
+		}
+
+		$added = 0;
+		foreach ( $cookies_found as $row ) {
+			$key = strtolower( $row['name'] . '|' . ( isset( $row['service'] ) ? $row['service'] : '' ) );
+			if ( isset( $by_key[ $key ] ) ) {
+				$idx = $by_key[ $key ];
+				$ctx = isset( $existing[ $idx ]['context'] ) ? (string) $existing[ $idx ]['context'] : '';
+				if ( false === stripos( $ctx, 'logged_in' ) ) {
+					$existing[ $idx ]['context'] = $ctx ? ( $ctx . ', logged_in' ) : 'logged_in';
+				}
+			} else {
+				$existing[]     = $row;
+				$by_key[ $key ] = count( $existing ) - 1;
+				++$added;
+			}
+		}
+
+		$unk_existing = isset( $last['unknown_cookies'] ) && is_array( $last['unknown_cookies'] ) ? $last['unknown_cookies'] : array();
+		$unk_by       = array();
+		foreach ( $unk_existing as $i => $row ) {
+			if ( ! is_array( $row ) || empty( $row['name'] ) ) {
+				continue;
+			}
+			$unk_by[ strtolower( $row['name'] ) ] = $i;
+		}
+		foreach ( $unknown as $row ) {
+			$key = strtolower( $row['name'] );
+			if ( isset( $unk_by[ $key ] ) ) {
+				$idx = $unk_by[ $key ];
+				$ctx = isset( $unk_existing[ $idx ]['context'] ) ? (string) $unk_existing[ $idx ]['context'] : '';
+				if ( false === stripos( $ctx, 'logged_in' ) ) {
+					$unk_existing[ $idx ]['context'] = $ctx ? ( $ctx . ', logged_in' ) : 'logged_in';
+				}
+			} else {
+				$unk_existing[] = $row;
+				++$added;
+			}
+		}
+
+		$last['cookies']         = $existing;
+		$last['unknown_cookies'] = $unk_existing;
+		$last['logged_in_merge'] = array(
+			'at'    => current_time( 'mysql' ),
+			'added' => $added,
+			'url'   => $url,
+		);
+
+		return $this->persist_scan_payload( $last );
+	}
+
+	/**
 	 * Remembered page picks + consent coverage for the scanner UI.
 	 *
 	 * @return array{urls: array<string, string>, depth: string, browser_crawl: bool, include_auth: bool, updated: string}
@@ -2872,11 +3145,8 @@ class Cookie_Scanner {
 
 		$urls = array();
 		if ( ! empty( $raw['urls'] ) && is_array( $raw['urls'] ) ) {
-			$i = 0;
+			$normalized = array();
 			foreach ( $raw['urls'] as $key => $value ) {
-				if ( $i >= self::MAX_BROWSER_URLS ) {
-					break;
-				}
 				// Support { url: label } map or list of { url, label } / strings.
 				if ( is_array( $value ) ) {
 					$url   = isset( $value['url'] ) ? (string) $value['url'] : '';
@@ -2888,24 +3158,32 @@ class Cookie_Scanner {
 					$url   = is_string( $value ) ? $value : '';
 					$label = $url;
 				}
-				$url = esc_url_raw( $url );
-				if ( ! $url ) {
+				if ( '' === $url ) {
 					continue;
 				}
-				$label         = sanitize_text_field( $label ? $label : $url );
-				$urls[ $url ] = $label;
-				++$i;
+				$normalized[] = array(
+					'url'   => $url,
+					'label' => $label,
+				);
+			}
+			foreach ( $this->normalize_scan_urls( $normalized, self::MAX_BROWSER_URLS ) as $def ) {
+				$u = isset( $def['url'] ) ? (string) $def['url'] : '';
+				if ( '' === $u ) {
+					continue;
+				}
+				$urls[ $u ] = sanitize_text_field( ! empty( $def['label'] ) ? (string) $def['label'] : $u );
 			}
 		}
 
 		$updated = isset( $raw['updated'] ) ? sanitize_text_field( (string) $raw['updated'] ) : '';
 
 		return array(
-			'urls'          => $urls,
-			'depth'         => $depth,
-			'browser_crawl' => ! isset( $raw['browser_crawl'] ) || ! empty( $raw['browser_crawl'] ),
-			'include_auth'  => ! empty( $raw['include_auth'] ),
-			'updated'       => $updated,
+			'urls'             => $urls,
+			'depth'            => $depth,
+			'browser_crawl'    => ! isset( $raw['browser_crawl'] ) || ! empty( $raw['browser_crawl'] ),
+			'include_auth'     => ! empty( $raw['include_auth'] ),
+			'merge_logged_in'  => ! empty( $raw['merge_logged_in'] ),
+			'updated'          => $updated,
 		);
 	}
 

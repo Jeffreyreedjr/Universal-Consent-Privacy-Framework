@@ -232,6 +232,74 @@ class Catalog_Suggestions {
 	}
 
 	/**
+	 * Apply a path/filename needle as a site-local gated service (first-party pixels).
+	 *
+	 * @param string $pattern  Path needle (e.g. pixel-tracking.js).
+	 * @param string $category Category.
+	 * @param string $label    Optional display name.
+	 * @return array|\WP_Error
+	 */
+	public static function apply_path_pattern( $pattern, $category = 'marketing', $label = '' ) {
+		$pattern = strtolower( trim( (string) $pattern ) );
+		$pattern = preg_replace( '/[^a-z0-9_\-\.\/]/', '', $pattern );
+		if ( ! is_string( $pattern ) || strlen( $pattern ) < 4 ) {
+			return new \WP_Error( 'ucpf_bad_pattern', __( 'Invalid path pattern.', 'universal-consent-privacy-framework' ) );
+		}
+
+		$categories = array_keys( Consent_Manager::instance()->get_categories() );
+		$category   = sanitize_key( $category );
+		if ( ! in_array( $category, $categories, true ) ) {
+			$category = 'marketing';
+		}
+
+		$key = 'local_path_' . sanitize_key( str_replace( array( '.', '/' ), '_', $pattern ) );
+		if ( strlen( $key ) > 60 ) {
+			$key = 'local_path_' . substr( md5( $pattern ), 0, 12 );
+		}
+
+		$name = $label ? sanitize_text_field( $label ) : sprintf(
+			/* translators: %s: path pattern */
+			__( 'Suspected tracker: %s', 'universal-consent-privacy-framework' ),
+			$pattern
+		);
+
+		$service = array(
+			'key'              => $key,
+			'name'             => $name,
+			'provider'         => $pattern,
+			'category'         => $category,
+			'treatment'        => 'consent',
+			'description'      => __( 'Added from suspicious-script review. Gated until marketing (or chosen category) consent.', 'universal-consent-privacy-framework' ),
+			'script_patterns'  => array( $pattern ),
+			'iframe_patterns'  => array(),
+			'cookie_patterns'  => array(),
+			'default_blocking' => true,
+		);
+
+		$validated = Script_Registry::instance()->validate_service( $service );
+		if ( is_wp_error( $validated ) ) {
+			return $validated;
+		}
+
+		$local = self::get_local_services();
+		$found = false;
+		foreach ( $local as $i => $row ) {
+			if ( isset( $row['key'] ) && $row['key'] === $validated['key'] ) {
+				$local[ $i ] = $validated;
+				$found       = true;
+				break;
+			}
+		}
+		if ( ! $found ) {
+			$local[] = $validated;
+		}
+		self::save_local_services( $local );
+		Script_Registry::instance()->register_service( $validated, 'site_local' );
+
+		return $validated;
+	}
+
+	/**
 	 * If host belongs under a known vendor parent, return that service key.
 	 *
 	 * @param string $host Host.
@@ -431,11 +499,23 @@ class Catalog_Suggestions {
 			}
 		}
 
+		$ignored = Suspicion::get_ignored_patterns();
+		$sus     = array();
+		foreach ( Suspicion::gate_needles() as $p ) {
+			$p = strtolower( trim( (string) $p ) );
+			if ( '' === $p || strlen( $p ) < 4 || in_array( $p, $ignored, true ) ) {
+				continue;
+			}
+			$sus[] = $p;
+		}
+		$sus = array_values( array_unique( $sus ) );
+
 		return array(
 			'analytics'  => array_values( array_unique( $buckets['analytics'] ) ),
-			'marketing'  => array_values( array_unique( $buckets['marketing'] ) ),
+			'marketing'  => array_values( array_unique( array_merge( $buckets['marketing'], $sus ) ) ),
 			'functional' => array_values( array_unique( $buckets['functional'] ) ),
 			'security'   => array_values( array_unique( $buckets['security'] ) ),
+			'suspicion'  => $sus,
 		);
 	}
 

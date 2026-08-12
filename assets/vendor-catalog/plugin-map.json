@@ -33,7 +33,7 @@
     "wp-google-maps/wpGoogleMaps.php": "google_maps",
     "wp-google-maps-pro/wp-google-maps-pro.php": "google_maps",
     "wp-google-maps-gold/wp-google-maps-gold.php": "google_maps",
-    "mapster-wp-maps/mapster-wp-maps.php": "google_maps",
+    "mapster-wp-maps/mapster-wp-maps.php": "mapbox",
     "wp-consent-api/wp-consent-api.php": "wp_consent_api",
     "the-plus-addons-for-elementor-page-builder/theplus_elementor_addon.php": "elementor",
     "smartcrawl-seo/wpmu-dev-seo.php": "smartcrawl",
@@ -379,7 +379,7 @@
     "tiktok-feeds": "tiktok_pixel",
     "wp-google-maps": "google_maps",
     "wpgmaps": "google_maps",
-    "mapster": "google_maps",
+    "mapster": "mapbox",
     "wp-consent-api": "wp_consent_api",
     "the-plus-addons": "elementor",
     "smartcrawl": "smartcrawl",
@@ -739,7 +739,6 @@
     "hu-manity"
   ],
   "option_keys": [
-    "ucpf_settings",
     "google_analytics_4",
     "google_analytics",
     "gtm4wp-options",

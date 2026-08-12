@@ -410,10 +410,11 @@
       "fonts.gstatic.com"
     ],
     "provider": "Google Fonts",
-    "category": "functional",
-    "treatment": "consent",
+    "category": "necessary",
+    "treatment": "necessary",
     "type": "script_host",
-    "importance": "non_essential"
+    "importance": "essential",
+    "note": "Layout webfonts are not consent-gated — blocking them breaks every theme."
   },
   {
     "match": [
@@ -421,10 +422,11 @@
       "p.typekit.net"
     ],
     "provider": "Adobe Fonts",
-    "category": "preferences",
-    "treatment": "consent",
+    "category": "necessary",
+    "treatment": "necessary",
     "type": "script_host",
-    "importance": "non_essential"
+    "importance": "essential",
+    "note": "Layout webfonts are not consent-gated — blocking them breaks every theme."
   },
   {
     "match": [
@@ -434,10 +436,11 @@
       "use.fontawesome.com"
     ],
     "provider": "Font Awesome",
-    "category": "preferences",
-    "treatment": "consent",
+    "category": "necessary",
+    "treatment": "necessary",
     "type": "script_host",
-    "importance": "non_essential"
+    "importance": "essential",
+    "note": "Layout icon fonts are not consent-gated — blocking them breaks every theme."
   },
   {
     "match": [
@@ -499,13 +502,27 @@
   },
   {
     "match": [
+      "pixel-tracking.js",
+      "pixel-tracking",
+      "mailchimp-woocommerce-pixel",
+      "mailchimp-for-woocommerce",
+      "mailchimp-woocommerce",
+      "mcjs-connected"
+    ],
+    "provider": "Mailchimp for WooCommerce Pixel",
+    "category": "marketing",
+    "treatment": "consent",
+    "type": "script_host",
+    "importance": "non_essential",
+    "note": "Mailchimp for WooCommerce storefront / pixel tracking scripts."
+  },
+  {
+    "match": [
       "list-manage.com",
       "chimpstatic.com",
       "downloads.mailchimp.com",
       "cdn-images.mailchimp.com",
-      "mailchimp-for-woocommerce",
-      "mailchimp-woocommerce",
-      "mcjs-connected"
+      "mailchimp.com/embed"
     ],
     "provider": "Mailchimp",
     "category": "marketing",
@@ -547,10 +564,10 @@
       "userway.org"
     ],
     "provider": "UserWay",
-    "category": "preferences",
-    "treatment": "consent",
+    "category": "necessary",
+    "treatment": "necessary",
     "type": "script_host",
-    "importance": "non_essential"
+    "importance": "essential"
   },
   {
     "match": [

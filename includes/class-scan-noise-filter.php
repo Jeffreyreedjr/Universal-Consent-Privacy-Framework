@@ -315,4 +315,52 @@ class Scan_Noise_Filter {
 		}
 		return $out;
 	}
+
+	/**
+	 * Whether a detected "service" key is noise (CMP rivals, first-party placeholders, sanitize_key garbage).
+	 *
+	 * @param string $key Service key or sanitize_key(provider).
+	 * @return bool
+	 */
+	public static function should_omit_detected_service( $key ) {
+		$key = sanitize_key( (string) $key );
+		if ( '' === $key ) {
+			return true;
+		}
+
+		$exact = array(
+			'ucpf',
+			'firstpartysite',
+			'first_party_site',
+			'first-partysite',
+			'wordpress',
+			'wordpresscore',
+			'wordpress_core',
+			'complianzgdpr',
+			'complianz',
+			'cookiebot',
+			'cookieyes',
+			'cookielawinfo',
+			'customfacebookfeedsmashballoon',
+			'gravityformsrecaptcha',
+		);
+		$omit = in_array( $key, $exact, true );
+
+		if ( ! $omit ) {
+			foreach ( array( 'complianz', 'cookiebot', 'cookieyes', 'cookie-law', 'cookienotice' ) as $needle ) {
+				if ( false !== strpos( $key, str_replace( '-', '', $needle ) ) || false !== strpos( $key, $needle ) ) {
+					$omit = true;
+					break;
+				}
+			}
+		}
+
+		/**
+		 * Filter whether a detected service key should be omitted from inventory chips.
+		 *
+		 * @param bool   $omit Whether to omit.
+		 * @param string $key  Service key.
+		 */
+		return (bool) apply_filters( 'ucpf_should_omit_detected_service', $omit, $key );
+	}
 }

@@ -263,7 +263,7 @@ class Rest_Api {
 					),
 					'view'      => array(
 						'type'              => 'string',
-						'default'           => 'events',
+						'default'           => 'by_day',
 						'sanitize_callback' => 'sanitize_key',
 					),
 					'uuid'      => array(
@@ -622,6 +622,7 @@ class Rest_Api {
 		}
 
 		$manager = Consent_Manager::instance();
+		$uuid    = $this->sanitize_consent_uuid( isset( $body['uuid'] ) ? $body['uuid'] : '' );
 
 		if ( 'accept_all' === $action ) {
 			$result = $manager->save_consent(
@@ -629,7 +630,7 @@ class Rest_Api {
 					'state'      => 'accepted_all',
 					'categories' => $manager->default_categories_accepted(),
 					'services'   => array(),
-					'uuid'       => isset( $body['uuid'] ) ? $body['uuid'] : '',
+					'uuid'       => $uuid,
 				),
 				'accept_all'
 			);
@@ -639,12 +640,16 @@ class Rest_Api {
 					'state'      => 'rejected_all',
 					'categories' => $manager->default_categories_rejected(),
 					'services'   => array(),
-					'uuid'       => isset( $body['uuid'] ) ? $body['uuid'] : '',
+					'uuid'       => $uuid,
 				),
 				'reject_all'
 			);
 		} else {
-			$result = $manager->save_consent( $body, $action );
+			if ( ! is_array( $body ) ) {
+				$body = array();
+			}
+			$body['uuid'] = $uuid;
+			$result       = $manager->save_consent( $body, $action );
 		}
 
 		if ( is_wp_error( $result ) ) {
@@ -666,10 +671,14 @@ class Rest_Api {
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function post_withdraw( $request ) {
+		if ( ! $this->rate_limit( 'withdraw', 30 ) ) {
+			return new \WP_Error( 'ucpf_rate_limit', __( 'Too many requests.', 'universal-consent-privacy-framework' ), array( 'status' => 429 ) );
+		}
+
 		$body    = $request->get_json_params();
 		$payload = array();
-		if ( is_array( $body ) && ! empty( $body['uuid'] ) ) {
-			$payload['uuid'] = sanitize_text_field( (string) $body['uuid'] );
+		if ( is_array( $body ) && isset( $body['uuid'] ) && '' !== trim( (string) $body['uuid'] ) ) {
+			$payload['uuid'] = $this->sanitize_consent_uuid( $body['uuid'] );
 		}
 		$result = Consent_Manager::instance()->withdraw_consent( $payload );
 		return rest_ensure_response( array( 'success' => true, 'consent' => $result ) );
@@ -924,40 +933,70 @@ class Rest_Api {
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function post_scan_deep( $request ) {
-		$body  = $request->get_json_params();
-		$body  = is_array( $body ) ? $body : array();
-		$url   = ! empty( $body['url'] ) ? esc_url_raw( $body['url'] ) : home_url( '/' );
+		$body    = $request->get_json_params();
+		$body    = is_array( $body ) ? $body : array();
+		$scanner = Cookie_Scanner::instance();
+
+		// Force scan origin to same-site (home_url / site_url hosts only).
+		$url = ! empty( $body['url'] ) ? esc_url_raw( (string) $body['url'] ) : '';
+		if ( ! $url || ! $scanner->is_same_site_url( $url ) ) {
+			$url = home_url( '/' );
+		} else {
+			$normalized = $scanner->normalize_scan_urls( array( $url ), 1 );
+			$url        = ! empty( $normalized[0]['url'] ) ? $normalized[0]['url'] : home_url( '/' );
+		}
+
 		$paths = array();
-		if ( ! empty( $body['urls'] ) && is_array( $body['urls'] ) ) {
+		if ( ! empty( $body['paths'] ) && is_array( $body['paths'] ) ) {
+			// Prefer explicit paths from the admin (most reliable).
+			$paths = $body['paths'];
+		}
+		if ( ! $paths && ! empty( $body['urls'] ) && is_array( $body['urls'] ) ) {
 			foreach ( $body['urls'] as $item ) {
 				// Prefer explicit path from the admin picker (homepage often has no path in normalized URL).
 				if ( is_array( $item ) && ! empty( $item['path'] ) && is_string( $item['path'] ) ) {
-					$path = '/' . ltrim( $item['path'], '/' );
-					if ( '/' === $path || '' === ltrim( $item['path'], '/' ) ) {
-						$paths[] = '/';
-					} else {
-						$paths[] = $path;
-					}
+					$paths[] = $item['path'];
 					continue;
 				}
 				$u = is_array( $item ) && ! empty( $item['url'] ) ? $item['url'] : (string) $item;
+				// Relative path string.
+				if ( is_string( $u ) && 0 === strpos( $u, '/' ) && ! preg_match( '#^[a-z][a-z0-9+.-]*:#i', $u ) && 0 !== strpos( $u, '//' ) ) {
+					$paths[] = $u;
+					continue;
+				}
 				$parsed = wp_parse_url( $u );
 				if ( ! is_array( $parsed ) ) {
 					continue;
 				}
-				if ( ! empty( $parsed['path'] ) && '/' !== $parsed['path'] ) {
+				// Absolute URLs must be same-site before we accept their path.
+				if ( ! empty( $parsed['host'] ) ) {
+					$abs = esc_url_raw( (string) $u );
+					if ( ! $abs || ! $scanner->is_same_site_url( $abs ) ) {
+						continue;
+					}
+					if ( ! empty( $parsed['path'] ) ) {
+						$paths[] = $parsed['path'] . ( ! empty( $parsed['query'] ) ? '?' . $parsed['query'] : '' );
+					} else {
+						$paths[] = '/';
+					}
+					continue;
+				}
+				if ( ! empty( $parsed['path'] ) ) {
 					$paths[] = $parsed['path'];
-				} elseif ( is_string( $u ) && 0 === strpos( $u, '/' ) ) {
-					$paths[] = $u;
-				} elseif ( ! empty( $parsed['host'] ) ) {
-					// Origin-only URL from JS normalize (https://example.com) → homepage.
-					$paths[] = '/';
 				}
 			}
-		} elseif ( ! empty( $body['paths'] ) && is_array( $body['paths'] ) ) {
-			$paths = $body['paths'];
 		}
-		$paths = array_values( array_unique( array_filter( array_map( 'strval', $paths ) ) ) );
+		// Last resort: derive paths from normalized URL defs.
+		if ( ! $paths && ! empty( $body['urls'] ) && is_array( $body['urls'] ) ) {
+			foreach ( $scanner->normalize_scan_urls( $body['urls'], Cookie_Scanner::MAX_SERVER_URLS ) as $def ) {
+				if ( empty( $def['url'] ) ) {
+					continue;
+				}
+				$p = wp_parse_url( (string) $def['url'], PHP_URL_PATH );
+				$paths[] = ( null === $p || '' === $p ) ? '/' : $p;
+			}
+		}
+		$paths = $scanner->sanitize_scan_paths( $paths, Cookie_Scanner::MAX_PICKER_URLS );
 		if ( ! $paths ) {
 			$paths = array( '/' );
 		}
@@ -969,10 +1008,13 @@ class Rest_Api {
 		if ( empty( $options['depth'] ) && ! empty( $body['depth'] ) ) {
 			$options['depth'] = $body['depth'];
 		}
-		// Honor the admin's exact page selection size (don't pad/cap below their picks).
-		if ( empty( $options['maxPages'] ) ) {
-			$options['maxPages'] = max( 1, count( $paths ) );
-		}
+		// Always honor the admin's full page list (never fall back to depth caps).
+		$options['exactPaths'] = true;
+		$options['maxPages']   = max(
+			isset( $options['maxPages'] ) ? (int) $options['maxPages'] : 0,
+			count( $paths ),
+			1
+		);
 
 		if ( Active_Scan::instance()->is_active() ) {
 			$active = Active_Scan::instance()->get();
@@ -992,12 +1034,19 @@ class Rest_Api {
 			return $result;
 		}
 
+		if ( is_array( $result ) ) {
+			$result['paths']       = $paths;
+			$result['paths_count'] = count( $paths );
+			$result['exactPaths']  = true;
+		}
+
 		$registered = Active_Scan::instance()->register(
 			is_array( $result ) ? $result : array(),
 			array(
-				'url'   => $url,
-				'paths' => $paths,
-				'depth' => ! empty( $options['depth'] ) ? $options['depth'] : 'standard',
+				'url'             => $url,
+				'paths'           => $paths,
+				'depth'           => ! empty( $options['depth'] ) ? $options['depth'] : 'standard',
+				'merge_logged_in' => ! empty( $body['merge_logged_in'] ) || ! empty( $options['merge_logged_in'] ),
 			)
 		);
 		if ( is_wp_error( $registered ) ) {
@@ -1036,6 +1085,19 @@ class Rest_Api {
 
 		if ( is_array( $job ) ) {
 			Active_Scan::instance()->sync_from_job( $job );
+			$active_snap = Active_Scan::instance()->get();
+			if ( ! empty( $active_snap['paths_sent'] ) ) {
+				$job['paths_sent'] = (int) $active_snap['paths_sent'];
+			}
+			if ( empty( $job['paths_count'] ) && ! empty( $active_snap['paths_count'] ) ) {
+				$job['paths_count'] = (int) $active_snap['paths_count'];
+			}
+			if ( ! empty( $active_snap['progress']['pages_total'] ) && ! empty( $job['progress'] ) && is_array( $job['progress'] ) ) {
+				$job['progress']['pages_total'] = max(
+					isset( $job['progress']['pages_total'] ) ? (int) $job['progress']['pages_total'] : 0,
+					(int) $active_snap['progress']['pages_total']
+				);
+			}
 		}
 
 		$auto_import = $request->get_param( 'import' );
@@ -1080,6 +1142,21 @@ class Rest_Api {
 							'progress'  => isset( $job['progress'] ) ? $job['progress'] : array(),
 						)
 					);
+					if ( empty( $job['partial'] ) && 'cancelled' !== $status && ! empty( $active['merge_logged_in'] ) ) {
+						$merged = Cookie_Scanner::instance()->merge_logged_in_homepage_into_last_scan();
+						if ( ! is_wp_error( $merged ) && is_array( $merged ) ) {
+							$job['inventory'] = array(
+								'cookies'         => isset( $merged['cookies'] ) ? count( $merged['cookies'] ) : 0,
+								'unknown_cookies' => isset( $merged['unknown_cookies'] ) ? count( $merged['unknown_cookies'] ) : 0,
+								'results'         => isset( $merged['results'] ) ? count( $merged['results'] ) : 0,
+							);
+							$job['logged_in_merged'] = true;
+							$fin = Active_Scan::instance()->get();
+							$fin['inventory'] = $job['inventory'];
+							$fin['message']   = __( 'Playwright scan finished. Logged-in helper cookies were merged into the inventory.', 'universal-consent-privacy-framework' );
+							Active_Scan::instance()->set( $fin );
+						}
+					}
 				} else {
 					$job['import_error'] = $imported->get_error_message();
 					Active_Scan::instance()->mark_finished( (string) $id, 'failed', $imported->get_error_message() );
@@ -1524,9 +1601,45 @@ class Rest_Api {
 	 */
 	public function post_catalog_suggestions_apply( $request ) {
 		$body     = $request->get_json_params();
+		if ( ! is_array( $body ) ) {
+			$body = array();
+		}
+		$pattern  = isset( $body['pattern'] ) ? (string) $body['pattern'] : '';
+		$url      = isset( $body['url'] ) ? (string) $body['url'] : '';
 		$host     = isset( $body['host'] ) ? (string) $body['host'] : '';
 		$category = isset( $body['category'] ) ? (string) $body['category'] : '';
-		$result   = Catalog_Suggestions::apply_host( $host, $category );
+		$label    = isset( $body['label'] ) ? (string) $body['label'] : '';
+		$action   = isset( $body['action'] ) ? sanitize_key( (string) $body['action'] ) : 'apply';
+
+		if ( 'ignore' === $action ) {
+			$needle = $pattern ? $pattern : Suspicion::suggest_pattern_from_url( $url ? $url : $host );
+			Suspicion::ignore_pattern( $needle );
+			return rest_ensure_response(
+				array(
+					'success' => true,
+					'ignored' => $needle,
+					'message' => __( 'Suspicion pattern ignored for this site (will not auto-gate).', 'universal-consent-privacy-framework' ),
+				)
+			);
+		}
+
+		if ( $pattern || $url ) {
+			$needle = $pattern ? $pattern : Suspicion::suggest_pattern_from_url( $url );
+			$result = Catalog_Suggestions::apply_path_pattern( $needle, $category ? $category : 'marketing', $label );
+			if ( is_wp_error( $result ) ) {
+				return $result;
+			}
+			self::mark_suspicious_script_resolved( $url ? $url : $needle );
+			return rest_ensure_response(
+				array(
+					'success' => true,
+					'service' => $result,
+					'message' => __( 'Path pattern applied as a site-local gated service.', 'universal-consent-privacy-framework' ),
+				)
+			);
+		}
+
+		$result = Catalog_Suggestions::apply_host( $host, $category );
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
@@ -1537,6 +1650,36 @@ class Rest_Api {
 				'message' => __( 'Site-local catalog entry applied. Network gate will use this pattern. Merge into assets/vendor-catalog for fleet releases after review.', 'universal-consent-privacy-framework' ),
 			)
 		);
+	}
+
+	/**
+	 * Remove a suspicious script from last-scan queue after apply.
+	 *
+	 * @param string $url_or_pattern URL or pattern.
+	 */
+	private static function mark_suspicious_script_resolved( $url_or_pattern ) {
+		$needle = strtolower( (string) $url_or_pattern );
+		if ( '' === $needle ) {
+			return;
+		}
+		$scan = Cookie_Scanner::instance()->get_last_scan();
+		if ( ! is_array( $scan ) || empty( $scan['suspicious_scripts'] ) || ! is_array( $scan['suspicious_scripts'] ) ) {
+			return;
+		}
+		$kept = array();
+		foreach ( $scan['suspicious_scripts'] as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+			$url = strtolower( (string) ( isset( $row['url'] ) ? $row['url'] : '' ) );
+			$pat = strtolower( (string) ( isset( $row['pattern'] ) ? $row['pattern'] : '' ) );
+			if ( ( $url && false !== strpos( $url, $needle ) ) || ( $pat && false !== strpos( $needle, $pat ) ) || $pat === $needle ) {
+				continue;
+			}
+			$kept[] = $row;
+		}
+		$scan['suspicious_scripts'] = $kept;
+		Cookie_Scanner::instance()->persist_scan_payload( $scan );
 	}
 
 	/**
@@ -1721,6 +1864,20 @@ class Rest_Api {
 		}
 
 		return $out;
+	}
+
+	/**
+	 * Validate consent UUID; regenerate when missing or malformed.
+	 *
+	 * @param mixed $uuid Raw UUID.
+	 * @return string
+	 */
+	private function sanitize_consent_uuid( $uuid ) {
+		$uuid = is_string( $uuid ) ? trim( $uuid ) : '';
+		if ( preg_match( '/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i', $uuid ) ) {
+			return strtolower( $uuid );
+		}
+		return wp_generate_uuid4();
 	}
 
 	/**

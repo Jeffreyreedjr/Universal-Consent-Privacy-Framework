@@ -311,7 +311,18 @@ class Script_Registry {
 		}
 
 		foreach ( $rows as $row ) {
-			$this->services[ $row['service_key'] ] = $this->normalize_service( $row );
+			$key      = isset( $row['service_key'] ) ? (string) $row['service_key'] : '';
+			$normalized = $this->normalize_service( $row );
+			// Union JSON catalog path needles so DB rows never drop first-party coverage.
+			if ( $key && isset( $this->services[ $key ] ) && is_array( $this->services[ $key ] ) ) {
+				$existing = $this->services[ $key ];
+				foreach ( array( 'script_patterns', 'iframe_patterns', 'cookie_patterns' ) as $field ) {
+					$a = isset( $existing[ $field ] ) && is_array( $existing[ $field ] ) ? $existing[ $field ] : array();
+					$b = isset( $normalized[ $field ] ) && is_array( $normalized[ $field ] ) ? $normalized[ $field ] : array();
+					$normalized[ $field ] = array_values( array_unique( array_filter( array_merge( $a, $b ) ) ) );
+				}
+			}
+			$this->services[ $key ? $key : $normalized['key'] ] = $normalized;
 		}
 	}
 
@@ -389,7 +400,8 @@ class Script_Registry {
 			'default_blocking'            => ! isset( $args['default_blocking'] ) || $args['default_blocking'],
 			'supports_google_consent_mode'=> ! empty( $args['supports_google_consent_mode'] ),
 			'google_consent_mapping'      => isset( $args['google_consent_mapping'] ) ? $args['google_consent_mapping'] : array(),
-			'loader'                      => isset( $args['loader'] ) ? $args['loader'] : null,
+			// Never persist string callables from JSON/import (RCE). Closures from PHP only.
+			'loader'                      => ( isset( $args['loader'] ) && $args['loader'] instanceof \Closure ) ? $args['loader'] : null,
 			'template'                    => isset( $args['template'] ) ? $args['template'] : '',
 		);
 	}
@@ -515,6 +527,9 @@ class Script_Registry {
 			if ( is_wp_error( $validated ) ) {
 				continue;
 			}
+
+			// JSON / DB import must never carry executable loaders.
+			$validated['loader'] = null;
 
 			$this->register_service( $validated, 'imported' );
 

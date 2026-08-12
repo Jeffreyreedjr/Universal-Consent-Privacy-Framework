@@ -1141,11 +1141,27 @@
 
 .ucpf-wizard__footer {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
+  align-items: center;
   gap: 0.5rem;
   margin-top: 1.5rem;
   padding-top: 1rem;
   border-top: 1px solid var(--ucpf-admin-border);
+}
+
+/* DOM: Next before Save (Enter advances); visual: Previous | Save | Continue */
+.ucpf-wizard__footer .ucpf-wizard__btn-prev {
+  order: 0;
+  margin-right: auto;
+}
+
+.ucpf-wizard__footer .ucpf-wizard__btn-stay {
+  order: 1;
+}
+
+.ucpf-wizard__footer .ucpf-wizard__btn-next {
+  order: 2;
 }
 
 .ucpf-wizard__status {
@@ -1569,6 +1585,11 @@
 
 .ucpf-badge--alert {
   background: var(--ucpf-admin-fail);
+  color: #fff;
+}
+
+.ucpf-badge--warn {
+  background: var(--ucpf-admin-warn);
   color: #fff;
 }
 
@@ -2040,7 +2061,8 @@
 .ucpf-wizard__panel {
   min-width: 0;
   max-width: 100%;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: visible;
 }
 
 .ucpf-wizard__panel .ucpf-table-scroll {

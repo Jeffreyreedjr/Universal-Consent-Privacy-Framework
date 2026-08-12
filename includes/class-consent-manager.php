@@ -344,7 +344,12 @@ class Consent_Manager {
 		$lifetime = (int) apply_filters( 'ucpf_consent_cookie_lifetime', Settings::get( 'cookie_lifetime_days' ) );
 		$expires  = time() + ( $lifetime * DAY_IN_SECONDS );
 
-		$uuid = ! empty( $payload['uuid'] ) ? sanitize_text_field( $payload['uuid'] ) : wp_generate_uuid4();
+		$uuid = ! empty( $payload['uuid'] ) ? sanitize_text_field( $payload['uuid'] ) : '';
+		if ( ! preg_match( '/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i', $uuid ) ) {
+			$uuid = wp_generate_uuid4();
+		} else {
+			$uuid = strtolower( $uuid );
+		}
 
 		$cookie_data = array(
 			'uuid'           => $uuid,

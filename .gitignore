@@ -7,6 +7,8 @@ dist/
 node_modules/
 vendor/
 *.log
+*.har
+debug-*
 
 # Secrets & local env
 .env
@@ -24,10 +26,12 @@ tools/ucpf-scanner/report*.json
 *.swp
 *.swo
 
-# Local compare / hotfix scratch (never commit)
+# Local compare / hotfix / one-off probe scratch (never commit)
 _cmp*/
 _compare*/
+tools/_tmp*
 tools/_hotfix*
+tools/_dbg*
 
 # OS
 .DS_Store

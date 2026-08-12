@@ -33,13 +33,13 @@ Default theme: **classic**. Local-first; remote registry **off**.
 
 Operator rules: [CLOUDFLARE-CACHE.md](CLOUDFLARE-CACHE.md). Advanced Settings shows the same Bypass list.
 
-- [ ] Bypass includes: `ucpf_consent` / `ucpf_dns`, `_ucpf`, UCPF plugin path, `/wp-content/uploads/elementor/css/`
-- [ ] Cache Files: 4xx/5xx → no cache; do not Ignore Query String for CSS
+- [ ] Bypass includes: `ucpf_consent` / `ucpf_dns`, `_ucpf`, UCPF plugin path, `/wp-content/uploads/`, and `.css`/`.js` (or at least all of `wp-content` themes/plugins/uploads)
+- [ ] Cache Files: 4xx/5xx → no cache; do not Ignore Query String for CSS/JS; prefer year TTL for images/media only
 - [ ] Rocket Loader off (or not rewriting UCPF gate/consent/loader tags)
-- [ ] Private window → Accept All → `?_ucpf=` briefly appears; fonts/footer widgets load for allowed categories
-- [ ] Decline All → gated embeds stay blocked; no half-rendered footer
+- [ ] Private window → Accept All → `?_ucpf=` briefly appears; consented assets load
+- [ ] Decline All → gated embeds stay blocked; theme/builder CSS still loads (`text/css`, not `text/html`)
 - [ ] Cookied return visit: layout matches consent without Ctrl+F5
-- [ ] Elementor `post-*.css` is `text/css` (BYPASS/DYNAMIC), not `text/html`
+- [ ] After plugin zip upload with Bypass in place: layout does not require a CF purge
 - [ ] Without Functional: Calendly `.calendly-inline-widget` shows Enable Embeds panel
 - [ ] With Functional (incl. Elementor popup): Calendly initializes
 - [ ] DevTools: cookied HTML shows `cf-cache-status: BYPASS` or `DYNAMIC`

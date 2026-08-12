@@ -22,7 +22,7 @@ Product rules: captcha → security; maps (including Mapbox) → functional; You
 ## What it collects (schema `ucpf-playwright-scan/2.0`)
 
 - Cookies (attributes + optional CDP **value hash** — never raw values), partitions/CHIPS when available
-- Consent differential `findings[]` + `findings_summary` (pass/fail)
+- Consent differential `findings[]` + `findings_summary` (critical fails vs cleanup warnings)
 - Profiles: `--profile quick|standard|compliance` (GPC, revoke, category-only on compliance)
 - Storage surface: local/session/IDB/Cache/SW (+ Shared Storage / Cookie Store flags)
 - Network + initiator (CDP); SW dual-pass observational note

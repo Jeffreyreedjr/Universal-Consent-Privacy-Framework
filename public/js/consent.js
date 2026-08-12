@@ -472,6 +472,9 @@
     writeConsentBridge(local);
     writeConsentBackup(local);
     clearNavigationBlockers();
+    try {
+      window.__ucpfConsentReloadPending = true;
+    } catch (eFlag0) { /* ignore */ }
     // Give cookie/storage writes time to flush (Brave Shields / Mac Chrome).
     var reloadDelay = 220;
     window.setTimeout(function () {
@@ -480,22 +483,23 @@
       writeConsentBackup(local);
       navigateAfterConsent(local);
     }, reloadDelay);
-    // If navigation is cancelled (dirty Woo form / extension), unlock so Enable/Accept still work.
+    // If navigation is cancelled (dirty Woo form / extension), unlock and hydrate once.
     window.setTimeout(function () {
       if (!consentInFlight) {
         return;
       }
       consentInFlight = false;
       setConsentControlsLocked(false);
+      try {
+        window.__ucpfConsentReloadPending = false;
+      } catch (eFlag1) { /* ignore */ }
       if (window.UCPFLoader && typeof window.UCPFLoader.applyConsent === 'function') {
         try {
           window.UCPFLoader.applyConsent(state);
         } catch (eApply) { /* ignore */ }
       }
+      // Single changed event only — re-firing accepted_all re-ran map/video hydrate loops.
       dispatch('ucpf:consent:changed', state);
-      if (state.state === 'accepted_all') {
-        dispatch('ucpf:consent:accepted_all', state);
-      }
     }, 1000);
   }
 
@@ -722,6 +726,17 @@
     var local = writeLocalCookie(payload);
     syncWpConsent(local.categories, local.services);
     syncGtagConsent(local.categories);
+
+    var willHardReload =
+      action === 'accept_all' ||
+      action === 'reject_all' ||
+      (action === 'save_preferences' && !skipReload);
+    if (willHardReload) {
+      try {
+        window.__ucpfConsentReloadPending = true;
+      } catch (eFlagEarly) { /* ignore */ }
+    }
+
     dispatch('ucpf:consent:changed', state);
     if (action === 'accept_all') dispatch('ucpf:consent:accepted_all', state);
     if (action === 'reject_all') dispatch('ucpf:consent:rejected_all', state);
@@ -742,22 +757,23 @@
     // (GT &ver=, fonts, captchas) for the exact consent mix. Same-page inject alone
     // misses WordPress-enqueued scripts that were deferred as text/plain.
     // Exception: Save with no toggle changes — close UI only (no refresh).
-    if (
-      action === 'accept_all' ||
-      action === 'reject_all' ||
-      (action === 'save_preferences' && !skipReload)
-    ) {
-      // Promote deferred tags immediately (navigation may be cancelled on checkout).
-      if (action !== 'reject_all' && window.UCPFLoader && typeof window.UCPFLoader.applyConsent === 'function') {
-        try {
-          window.UCPFLoader.applyConsent(state);
-        } catch (eLoad) { /* ignore */ }
-      }
+    if (willHardReload) {
+      // Do NOT call UCPFLoader.applyConsent here — activating every parked script
+      // + Mapster/Elementor refire on the main thread freezes the tab before reload.
+      // Cookie is already written; PHP serves the right tags after navigation.
+      // If navigation is cancelled, scheduleConsentReload's fallback hydrates once.
       var hardReq = apiRequest('consent', Object.assign({ action: action, uuid: local.uuid }, payload)).catch(function () {
         return { success: true, consent: local, offline: true };
       });
       scheduleConsentReload(local);
       return hardReq;
+    }
+
+    // Unchanged Save Preferences: local cookie already written; skip REST so audit log stays clean.
+    if (skipReload) {
+      consentInFlight = false;
+      setConsentControlsLocked(false);
+      return Promise.resolve({ success: true, consent: local, unchanged: true });
     }
 
     if (window.UCPFLoader) window.UCPFLoader.applyConsent(state);
@@ -1224,11 +1240,9 @@
     if (state.state !== 'unknown') {
       markConsentDone();
       clearReshowTimers();
-      // Handoff / bridge restore: tell guards + network gate before first paint settle.
+      // One changed event is enough for gates. Do NOT also fire accepted_all on every
+      // returning/handoff boot — that re-ran Mapster force-refire and froze the tab.
       dispatch('ucpf:consent:changed', state);
-      if (state.state === 'accepted_all') {
-        dispatch('ucpf:consent:accepted_all', state);
-      }
     }
     if (config.discoverMode) {
       // Discover crawl: allow tags without writing a visitor consent cookie.
@@ -1253,7 +1267,7 @@
         showFab();
         syncWpConsent(state.categories, state.services);
         syncGtagConsent(state.categories);
-        if (window.UCPFLoader) window.UCPFLoader.applyConsent(state);
+        // Loader already listens to ucpf:consent:changed — avoid a second sync scanPlaceholders.
         return;
       }
       showBanner();

@@ -305,9 +305,9 @@
     },
     "userway-accessibility-widget": {
       "provider": "Accessibility by UserWay",
-      "category": "functional",
-      "treatment": "consent",
-      "importance": "non_essential",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
       "service_key": "userway"
     },
     "complianz-gdpr": {
@@ -895,13 +895,6 @@
       "importance": "required",
       "note": "inferred_slug: true",
       "service_key": "cardconnect"
-    },
-    "7mm-gravity-forms-styles": {
-      "provider": "7MM Gravity Forms Styles",
-      "category": "necessary",
-      "treatment": "necessary",
-      "importance": "required",
-      "note": "inferred_slug: true"
     },
     "stripe": {
       "provider": "Stripe",
@@ -1555,9 +1548,9 @@
     },
     "userway": {
       "provider": "UserWay Accessibility",
-      "category": "functional",
-      "treatment": "consent",
-      "importance": "non_essential",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
       "service_key": "userway"
     },
     "cloudflare": {
@@ -1887,34 +1880,6 @@
       "importance": "non_essential",
       "note": "inferred_slug: true",
       "service_key": "santapress"
-    },
-    "np-quote-request": {
-      "provider": "NP Quote Request",
-      "category": "necessary",
-      "treatment": "necessary",
-      "importance": "required",
-      "note": "inferred_slug: true"
-    },
-    "7mm-events-panel": {
-      "provider": "7mm Events Panel",
-      "category": "functional",
-      "treatment": "consent",
-      "importance": "non_essential",
-      "note": "inferred_slug: true"
-    },
-    "capcity-closings": {
-      "provider": "CapCity Closings",
-      "category": "functional",
-      "treatment": "consent",
-      "importance": "non_essential",
-      "note": "inferred_slug: true"
-    },
-    "wood-sample-builder": {
-      "provider": "Wood Sample Builder",
-      "category": "functional",
-      "treatment": "consent",
-      "importance": "non_essential",
-      "note": "inferred_slug: true"
     },
     "advanced-custom-fields": {
       "provider": "Advanced Custom Fields",

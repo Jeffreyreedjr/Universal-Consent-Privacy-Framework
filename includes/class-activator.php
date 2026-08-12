@@ -52,12 +52,39 @@ class Activator {
 
 		Scheduled_Scan::instance()->ensure_schedule();
 
-		ucpf_flush_site_caches( 'activate' );
-		flush_rewrite_rules();
+		// First-time / re-activate: refresh UCPF asset stamps only.
+		// Avoid Autoptimize / Rocket / LiteSpeed full clears — those delete CSS files
+		// Cloudflare may still year-cache (or cache a soft-404 as text/html).
+		ucpf_bust_asset_cache();
+		if ( Settings::get( 'cloudflare_purge_on_ucpf_update', true ) ) {
+			Cloudflare_Cache::instance()->schedule_purge( 'activate' );
+		}
+		Plugin::maybe_clear_elementor_css_after_update( 'activate' );
+		// Do NOT flush_rewrite_rules() here. Agency well-known has a REQUEST_URI
+		// fallback; rewriting flush on every zip upload races Cloudflare HTML cache
+		// with brief front-end 404s. Rewrite flush only when rules version bumps.
+		self::maybe_flush_rewrites();
+	}
+
+	/**
+	 * Flush permalinks once when UCPF rewrite rule set changes.
+	 *
+	 * @return void
+	 */
+	private static function maybe_flush_rewrites() {
+		$ver = '1'; // Bump when add_rewrite_rule() set changes.
+		if ( (string) get_option( 'ucpf_rewrite_rules_ver', '' ) === $ver ) {
+			return;
+		}
+		flush_rewrite_rules( false );
+		update_option( 'ucpf_rewrite_rules_ver', $ver, false );
 	}
 
 	/**
 	 * When a new multisite blog is created and UCPF is network-active, provision it.
+	 *
+	 * New blogs get per-site defaults (banner/consent/inventory). Scanner / Privacy /
+	 * registry connection settings inherit from Network Admin when site fields are blank.
 	 *
 	 * @param \WP_Site $new_site New site object.
 	 */
@@ -114,7 +141,8 @@ class Activator {
 			KEY consent_uuid (consent_uuid),
 			KEY user_id (user_id),
 			KEY created_at (created_at),
-			KEY action (action)
+			KEY action (action),
+			KEY expires_at (expires_at)
 		) {$charset};";
 		dbDelta( $sql );
 

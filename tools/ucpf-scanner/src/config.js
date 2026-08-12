@@ -73,8 +73,8 @@ export const config = {
   navigationTimeoutMs: Number(process.env.UCPF_SCANNER_NAV_TIMEOUT_MS || 25000),
   /** Preferred whole-job Chromium budget (ms). Split across sessions; each session also gets a page-count floor. */
   browserTimeoutMs: Number(process.env.UCPF_SCANNER_BROWSER_TIMEOUT_MS || 1800000),
-  settleMs: Number(process.env.UCPF_SCANNER_SETTLE_MS || 4000),
-  pageGapMs: Number(process.env.UCPF_SCANNER_PAGE_GAP_MS || 1500),
+  settleMs: Number(process.env.UCPF_SCANNER_SETTLE_MS || 2500),
+  pageGapMs: Number(process.env.UCPF_SCANNER_PAGE_GAP_MS || 600),
   rateLimitWindowMs: Number(process.env.UCPF_SCANNER_RATE_WINDOW_MS || 60000),
   rateLimitMax: Number(process.env.UCPF_SCANNER_RATE_MAX || 180),
   /** Auto-delete finished job reports after this many ms (from completion, not create). */

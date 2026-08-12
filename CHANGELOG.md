@@ -2,6 +2,127 @@
 
 All notable changes to Universal Consent & Privacy Framework are documented here.
 
+## [Unreleased]
+
+### Added
+- Multisite **Network Admin** connection settings (`ucpf_network_settings`): shared Scanner API URL/key, Privacy Preference API, and agency registry defaults. Sites inherit when Advanced fields are blank; filled site fields override. Promote-from-site + clear-overrides tools for existing installs.
+- Elementor Video **open-inline** fallback: when park/restore and Elementor `runReadyTrigger` leave `.elementor-wrapper.elementor-open-inline` empty, inject/restore `iframe.elementor-video` from `data-settings` (`youtube_url` / `vimeo_url`). Background inject and existing video handling unchanged.
+- Mapster WP Maps / MapLibre: catalog patterns park `mapster-wp-maps*` scripts server-side; embed guard covers `.mapster-wp-maps` containers; post-consent one-shot force-refire + canvas hydrate so maps leave the loader after Marketing+Embeds.
+- MapLibre CDN hosts (`unpkg` / `jsdelivr` / demotiles) classified as Embeds in the network gate.
+- Elementor update resilience: after plugin / theme / UCPF updates, clear Elementor CSS cache (rebuild on enqueue / next view), queue Cloudflare purge on request shutdown (prefix for `uploads/elementor/css`), and show a dismissible admin notice. Setting: **Clear Elementor CSS cache after updates** (Advanced → Cloudflare; default on). Missing CSS files self-heal on `elementor/css-file/before_enqueue`.
+
+### Fixed
+- Accept All “Page Unresponsive” after reload (`?_ucpf=…#ucpf_c=…`): Mapster `forceMapster` cleared refire flags and re-cloned every map script until the tab locked. Force-refire is one-shot; clones are never re-cloned; handoff boot no longer re-fires `accepted_all` plus a second full loader scan.
+- Accept All hard-reload path no longer sync-activates every parked script before navigation; consent change handlers coalesce and skip heavy hydrate while reload is pending.
+- Elementor/Cloudflare update path avoids WP-Cron / `spawn_cron` (unreliable with external cron runners). Cache clear stays sync; CF purge runs on shutdown / admin fallback.
+- Elementor open-inline YouTube: Accept / Enable Marketing+Embeds left a blank player, then hard-refresh stacked **two** `iframe.elementor-video` nodes (Elementor + UCPF). Prefer restoring Elementor’s parked URL; only create a marked fallback after ~1.2s if still empty; dedupe so one player remains.
+- Elementor open-inline YouTube/Vimeo: overlay cleared on Accept but the player stayed blank. Video hydrate no longer skips when `leaveBuildersAlone` is on (default); restore now covers network-gate–parked iframes (not only `data-ucpf-parked`); dead iframes are replaced so YouTube remounts.
+- Mapster Premium (MapLibre): linking-script could run before consent, leave a naked spinner, and never remount after Accept — now parked, guarded, and force-refired like WP Go Maps.
+
+## [0.1.29-alpha] — 2026-08-11
+
+### Added
+- Optimizer exclusions integration: keep UCPF assets out of Hummingbird, Autoptimize, WP Rocket, and LiteSpeed minify/combine/delay pipelines.
+
+### Fixed
+- Network gate: ignore invalid `setAttribute` names (empty or URL-as-name from Hummingbird combine) so consent/captcha activation cannot abort.
+- Gravity Forms captchas: reinit after Security consent and on boot/pageshow so new tabs / navigation races recover widgets.
+- Gravity Forms contact forms: detect `.gfield--type-captcha` / `.gform_wrapper` so the Security consent overlay attaches even when the widget host is empty or AJAX-replaced.
+
+## [0.1.28-alpha] — 2026-08-06
+
+### Fixed
+- UserWay accessibility toolbar: fully hands-off — never collect as embed cover, never re-park on Reject, un-park legacy gated scripts on refresh. Consent-guard `filter` / opacity no longer apply to `body`/`html` or UserWay nodes (that was relocating the fixed icon, often top-right).
+
+## [0.1.27-alpha] — 2026-08-06
+
+### Fixed
+- UserWay Accessibility: catalog + migration treat as **necessary** (never blocked). Preferences previously mapped into the Embeds network gate, so the ADA toolbar waited on consent. Script blocker and network-gate allowlist `cdn.userway.org` / `userway.org`.
+
+## [0.1.26-alpha] — 2026-08-06
+
+### Fixed
+- Elementor YouTube/Vimeo widgets: empty `.elementor-video` shells measured ~0px before an iframe existed, so the absolute consent panel painted invisible (blank white + nearby carousel dots). Apply a **video-only** 16:9 / `min-height: 12rem` fallback and retry size-lock on refresh. Forms, maps, Calendly, and captcha covers unchanged.
+
+## [0.1.25-alpha] — 2026-08-06
+
+### Fixed
+- Consent guards must never wrap `<body>` / `<html>` / `<head>` (or `#ucpf-root`). Gated Calendly (and similar) scripts under `<body>` were promoting the document as the host, which reparented the entire page into a “Form / widget blocked” overlay and broke Elementor sticky / MutationObserver / Gravity Forms.
+- Prefer `.calendly-inline-widget` (or Elementor widget box) as the overlay host; return null for bare scripts instead of `parentElement` when that is body.
+- On load, unwrap any body trapped inside a legacy guard and strip chrome attributes.
+
+## [0.1.24-alpha] — 2026-08-06
+
+### Fixed
+- Plugin Check: translators comment on admin scan notice; escape scanner finding counts; sanitize wizard/advanced GET/POST inputs; print network-gate via `wp_enqueue_script` / `wp_print_scripts`; align `readme.txt` Stable tag.
+
+Same ship as 0.1.23-alpha (Amelia first-party form overlay, Maps one-shot restore).
+
+## [0.1.23-alpha] — 2026-08-06
+
+### Fixed
+- Amelia Booking: first-party form (Gravity Forms model) — never park `/ameliabooking/`; Security captcha overlay on `#amelia-container` only; migrate stale registry/overrides to necessary.
+- Google Maps: stop `ucpf_r` force-reload loops; one-shot parked iframe restore (no Elementor re-boot spam when map is live).
+
+Same ship otherwise as 0.1.22-alpha (scanner path fail-fast, self-hosted video allow).
+
+## [0.1.22-alpha] — 2026-08-06
+
+### Fixed
+- Playwright multi-page scans: admin syncs checkbox DOM before start, fails fast when Scanner API accepts fewer paths than sent (redeploy `tools/ucpf-scanner` required — plugin zip does not include the scanner). Poll responses expose `paths` / `paths_count`; Active Scan prefers WordPress-sent page counts when remote progress under-reports.
+- Elementor Google Maps embeds (`maps.google.com` iframes): force-reload after Marketing+Embeds consent (handles empty `src` and blank live frames).
+- Self-hosted / same-origin videos: no longer default Elementor video widgets to YouTube covers. HTML5 `<video>`, Elementor `video_type: hosted`, and same-host iframes load without Marketing+Embeds; third-party YouTube/Vimeo embeds stay gated.
+- Amelia Booking: catalog patterns, network-gate classification, consent cover on `#amelia-container`, and post-consent captcha refire so booking/payment can run after Functional (+ Security for captcha).
+
+### Changed
+- Cookie Scanner UI notes that Playwright needs both the plugin and a redeployed Scanner API for multi-page jobs.
+- Scanner API `/health` version bumped to `1.5.1`; `GET /v1/scans/:id` returns `paths`, `paths_count`, `exactPaths`.
+
+## [0.1.21-alpha] — 2026-08-04
+
+### Fixed
+- Setup Wizard Visitors step: Save and Continue advances reliably (`formnovalidate`, step redirect hint, Enter in Cloudflare fields no longer submits Save/stay).
+- Wizard ↔ Advanced settings sync: scanner URL/key and Cloudflare token use the same option keys, URL normalization, and encrypted secret storage; empty password fields keep existing secrets.
+- Playwright deep scan: honor every admin-selected page end-to-end — WP no longer truncates curated paths by depth `maxPages` / `MAX_SERVER_URLS`; scanner API no longer slices jobs to `UCPF_SCANNER_MAX_PAGES` when `exactPaths` is set (that env alone could force a 1-page scan). Admin awaits selection persist and reports accepted `paths_count`.
+- Microsoft Clarity disclosures: Privacy Policy text aligned with Microsoft’s sample (heatmaps/session replay, first-/third-party cookies, purposes, Microsoft Privacy Statement link) while stating Clarity waits for Analytics consent under GDPR-style packs — not “by using this site you agree”. Optional footer shortcode `[ucpf_clarity_disclosure]`.
+- Google Maps / map widgets: after consent, activate Maps/Mapbox APIs before dependents; refire WP Go Maps / Mapster / Elementor Google Maps; park first-party map plugin scripts until Marketing+Embeds (same pattern as GTM4WP+Vimeo). Broader restore of gated scripts/iframes so maps and other embeds do not stay blank.
+- Third-party form embeds (Jobber Client Hub / work-request, Typeform, Jotform, etc.): show Enable Marketing & Embeds overlay when gated; re-park scripts/iframes if builders restore `src`; Jobber added to vendor catalog; Marketing + Embeds always required together for third-party iframes (payment processors excepted).
+- Embed consent overlays keep the original media-box size (no forced 14–22rem shells); glass cover fills that box; Jobber/HTML widgets decorate the Elementor host.
+- Elementor background video after consent: do not nest the player in `.elementor-background-video-embed` (often `width:0`). Inject a cover-sized iframe on `.elementor-background-video-container` and repair already-hydrated zero-width iframes.
+- Cloudflare Advanced save: fixed memory-exhaustion loop (sanitize discarded Zone ID writes → endless resolve/re-seal). Zone resolve runs once on shutdown; Settings::update bypasses form sanitize.
+- Service detection: stop marking every Gravity SMTP connector as active (catalog name lists); only primary/backup/enabled connectors; prune stale ESP selections; ignore competing CMPs and sanitize_key junk chips.
+- Cloudflare purge admin redirect used wrong page slug (`ucpf-settings-advanced`); now returns to Advanced → Cloudflare.
+
+### Added
+- Setup Wizard Visitors / Advanced → Cloudflare: domain + API token (Zone ID resolved automatically). Advanced Settings split into General / Scanner / Privacy / Cloudflare / Data tabs.
+- API secrets (scanner / privacy / Cloudflare) encrypted at rest; admin fields never echo stored values; empty = keep; optional `UCPF_*` wp-config overrides.
+
+## [0.1.20-alpha] — 2026-08-04
+
+### Fixed
+- Post-consent embeds: preserve Vimeo unlisted privacy hash (`vimeo.com/{id}/{hash}` → `player.vimeo.com/video/{id}?h=`). Hydration only fills empty shells and prefers an existing iframe `src`/`data-src` over rebuilt URLs. YouTube rebuilds keep `list` / `start` / `si`. Deferred iframe restore stays verbatim.
+
+## [0.1.19-alpha] — 2026-08-04
+
+### Fixed
+- Vimeo / YouTube post-consent: same-origin JS is no longer blanket-skipped by the network gate (that left `gtm4wp-vimeo.js` running while `player.vimeo.com/api/player.js` stayed blocked → `Vimeo is not defined`). Gate GTM4WP vimeo/youtube helpers with the player APIs; loader re-fires those helpers after the API `load` event and on consent apply.
+
+## [0.1.18-alpha] — 2026-08-04
+
+### Fixed
+- Frequent zip updates no longer call full-site page-cache / Autoptimize / Rocket / LiteSpeed purges on activate, migration, every plugin upgrade, or Elementor CSS clear. Those nukes deleted optimized CSS while Cloudflare Cache Files could pin a soft-404 — unique to UCPF because other plugins do not flush the whole stack on every bump. Updates now only bump UCPF asset `?ver=` stamps.
+
+## [0.1.17-alpha] — 2026-08-04
+
+### Fixed
+- Site-wide (any theme/builder): layout webfonts (Google Fonts, Adobe Typekit, Font Awesome) are never consent-gated — gating them left every site looking broken until Embeds. Same-origin theme/plugin CSS is never gated. Deferred stylesheets use an inert `data:` href instead of `href=""` (empty href made browsers load the HTML document as CSS → MIME `text/html`). Cloudflare Cache Files guidance remains in `docs/CLOUDFLARE-CACHE.md` for HTML-as-CSS poison after deploys.
+
+## [0.1.16-alpha] — 2026-08-04
+
+### Changed
+- Video consent overlays (YouTube / Vimeo / Elementor): Enable always grants **Marketing and Embeds**; empty builder shells hydrate after consent (incl. Shorts URLs) on enable and on return visits.
+- Scanner consent differential: post-revoke leftover cookies are **cleanup warnings** (`retained_after_revoke`), not FAIL. Summary shows “Blocking OK” when only jar leftovers remain; red FAIL reserved for pre-consent / reject / GPC / DNS leaks.
+
 ## [0.1.15-alpha] — 2026-08-03
 
 ### Fixed

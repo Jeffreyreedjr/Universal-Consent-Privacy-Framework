@@ -24,15 +24,63 @@ class Migration {
 		// Ensure schema exists after zip updates without deactivate/reactivate.
 		Activator::create_tables();
 
+		// dbDelta can miss indexes on older installs; ensure purge path has expires_at.
+		self::ensure_consent_logs_expires_at_index();
+
 		// Zip reinstalls often keep UCPF_VERSION unchanged — still bust CF/browser caches.
 		self::maybe_refresh_asset_cache();
+
+		// Encrypt legacy plaintext API tokens in ucpf_settings (idempotent).
+		Secrets::migrate_plaintext_at_rest();
+
+		// Same-version zip reinstalls still need these (Amelia / UserWay must never stay gated).
+		self::normalize_amelia_booking_service();
+		self::normalize_userway_accessibility_service();
 
 		$installed = get_option( 'ucpf_db_version', '0' );
 		if ( self::needs_upgrade( (string) $installed ) ) {
 			self::run_safe_mode_fixes();
-			ucpf_flush_site_caches( 'migration' );
+			// Bust UCPF ?ver= only — full page/optimizer flushes race Cloudflare Cache Files
+			// and uniquely break site CSS after frequent alpha zip uploads.
+			ucpf_bust_asset_cache();
 			update_option( 'ucpf_db_version', UCPF_VERSION, false );
+			if ( Settings::get( 'cloudflare_purge_on_ucpf_update', true ) ) {
+				Cloudflare_Cache::instance()->schedule_purge( 'ucpf_update' );
+			}
+			Plugin::maybe_clear_elementor_css_after_update( 'ucpf_update' );
 		}
+	}
+
+	/**
+	 * Add KEY expires_at on consent_logs when missing (helps purge_expired deletes).
+	 *
+	 * Idempotent; safe to call on every maybe_upgrade.
+	 *
+	 * @return void
+	 */
+	private static function ensure_consent_logs_expires_at_index() {
+		global $wpdb;
+
+		$table_name = ucpf_table( 'consent_logs' );
+		$table      = esc_sql( $table_name );
+		if ( '' === $table || '' === $table_name ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table_name ) ) );
+		if ( $exists !== $table_name ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table from esc_sql( ucpf_table() ).
+		$has_index = $wpdb->get_results( "SHOW INDEX FROM `{$table}` WHERE Key_name = 'expires_at'" );
+		if ( ! empty( $has_index ) ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange -- additive index for retention purge.
+		$wpdb->query( "ALTER TABLE `{$table}` ADD KEY expires_at (expires_at)" );
 	}
 
 	/**
@@ -126,6 +174,101 @@ class Migration {
 		if ( 180 === $log_days ) {
 			Settings::update( array( 'log_retention_days' => 360 ) );
 			Audit_Log::instance()->recompute_expires( 360 );
+		}
+
+		// Layout webfonts must never stay Embeds-gated (breaks any theme, not just Elementor).
+		self::normalize_layout_font_services();
+		self::normalize_amelia_booking_service();
+		self::normalize_userway_accessibility_service();
+	}
+
+	/**
+	 * Force Google Fonts / Typekit / Font Awesome to necessary + never blocked.
+	 *
+	 * Clears stale service_overrides and script_registry rows that still treat them as Embeds.
+	 *
+	 * @return void
+	 */
+	private static function normalize_layout_font_services() {
+		self::force_services_necessary(
+			array( 'google_fonts', 'adobe_fonts', 'font_awesome' )
+		);
+	}
+
+	/**
+	 * Amelia Booking is a first-party WP form (Gravity Forms model).
+	 * Never gate /ameliabooking/ scripts — Security overlay covers reCAPTCHA only.
+	 *
+	 * @return void
+	 */
+	private static function normalize_amelia_booking_service() {
+		self::force_services_necessary( array( 'amelia' ) );
+	}
+
+	/**
+	 * UserWay accessibility toolbar must never wait on Preferences / Embeds / Marketing.
+	 *
+	 * @return void
+	 */
+	private static function normalize_userway_accessibility_service() {
+		self::force_services_necessary( array( 'userway' ) );
+	}
+
+	/**
+	 * Force listed services to necessary + never blocked (overrides + DB rows).
+	 *
+	 * @param string[] $keys Service keys.
+	 * @return void
+	 */
+	private static function force_services_necessary( array $keys ) {
+		$overrides = Settings::get( 'service_overrides', array() );
+		if ( ! is_array( $overrides ) ) {
+			$overrides = array();
+		}
+		$changed = false;
+		foreach ( $keys as $key ) {
+			$key = sanitize_key( (string) $key );
+			if ( '' === $key ) {
+				continue;
+			}
+			$overrides[ $key ] = array(
+				'category'         => 'necessary',
+				'treatment'        => 'necessary',
+				'default_blocking' => false,
+			);
+			$changed = true;
+		}
+		if ( $changed ) {
+			Settings::update( array( 'service_overrides' => $overrides ) );
+		}
+
+		global $wpdb;
+		$table_name = ucpf_table( 'script_registry' );
+		$table      = esc_sql( $table_name );
+		if ( '' === $table || '' === $table_name ) {
+			return;
+		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table_name ) ) );
+		if ( $exists !== $table_name ) {
+			return;
+		}
+		foreach ( $keys as $key ) {
+			$key = sanitize_key( (string) $key );
+			if ( '' === $key ) {
+				continue;
+			}
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->update(
+				$table_name,
+				array(
+					'category'        => 'necessary',
+					'default_enabled' => 0,
+				),
+				array( 'service_key' => $key ),
+				array( '%s', '%d' ),
+				array( '%s' )
+			);
 		}
 	}
 }

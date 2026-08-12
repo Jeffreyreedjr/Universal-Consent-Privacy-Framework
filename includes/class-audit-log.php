@@ -15,6 +15,18 @@ defined( 'ABSPATH' ) || exit;
 class Audit_Log {
 
 	/**
+	 * Minimum seconds between distinct consent-change rows for one UUID.
+	 * Faster toggles update the last row (anti-spam) instead of inserting.
+	 */
+	const SPAM_BURST_SECONDS = 45;
+
+	/**
+	 * Max distinct consent-change rows per UUID per UTC day before further
+	 * changes only update the latest row (abuse / flood cap).
+	 */
+	const SPAM_MAX_PER_DAY = 10;
+
+	/**
 	 * Instance.
 	 *
 	 * @var Audit_Log|null
@@ -43,8 +55,11 @@ class Audit_Log {
 	/**
 	 * Log consent event.
 	 *
-	 * Skips insert when the same UUID + action + categories + services was logged
-	 * within the last 5 seconds (burst / double-click noise). Meaningful changes still insert.
+	 * Records real preference changes. Anti-spam / anti-abuse:
+	 * - Skip when state matches the latest row for this UUID (no-op re-saves).
+	 * - Within SPAM_BURST_SECONDS of the last row, update that row (rapid toggle flood).
+	 * - After SPAM_MAX_PER_DAY rows for this UUID today, update the latest (daily flood cap).
+	 * Legitimate spaced-out changes still insert a new row.
 	 *
 	 * @param string $action      Action name.
 	 * @param array  $cookie_data Cookie payload.
@@ -66,12 +81,12 @@ class Audit_Log {
 			$uuid = wp_generate_uuid4();
 		}
 
-		$action           = sanitize_key( $action );
-		$categories_json  = $this->normalize_map_json( isset( $cookie_data['categories'] ) ? $cookie_data['categories'] : array() );
-		$services_json    = $this->normalize_map_json( isset( $cookie_data['services'] ) ? $cookie_data['services'] : array() );
-		$signature        = md5( $action . '|' . $categories_json . '|' . $services_json );
-		$transient_key    = 'ucpf_log_dedupe_' . md5( $uuid );
-		$prev_sig         = get_transient( $transient_key );
+		$action          = sanitize_key( $action );
+		$categories_json = $this->normalize_map_json( isset( $cookie_data['categories'] ) ? $cookie_data['categories'] : array() );
+		$services_json   = $this->normalize_map_json( isset( $cookie_data['services'] ) ? $cookie_data['services'] : array() );
+		$signature       = md5( $action . '|' . $categories_json . '|' . $services_json );
+		$transient_key   = 'ucpf_log_dedupe_' . md5( $uuid );
+		$prev_sig        = get_transient( $transient_key );
 
 		if ( is_string( $prev_sig ) && $prev_sig === $signature ) {
 			return;
@@ -79,11 +94,11 @@ class Audit_Log {
 
 		$table = esc_sql( $table_raw );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- latest row for burst dedupe.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- latest row for dedupe / anti-spam.
 		$latest = $wpdb->get_row(
 			$wpdb->prepare(
 				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table from esc_sql( ucpf_table() ) whitelist.
-				"SELECT action, categories, services, created_at FROM `{$table}` WHERE consent_uuid = %s ORDER BY id DESC LIMIT 1",
+				"SELECT id, action, categories, services, created_at FROM `{$table}` WHERE consent_uuid = %s ORDER BY id DESC LIMIT 1",
 				$uuid
 			),
 			ARRAY_A
@@ -93,41 +108,92 @@ class Audit_Log {
 			$same_action = isset( $latest['action'] ) && sanitize_key( (string) $latest['action'] ) === $action;
 			$same_cats   = $this->normalize_map_json( isset( $latest['categories'] ) ? $latest['categories'] : '' ) === $categories_json;
 			$same_svcs   = $this->normalize_map_json( isset( $latest['services'] ) ? $latest['services'] : '' ) === $services_json;
-			$created     = isset( $latest['created_at'] ) ? strtotime( $latest['created_at'] . ' UTC' ) : 0;
-			$within      = $created && ( time() - $created ) <= 5;
 
-			if ( $same_action && $same_cats && $same_svcs && $within ) {
-				set_transient( $transient_key, $signature, 5 );
+			// Identical to last known state — no audit value.
+			if ( $same_action && $same_cats && $same_svcs ) {
+				set_transient( $transient_key, $signature, MINUTE_IN_SECONDS );
 				return;
 			}
 		}
 
 		$retention = (int) Settings::get( 'log_retention_days' );
 		$retention = max( 1, min( 3650, $retention ) );
+		$now       = current_time( 'mysql', true );
 		$expires   = gmdate( 'Y-m-d H:i:s', time() + ( $retention * DAY_IN_SECONDS ) );
+		$region    = $this->detect_region();
+		$policy    = isset( $cookie_data['policy_version'] ) ? $cookie_data['policy_version'] : '';
+		$version   = isset( $cookie_data['version'] ) ? $cookie_data['version'] : '';
+		$user_id   = get_current_user_id() ?: null;
+
+		$row_data = array(
+			'user_id'         => $user_id,
+			'session_hash'    => $this->session_hash(),
+			'ip_hash'         => null,
+			'user_agent_hash' => null,
+			'region'          => $region,
+			'policy_version'  => $policy,
+			'consent_version' => $version,
+			'action'          => $action,
+			'categories'      => $categories_json,
+			'services'        => $services_json,
+			'created_at'      => $now,
+			'expires_at'      => $expires,
+		);
+
+		$update_latest = false;
+		$latest_id     = is_array( $latest ) && ! empty( $latest['id'] ) ? (int) $latest['id'] : 0;
+
+		// Burst debounce: rapid toggles (attack / spam) refresh the last row, not a new event.
+		if ( $latest_id && ! empty( $latest['created_at'] ) ) {
+			$created = strtotime( (string) $latest['created_at'] . ' UTC' );
+			if ( $created && ( time() - $created ) < self::SPAM_BURST_SECONDS ) {
+				$update_latest = true;
+			}
+		}
+
+		$day_start = gmdate( 'Y-m-d' ) . ' 00:00:00';
+		$day_end   = gmdate( 'Y-m-d' ) . ' 23:59:59';
+
+		if ( ! $update_latest ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- daily flood cap.
+			$today_count = (int) $wpdb->get_var(
+				$wpdb->prepare(
+					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table from esc_sql( ucpf_table() ) whitelist.
+					"SELECT COUNT(*) FROM `{$table}` WHERE consent_uuid = %s AND created_at >= %s AND created_at <= %s",
+					$uuid,
+					$day_start,
+					$day_end
+				)
+			);
+			if ( $today_count >= self::SPAM_MAX_PER_DAY && $latest_id ) {
+				$update_latest = true;
+			}
+		}
+
+		if ( $update_latest && $latest_id ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- anti-spam state refresh.
+			$wpdb->update(
+				$table_raw,
+				$row_data,
+				array( 'id' => $latest_id ),
+				array( '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' ),
+				array( '%d' )
+			);
+			set_transient( $transient_key, $signature, MINUTE_IN_SECONDS );
+			return;
+		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 		$wpdb->insert(
 			$table_raw,
-			array(
-				'consent_uuid'    => $uuid,
-				'user_id'         => get_current_user_id() ?: null,
-				'session_hash'    => $this->session_hash(),
-				'ip_hash'         => null,
-				'user_agent_hash' => null,
-				'region'          => $this->detect_region(),
-				'policy_version'  => isset( $cookie_data['policy_version'] ) ? $cookie_data['policy_version'] : '',
-				'consent_version' => isset( $cookie_data['version'] ) ? $cookie_data['version'] : '',
-				'action'          => $action,
-				'categories'      => $categories_json,
-				'services'        => $services_json,
-				'created_at'      => current_time( 'mysql', true ),
-				'expires_at'      => $expires,
+			array_merge(
+				array( 'consent_uuid' => $uuid ),
+				$row_data
 			),
 			array( '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' )
 		);
 
-		set_transient( $transient_key, $signature, 5 );
+		set_transient( $transient_key, $signature, MINUTE_IN_SECONDS );
 	}
 
 	/**
@@ -158,14 +224,14 @@ class Audit_Log {
 	}
 
 	/**
-	 * Get paginated logs (events) or visitor summaries.
+	 * Get paginated logs (events), visitor summaries, or uuid+day groups.
 	 *
 	 * @param int               $page     Page number (1-based).
 	 * @param int               $per_page Rows per page (1–200).
 	 * @param array<string,mixed> $args {
 	 *     Optional filters.
 	 *
-	 *     @type string $view      events|visitors. Default events.
+	 *     @type string $view      events|visitors|by_day. Default by_day.
 	 *     @type string $uuid      UUID exact or prefix match.
 	 *     @type string $action    Action key filter.
 	 *     @type string $date_from Y-m-d (UTC, inclusive).
@@ -196,6 +262,9 @@ class Audit_Log {
 		if ( 'visitors' === $view ) {
 			return $this->get_visitor_summaries( $page, $per_page, $filters );
 		}
+		if ( 'by_day' === $view ) {
+			return $this->get_day_summaries( $page, $per_page, $filters );
+		}
 
 		return $this->get_event_logs( $page, $per_page, $filters );
 	}
@@ -207,9 +276,9 @@ class Audit_Log {
 	 * @return array{view:string,uuid:string,action:string,date_from:string,date_to:string}
 	 */
 	public function sanitize_log_filters( array $args ) {
-		$view = isset( $args['view'] ) ? sanitize_key( (string) $args['view'] ) : 'events';
-		if ( 'visitors' !== $view ) {
-			$view = 'events';
+		$view = isset( $args['view'] ) ? sanitize_key( (string) $args['view'] ) : 'by_day';
+		if ( ! in_array( $view, array( 'events', 'visitors', 'by_day' ), true ) ) {
+			$view = 'by_day';
 		}
 
 		$uuid = isset( $args['uuid'] ) ? sanitize_text_field( (string) $args['uuid'] ) : '';
@@ -416,6 +485,73 @@ class Audit_Log {
 	}
 
 	/**
+	 * One row per visitor UUID per UTC calendar day (latest state that day + count).
+	 *
+	 * @param int                  $page     Page.
+	 * @param int                  $per_page Per page.
+	 * @param array<string,string> $filters  Filters.
+	 * @return array{items:array,page:int,per_page:int,total:int,pages:int,view:string,filters:array}
+	 */
+	private function get_day_summaries( $page, $per_page, array $filters ) {
+		global $wpdb;
+
+		$table = esc_sql( ucpf_table( 'consent_logs' ) );
+		$where = $this->build_log_where( $filters, 'l' );
+
+		if ( '' === $table ) {
+			return array(
+				'items'    => array(),
+				'page'     => $page,
+				'per_page' => $per_page,
+				'total'    => 0,
+				'pages'    => 0,
+				'view'     => 'by_day',
+				'filters'  => $filters,
+			);
+		}
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $table via esc_sql( ucpf_table() ); $where/$limit_sql from $wpdb->prepare() fragments.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- admin uuid+day summary.
+		$total = (int) $wpdb->get_var(
+			"SELECT COUNT(*) FROM ( SELECT l.consent_uuid, DATE(l.created_at) AS log_day FROM `{$table}` l WHERE {$where} GROUP BY l.consent_uuid, DATE(l.created_at) ) grouped_days"
+		);
+
+		$pages  = $total > 0 ? (int) ceil( $total / $per_page ) : 0;
+		$page   = $pages > 0 ? min( $page, $pages ) : 1;
+		$offset = ( $page - 1 ) * $per_page;
+
+		$limit_sql = $wpdb->prepare( 'LIMIT %d OFFSET %d', $per_page, $offset );
+		if ( ! is_string( $limit_sql ) ) {
+			$limit_sql = 'LIMIT 0';
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- admin uuid+day summary.
+		$rows = $wpdb->get_results(
+			"SELECT l.*, c.event_count, c.log_day, c.first_at FROM (
+				SELECT consent_uuid, DATE(created_at) AS log_day, COUNT(*) AS event_count, MAX(id) AS last_id, MIN(created_at) AS first_at
+				FROM `{$table}` l
+				WHERE {$where}
+				GROUP BY consent_uuid, DATE(created_at)
+			) c
+			INNER JOIN `{$table}` l ON l.id = c.last_id
+			ORDER BY c.log_day DESC, l.created_at DESC, l.id DESC
+			{$limit_sql}",
+			ARRAY_A
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+
+		return array(
+			'items'    => $rows ? $rows : array(),
+			'page'     => $page,
+			'per_page' => $per_page,
+			'total'    => $total,
+			'pages'    => $pages,
+			'view'     => 'by_day',
+			'filters'  => $filters,
+		);
+	}
+
+	/**
 	 * Recompute expires_at from created_at using current (or given) retention days.
 	 * Extends or shortens the retention window for existing light consent log rows.
 	 *
@@ -510,6 +646,10 @@ class Audit_Log {
 	 */
 	private function csv_cell( $value ) {
 		$value = (string) $value;
+		// Mitigate CSV/spreadsheet formula injection.
+		if ( '' !== $value && in_array( $value[0], array( '=', '+', '-', '@' ), true ) ) {
+			$value = "'" . $value;
+		}
 		if ( 1 === preg_match( '/[",\r\n]/', $value ) ) {
 			return '"' . str_replace( '"', '""', $value ) . '"';
 		}

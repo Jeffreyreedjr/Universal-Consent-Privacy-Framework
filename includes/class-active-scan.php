@@ -167,6 +167,12 @@ class Active_Scan {
 		$remote_state = isset( $job['status'] ) ? sanitize_key( (string) $job['status'] ) : 'running';
 		$state        = ( 'queued' === $remote_state ) ? 'queued' : 'running';
 
+		$paths = ! empty( $context['paths'] ) && is_array( $context['paths'] )
+			? array_values( array_map( 'strval', $context['paths'] ) )
+			: array( '/' );
+		$paths_sent = count( $paths );
+		$paths_count = isset( $job['paths_count'] ) ? (int) $job['paths_count'] : $paths_sent;
+
 		$status = array(
 			'job_id'     => $job_id,
 			'state'      => $state,
@@ -183,16 +189,22 @@ class Active_Scan {
 				: __( 'Scan job started. Progress is saved on this site — you can leave this page.', 'universal-consent-privacy-framework' ),
 			'progress'   => $this->normalize_progress( isset( $job['progress'] ) ? $job['progress'] : array() ),
 			'url'        => ! empty( $context['url'] ) ? esc_url_raw( (string) $context['url'] ) : home_url( '/' ),
-			'paths'      => ! empty( $context['paths'] ) && is_array( $context['paths'] )
-				? array_values( array_map( 'strval', $context['paths'] ) )
-				: array( '/' ),
+			'paths'      => $paths,
+			'paths_sent' => $paths_sent,
+			'paths_count'=> $paths_count,
 			'depth'      => ! empty( $context['depth'] ) ? sanitize_key( (string) $context['depth'] ) : 'standard',
 			'position'   => isset( $job['position'] ) ? (int) $job['position'] : 0,
+			'merge_logged_in' => ! empty( $context['merge_logged_in'] ),
 		);
 
 		if ( empty( $status['progress']['message'] ) ) {
 			$status['progress']['message'] = $status['message'];
 			$status['progress']['phase']   = $state;
+		}
+		// Prefer WordPress-sent path count when remote progress under-reports pages_total.
+		if ( $paths_sent > 1 ) {
+			$reported = isset( $status['progress']['pages_total'] ) ? (int) $status['progress']['pages_total'] : 0;
+			$status['progress']['pages_total'] = max( $reported, $paths_sent, $paths_count );
 		}
 
 		$this->set( $status );
@@ -243,6 +255,14 @@ class Active_Scan {
 			if ( ! empty( $status['progress']['message'] ) ) {
 				$status['message'] = $status['progress']['message'];
 			}
+		}
+		if ( isset( $job['paths_count'] ) ) {
+			$status['paths_count'] = (int) $job['paths_count'];
+		}
+		$sent = isset( $status['paths_sent'] ) ? (int) $status['paths_sent'] : ( ! empty( $status['paths'] ) && is_array( $status['paths'] ) ? count( $status['paths'] ) : 0 );
+		if ( $sent > 1 && is_array( $status['progress'] ) ) {
+			$reported = isset( $status['progress']['pages_total'] ) ? (int) $status['progress']['pages_total'] : 0;
+			$status['progress']['pages_total'] = max( $reported, $sent, isset( $status['paths_count'] ) ? (int) $status['paths_count'] : 0 );
 		}
 		if ( ! empty( $job['position'] ) ) {
 			$status['position'] = (int) $job['position'];
@@ -444,6 +464,20 @@ class Active_Scan {
 				),
 			)
 		);
+
+		if ( ! empty( $status['merge_logged_in'] ) && 'completed' === $final_state && ! $partial ) {
+			$merged = Cookie_Scanner::instance()->merge_logged_in_homepage_into_last_scan();
+			if ( ! is_wp_error( $merged ) && is_array( $merged ) ) {
+				$fresh = $this->get();
+				$fresh['inventory'] = array(
+					'cookies'         => isset( $merged['cookies'] ) ? count( $merged['cookies'] ) : 0,
+					'unknown_cookies' => isset( $merged['unknown_cookies'] ) ? count( $merged['unknown_cookies'] ) : 0,
+					'results'         => isset( $merged['results'] ) ? count( $merged['results'] ) : 0,
+				);
+				$fresh['message'] = __( 'Playwright scan finished. Logged-in helper cookies were merged into the inventory.', 'universal-consent-privacy-framework' );
+				$this->set( $fresh );
+			}
+		}
 	}
 
 	/**

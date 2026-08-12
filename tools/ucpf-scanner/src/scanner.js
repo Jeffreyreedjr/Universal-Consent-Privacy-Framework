@@ -3,7 +3,7 @@
  * Never stores cookie values — value hashes only when CDP provides them.
  *
  * Sessions: profile-driven (quick / standard / compliance).
- * Per page: before_banner → action → after_action → reload → after_reload.
+ * Per page: before_banner → action → after_action → (reload on standard/compliance) → after_reload.
  * Optional options.interact / recipeFile: safe widget probing (time-capped).
  */
 
@@ -74,15 +74,22 @@ export async function runPrivacyScan(input) {
   const profileLevel =
     options.profile === 'quick' || options.profile === 'compliance' ? options.profile : 'standard';
   const sessionProfiles = profilesForLevel(profileLevel);
-  const maxPages = Math.max(
-    1,
-    Math.min(500, Number(options.maxPages) || config.maxPagesPerScan || 100)
-  );
 
   const base = new URL(baseCheck.url);
-  const selected = selectRepresentativePages(input.paths || ['/'], profileLevel);
+  // Admin picker already chose pages — do not thin to "representative" subset.
+  const exactPaths = options.exactPaths !== false;
+  const selected = exactPaths
+    ? { paths: Array.isArray(input.paths) && input.paths.length ? input.paths : ['/'], tagged: [] }
+    : selectRepresentativePages(input.paths || ['/'], profileLevel);
+  // When exactPaths: never cap below the curated list (env UCPF_SCANNER_MAX_PAGES must not win).
+  const maxPages = exactPaths
+    ? Math.min(500, Math.max(selected.paths.length, Number(options.maxPages) || 0, 1))
+    : Math.max(1, Math.min(500, Number(options.maxPages) || config.maxPagesPerScan || 100));
   const paths = normalizePaths(selected.paths, maxPages);
   const pageUrls = paths.map((p) => new URL(p, base).toString());
+  if (!pageUrls.length) {
+    throw new Error('No scan paths remaining after normalization.');
+  }
   const recipeActions = [
     ...DEFAULT_SAFE_ACTIONS,
     ...loadRecipeFile(options.recipeFile || process.env.UCPF_SCANNER_RECIPE || ''),
@@ -195,6 +202,7 @@ export async function runPrivacyScan(input) {
 
       const sessOpts = {
         profile,
+        profileLevel,
         pageUrls,
         baseHost: base.hostname,
         interact,
@@ -202,6 +210,7 @@ export async function runPrivacyScan(input) {
         recipeActions,
         storageState: null,
         sessionCount: sessionProfiles.length,
+        exactPaths,
         shouldCancel: () => shouldCancel(),
         onLog: (msg) => {
           logProgress(msg);
@@ -384,6 +393,7 @@ export async function runPrivacyScan(input) {
 function normalizePaths(paths, max) {
   const out = [];
   const seen = new Set();
+  const cap = Math.max(1, Math.min(500, Number(max) || 500));
   for (const raw of paths) {
     let p = String(raw || '/').trim() || '/';
     if (/^https?:\/\//i.test(p)) {
@@ -394,11 +404,13 @@ function normalizePaths(paths, max) {
       }
     }
     if (!p.startsWith('/')) p = `/${p}`;
+    // Collapse /about/ → /about so trailing-slash duplicates do not waste slots.
+    if (p.length > 1 && p.endsWith('/')) p = p.replace(/\/+$/, '');
     if (isNonHtmlScanPath(p)) continue;
     if (seen.has(p)) continue;
     seen.add(p);
     out.push(p);
-    if (out.length >= max) break;
+    if (out.length >= cap) break;
   }
   if (!out.length) out.push('/');
   return out;
@@ -443,7 +455,7 @@ function isDownloadNavigationError(err) {
  * @param {number} pageCount
  * @returns {number}
  */
-function computeSessionBudgetMs(sessionCount, pageCount) {
+function computeSessionBudgetMs(sessionCount, pageCount, opts = {}) {
   const sessions = Math.max(1, Math.floor(Number(sessionCount) || 1));
   const pages = Math.max(1, Math.floor(Number(pageCount) || 1));
   const totalMs = Math.max(60000, Number(config.browserTimeoutMs) || 600000);
@@ -455,6 +467,10 @@ function computeSessionBudgetMs(sessionCount, pageCount) {
   const perPageMs = Math.floor(navMs * 0.55) + settleMs * 2.5 + gapMs + 6000;
   const pageFloor = Math.ceil(pages * perPageMs);
   const minBudget = 90000;
+  // Curated admin lists must finish every page — do not shrink below pageFloor via hardCap.
+  if (opts && opts.exactPaths) {
+    return Math.min(45 * 60 * 1000, Math.max(pageFloor, minBudget, equalShare));
+  }
   const hardCap = Math.min(Math.max(pageFloor * 2, equalShare), 45 * 60 * 1000);
   return Math.min(hardCap, Math.max(equalShare, pageFloor, minBudget));
 }
@@ -576,7 +592,8 @@ async function runSession(browser, opts) {
 
   const sessionBudgetMs = computeSessionBudgetMs(
     opts.sessionCount != null ? opts.sessionCount : 6,
-    (opts.pageUrls && opts.pageUrls.length) || 1
+    (opts.pageUrls && opts.pageUrls.length) || 1,
+    { exactPaths: !!opts.exactPaths }
   );
   const sessionDeadline = Date.now() + sessionBudgetMs;
   const interactBudgetMs = Math.min(12000, Math.floor(config.settleMs * 2.5));
@@ -721,14 +738,18 @@ async function runSession(browser, opts) {
       const afterAction = await snapshotCookies(context, cookieEvents);
       cookiePhases.push({ page: safe.url, phase: 'after_action', cookies: afterAction });
 
-      try {
-        await page.reload({ waitUntil: 'domcontentloaded', timeout: config.navigationTimeoutMs });
-        await page.waitForTimeout(Math.min(1500, config.settleMs));
-      } catch {
-        /* reload may fail on some CF pages — keep going */
+      // Light (quick): skip post-consent full reload — biggest per-page win; keep Standard/Thorough fidelity.
+      let afterReload = afterAction;
+      if (opts.profileLevel !== 'quick') {
+        try {
+          await page.reload({ waitUntil: 'domcontentloaded', timeout: config.navigationTimeoutMs });
+          await page.waitForTimeout(Math.min(1500, config.settleMs));
+          afterReload = await snapshotCookies(context, cookieEvents);
+        } catch {
+          /* reload may fail on some CF pages — keep going */
+          afterReload = await snapshotCookies(context, cookieEvents);
+        }
       }
-
-      const afterReload = await snapshotCookies(context, cookieEvents);
       cookiePhases.push({ page: safe.url, phase: 'after_reload', cookies: afterReload });
 
       await scrollPage(page);
@@ -1394,9 +1415,16 @@ function buildReport(data) {
         return raw && !shouldOmitSignal(raw) && !shouldOmitSignal(safeHost(raw));
       })
       .map((row) => {
-      const host = safeHost(row.url || row.host || row.key);
-      let cls = classifyValue(row.url || row.host || row.key, type);
-      if (!cls.matched && data.site_host && host && host.replace(/^www\./, '') === data.site_host.replace(/^www\./, '')) {
+      const rawUrl = row.url || row.host || row.key || '';
+      const host = safeHost(rawUrl);
+      let cls = classifyValue(rawUrl, type);
+      // Never treat suspicion / catalog matches as bland first-party necessary.
+      if (
+        !cls.matched &&
+        data.site_host &&
+        host &&
+        host.replace(/^www\./, '') === data.site_host.replace(/^www\./, '')
+      ) {
         cls = {
           category: 'necessary',
           provider: 'First-party site',
@@ -1421,16 +1449,24 @@ function buildReport(data) {
           type,
         });
       }
+      const needsReview =
+        cls.suspicion ||
+        cls.status === 'needs_review' ||
+        !(cls.matched && category !== 'unclassified');
       return {
         ...row,
         host,
-        url: host || row.url,
+        // Keep full URL so first-party pixels (pixel-tracking.js) remain visible.
+        url: rawUrl || host || row.url,
         provider: cls.provider || '',
         category,
         treatment,
         importance,
-        status: cls.matched && category !== 'unclassified' ? 'classified' : 'needs_review',
+        status: needsReview ? 'needs_review' : 'classified',
         note: cls.note || '',
+        suspicion: cls.suspicion || '',
+        suggested_category: cls.suggested_category || (needsReview && category !== 'necessary' ? category : ''),
+        rule: cls.rule || '',
       };
     });
 
@@ -1518,6 +1554,35 @@ function buildReport(data) {
     return { label, key: rest.join(':') };
   });
 
+  const suspicious_scripts = [];
+  const seenSus = new Set();
+  for (const row of [...classifiedScripts, ...classifiedPixels, ...classifiedBeacons, ...classifiedRequestUrls]) {
+    if (!row || (!row.suspicion && row.status !== 'needs_review')) continue;
+    if (row.treatment === 'necessary' || row.category === 'necessary') continue;
+    if (row.rule === 'first-party') continue;
+    const key = String(row.url || row.host || '').toLowerCase();
+    if (!key || seenSus.has(key)) continue;
+    // Prefer rows that look tracking-like or explicitly suspected.
+    const looksSus =
+      row.suspicion ||
+      /pixel|track|analytics|adsense|remarketing|gtm\.js|gtag/i.test(key) ||
+      (row.status === 'needs_review' && row.category !== 'necessary' && row.importance === 'non_essential');
+    if (!looksSus && !row.suspicion) continue;
+    seenSus.add(key);
+    suspicious_scripts.push({
+      url: row.url || '',
+      host: row.host || '',
+      provider: row.provider || '',
+      category: row.category || 'marketing',
+      suggested_category: row.suggested_category || row.category || 'marketing',
+      suspicion: row.suspicion || 'medium',
+      treatment: row.treatment || 'consent',
+      status: 'needs_review',
+      note: row.note || '',
+      rule: row.rule || '',
+    });
+  }
+
   return {
     schema: 'ucpf-playwright-scan/2.0',
     site_url: data.site_url,
@@ -1553,6 +1618,7 @@ function buildReport(data) {
     iframes: classifiedIframes,
     beacons: classifiedBeacons,
     pixels: classifiedPixels,
+    suspicious_scripts: suspicious_scripts.slice(0, 100),
     consent_leaks,
     findings,
     findings_summary,

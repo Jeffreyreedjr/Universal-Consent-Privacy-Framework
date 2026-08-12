@@ -55,13 +55,17 @@ UCPF_SCANNER_API_KEYS=generate-a-long-random-secret-here
 | `UCPF_SCANNER_PORT` | Default `3847` |
 | `UCPF_SCANNER_API_KEYS` | Comma-separated API keys. **Required** for any non-loopback client (including WordPress on another host). |
 | `UCPF_SCANNER_ALLOW_LOCAL=1` | Optional. Allows **unauthenticated** calls from loopback only. Do not use this as a substitute for keys on a public API. |
-| `UCPF_SCANNER_MAX_PAGES` | Cap pages per job (default 100) |
+| `UCPF_SCANNER_MAX_PAGES` | Cap pages per job when the client does **not** send a curated list (default 100). WordPress admin selections set `exactPaths: true` and are **not** truncated by this env var (hard ceiling 500). **Redeploy this service** after pulling plugin/scanner fixes — the WordPress zip never ships `tools/ucpf-scanner`. |
 | `UCPF_SCANNER_MAX_CONCURRENT` | Parallel Chromium jobs (default 2). Budget ~1–2 GB RAM each. |
 | `UCPF_SCANNER_MAX_QUEUE` | Waiting jobs when slots are full (default **200**) |
 | `UCPF_SCANNER_MAX_RUNNING_PER_KEY` | Max running jobs per API key (default **1**) |
 | `UCPF_SCANNER_MAX_QUEUED_PER_KEY` | Max queued jobs per API key (default **2**) |
 | `UCPF_SCANNER_ADMIN_KEYS` | Keys allowed to `cancel-all` (default: first key in `API_KEYS`) |
 | `UCPF_SCANNER_DATA_DIR` | Durable queue/job store (SQLite on Node 22+, else JSON) |
+| `UCPF_SCANNER_SETTLE_MS` | Wait after nav / consent before cookie capture (default **2500**) |
+| `UCPF_SCANNER_PAGE_GAP_MS` | Pause between pages in a session (default **600**) |
+
+**Speed tip:** Prefer fewer pages + Light coverage, and tighten `SETTLE_MS` / `PAGE_GAP_MS`, before raising `MAX_CONCURRENT` (each Chromium needs ~1–2 GB RAM). Keep `MAX_RUNNING_PER_KEY=1` on shared nodes. Light (quick) skips the post-consent full page reload; Standard/Thorough keep it for fidelity.
 
 Generate a key (example):
 
@@ -168,11 +172,16 @@ In WP admin:
 3. **Scanner API key:** same value as in `UCPF_SCANNER_API_KEYS` — **prefer one unique key per site** on agency fleets (list all keys comma-separated on the scanner, or shard sites across scanner nodes)
 4. Save
 
-On **WordPress Multisite**, configure Advanced → Scanner API on **each** site (or use site-specific keys). Avoid network-wide `UCPF_SCANNER_API_*` constants unless every blog should share the same endpoint/key.
+On **WordPress Multisite**, set the shared Scanner API URL (and optional shared key) once under **Network Admin → Privacy Consent**. Leave each site’s Advanced Scanner fields blank to inherit, or fill them to override. Prefer one unique key per site on large fleets (site override, or `UCPF_SCANNER_API_KEY` in a site-specific drop-in). Avoid a single network-wide `UCPF_SCANNER_API_*` constant unless every blog should share the same endpoint/key.
 
-Optional `wp-config.php` overrides (if your install supports them via brand/constants — prefer Advanced UI):
+Optional `wp-config.php` overrides (never written to the database; win over Advanced UI):
 
-- Site setting `scanner_api_url` / `scanner_api_key`
+```php
+define( 'UCPF_SCANNER_API_URL', 'https://scanner.yourdomain.com' );
+define( 'UCPF_SCANNER_API_KEY', 'per-site-key-here' );
+```
+
+Keys saved via the UI are **encrypted at rest** in `ucpf_settings` (see Developer → API secrets). Leave the password field blank when saving other settings to keep the existing key.
 
 Then use **Cookie Scanner** flows that call the remote API (or scheduled deep scan when configured). You can still **import JSON** from a local CLI scan without any server API.
 
@@ -182,8 +191,10 @@ When you click **Run Playwright scan** in Cookie Scanner:
 
 1. WordPress starts the remote job and stores `job_id` + progress/log snapshots in the `ucpf_active_deep_scan` option.
 2. WP-Cron (`ucpf_active_scan_poll`) polls the scanner about every 60s and imports the report when the job completes — **even if you close the Scanner tab**.
-3. Returning to Cookie Scanner calls `GET /ucpf/v1/scan/active` and reconnects the progress UI.
-4. **Stop** always cancels the stored job id (not only an in-memory browser id).
+3. Returning to Cookie Scanner (or any UCPF admin screen) shows status: the Scanner progress panel reconnects via `GET /ucpf/v1/scan/active`; other admin pages show an **admin notice** with Open Cookie Scanner / Stop. Multiple Scanner tabs elect one poller via `BroadcastChannel`.
+4. **Stop** always cancels the stored job id (not only an in-memory browser id). Safe to leave the page — the Chromium job keeps running on the scanner host.
+
+Optional checkbox **Also capture logged-in cookies after Playwright** runs one helper HTTP pass with the current admin session after a successful guest Playwright import (no WordPress login inside Chromium).
 
 **Re-verify (fast Playwright)** (after enabling blocking / Cookie Review) is a narrower job: Light coverage (`no_consent` + `reject_all`) on pages from the last Playwright report (capped ~8), or Standard sessions if the last FAILs include GPC/DNS. It does not change your coverage dropdown or full page selection — use **Run Playwright scan** for a full inventory crawl.
 

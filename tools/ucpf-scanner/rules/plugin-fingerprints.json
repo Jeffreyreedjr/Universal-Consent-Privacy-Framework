@@ -3212,34 +3212,6 @@
       "notes": "inferred_slug: true"
     },
     {
-      "slug": "7mm-gravity-forms-styles",
-      "name": "7MM Gravity Forms Styles",
-      "category": "forms",
-      "consent_category": "necessary",
-      "treatment": "label",
-      "importance": "required",
-      "privacy_impact": "low",
-      "scan_priority": "low",
-      "service_key": null,
-      "script_paths": [
-        "/wp-content/plugins/7mm-gravity-forms-styles/"
-      ],
-      "style_paths": [],
-      "ajax_actions": [],
-      "rest_routes": [],
-      "cookies": [],
-      "local_storage": [],
-      "session_storage": [],
-      "known_globals": [],
-      "dom_selectors": [],
-      "iframe_patterns": [],
-      "third_party_domains": [],
-      "network_patterns": [
-        "7mm-gravity"
-      ],
-      "notes": "inferred_slug: true"
-    },
-    {
       "slug": "stripe",
       "name": "Stripe",
       "category": "payments",
@@ -6576,11 +6548,11 @@
     {
       "slug": "userway",
       "name": "UserWay Accessibility",
-      "category": "security",
-      "consent_category": "functional",
-      "treatment": "consent",
-      "importance": "non_essential",
-      "privacy_impact": "medium",
+      "category": "necessary",
+      "consent_category": "necessary",
+      "treatment": "necessary",
+      "importance": "essential",
+      "privacy_impact": "low",
       "scan_priority": "medium",
       "service_key": "userway",
       "script_paths": [],
@@ -6602,16 +6574,16 @@
       "network_patterns": [
         "userway"
       ],
-      "notes": ""
+      "notes": "Accessibility toolbar — treat as necessary; never gate behind consent."
     },
     {
       "slug": "userway-accessibility-widget",
       "name": "Accessibility by UserWay",
-      "category": "security",
-      "consent_category": "functional",
-      "treatment": "consent",
-      "importance": "non_essential",
-      "privacy_impact": "medium",
+      "category": "necessary",
+      "consent_category": "necessary",
+      "treatment": "necessary",
+      "importance": "essential",
+      "privacy_impact": "low",
       "scan_priority": "medium",
       "service_key": "userway",
       "script_paths": [
@@ -6634,7 +6606,7 @@
       "network_patterns": [
         "userway"
       ],
-      "notes": ""
+      "notes": "Accessibility toolbar — treat as necessary; never gate behind consent."
     },
     {
       "slug": "cloudflare",
@@ -8346,120 +8318,6 @@
       "third_party_domains": [],
       "network_patterns": [
         "santapress"
-      ],
-      "notes": "inferred_slug: true"
-    },
-    {
-      "slug": "np-quote-request",
-      "name": "NP Quote Request",
-      "category": "custom",
-      "consent_category": "necessary",
-      "treatment": "necessary",
-      "importance": "required",
-      "privacy_impact": "low",
-      "scan_priority": "medium",
-      "service_key": null,
-      "script_paths": [
-        "/wp-content/plugins/np-quote-request/"
-      ],
-      "style_paths": [],
-      "ajax_actions": [],
-      "rest_routes": [],
-      "cookies": [],
-      "local_storage": [],
-      "session_storage": [],
-      "known_globals": [],
-      "dom_selectors": [],
-      "iframe_patterns": [],
-      "third_party_domains": [],
-      "network_patterns": [
-        "np-quote-request"
-      ],
-      "notes": "inferred_slug: true"
-    },
-    {
-      "slug": "7mm-events-panel",
-      "name": "7mm Events Panel",
-      "category": "custom",
-      "consent_category": "functional",
-      "treatment": "consent",
-      "importance": "non_essential",
-      "privacy_impact": "low",
-      "scan_priority": "medium",
-      "service_key": null,
-      "script_paths": [
-        "/wp-content/plugins/7mm-events-panel/"
-      ],
-      "style_paths": [],
-      "ajax_actions": [],
-      "rest_routes": [],
-      "cookies": [],
-      "local_storage": [],
-      "session_storage": [],
-      "known_globals": [],
-      "dom_selectors": [],
-      "iframe_patterns": [],
-      "third_party_domains": [],
-      "network_patterns": [
-        "7mm-events",
-        "7mm"
-      ],
-      "notes": "inferred_slug: true"
-    },
-    {
-      "slug": "capcity-closings",
-      "name": "CapCity Closings",
-      "category": "custom",
-      "consent_category": "functional",
-      "treatment": "consent",
-      "importance": "non_essential",
-      "privacy_impact": "low",
-      "scan_priority": "medium",
-      "service_key": null,
-      "script_paths": [
-        "/wp-content/plugins/capcity-closings/"
-      ],
-      "style_paths": [],
-      "ajax_actions": [],
-      "rest_routes": [],
-      "cookies": [],
-      "local_storage": [],
-      "session_storage": [],
-      "known_globals": [],
-      "dom_selectors": [],
-      "iframe_patterns": [],
-      "third_party_domains": [],
-      "network_patterns": [
-        "capcity-closings",
-        "capcity"
-      ],
-      "notes": "inferred_slug: true"
-    },
-    {
-      "slug": "wood-sample-builder",
-      "name": "Wood Sample Builder",
-      "category": "custom",
-      "consent_category": "functional",
-      "treatment": "consent",
-      "importance": "non_essential",
-      "privacy_impact": "low",
-      "scan_priority": "medium",
-      "service_key": null,
-      "script_paths": [
-        "/wp-content/plugins/wood-sample-builder/"
-      ],
-      "style_paths": [],
-      "ajax_actions": [],
-      "rest_routes": [],
-      "cookies": [],
-      "local_storage": [],
-      "session_storage": [],
-      "known_globals": [],
-      "dom_selectors": [],
-      "iframe_patterns": [],
-      "third_party_domains": [],
-      "network_patterns": [
-        "wood-sample"
       ],
       "notes": "inferred_slug: true"
     },

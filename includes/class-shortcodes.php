@@ -40,9 +40,111 @@ class Shortcodes {
 		add_shortcode( 'ucpf_consent_preferences', array( $this, 'consent_preferences' ) );
 		add_shortcode( 'ucpf_cookie_table', array( $this, 'cookie_table' ) );
 		add_shortcode( 'ucpf_privacy_disclosures', array( $this, 'privacy_disclosures' ) );
+		add_shortcode( 'ucpf_clarity_disclosure', array( $this, 'clarity_site_disclosure' ) );
 		add_shortcode( 'ucpf_data_request_form', array( $this, 'data_request_form' ) );
 		add_shortcode( 'ucpf_do_not_sell_form', array( $this, 'do_not_sell_form' ) );
 		add_shortcode( 'ucpf_privacy_summary', array( $this, 'privacy_summary' ) );
+	}
+
+	/**
+	 * Optional homepage/footer site disclosure for Microsoft Clarity (GDPR-safe).
+	 *
+	 * Unlike Microsoft’s sample “by using this site you agree” browsewrap text, this
+	 * points visitors to Cookie Settings and the Privacy Policy — Clarity still waits
+	 * for Analytics consent where the jurisdiction pack requires it.
+	 *
+	 * @param array $atts Shortcode attributes.
+	 * @return string
+	 */
+	public function clarity_site_disclosure( $atts = array() ) {
+		$atts = shortcode_atts(
+			array(
+				'force' => '0',
+			),
+			$atts,
+			'ucpf_clarity_disclosure'
+		);
+
+		$force = in_array( strtolower( (string) $atts['force'] ), array( '1', 'true', 'yes' ), true );
+		if ( ! $force && ! $this->site_uses_clarity() ) {
+			return '';
+		}
+
+		$privacy_url = Page_Generator::instance()->get_page_url( 'privacy_policy' );
+		$cookie_url  = Page_Generator::instance()->get_page_url( 'cookie_policy' );
+
+		ob_start();
+		?>
+		<p class="ucpf-site-disclosure ucpf-site-disclosure--clarity">
+			<?php
+			esc_html_e(
+				'We improve our products and site experience with Microsoft Clarity (behavior analytics, heatmaps, and session replay). Where required, Clarity loads only after you accept Analytics in Cookie Settings — not from mere browsing alone.',
+				'universal-consent-privacy-framework'
+			);
+			?>
+			<?php if ( $privacy_url ) : ?>
+				<?php
+				echo ' ';
+				echo wp_kses(
+					sprintf(
+						/* translators: %s: privacy policy URL */
+						__( 'See our <a href="%s">Privacy Policy</a> for details, including how Microsoft may process data.', 'universal-consent-privacy-framework' ),
+						esc_url( $privacy_url )
+					),
+					array( 'a' => array( 'href' => true ) )
+				);
+				?>
+			<?php endif; ?>
+			<?php if ( $cookie_url ) : ?>
+				<?php
+				echo ' ';
+				echo wp_kses(
+					sprintf(
+						/* translators: %s: cookie policy URL */
+						__( '<a href="%s">Cookie Policy</a>', 'universal-consent-privacy-framework' ),
+						esc_url( $cookie_url )
+					),
+					array( 'a' => array( 'href' => true ) )
+				);
+				?>
+			<?php endif; ?>
+			<?php echo ' '; ?>
+			<button type="button" class="ucpf-btn ucpf-btn--link" data-ucpf-open-preferences>
+				<?php esc_html_e( 'Cookie Settings', 'universal-consent-privacy-framework' ); ?>
+			</button>
+		</p>
+		<?php
+		return (string) ob_get_clean();
+	}
+
+	/**
+	 * Whether Clarity appears enabled or detected for disclosures.
+	 *
+	 * @return bool
+	 */
+	private function site_uses_clarity() {
+		$ids = Settings::get( 'service_ids', array() );
+		if ( is_array( $ids ) && ! empty( $ids['microsoft_clarity'] ) && is_array( $ids['microsoft_clarity'] ) ) {
+			$row = $ids['microsoft_clarity'];
+			if ( ! empty( $row['enabled'] ) && ( ! empty( $row['id'] ) || ! empty( $row['code'] ) ) ) {
+				return true;
+			}
+		}
+
+		$inv  = Cookie_Scanner::instance()->get_policy_inventory();
+		$hay  = strtolower(
+			implode(
+				' ',
+				array_merge(
+					isset( $inv['service_keys'] ) ? (array) $inv['service_keys'] : array(),
+					wp_list_pluck( isset( $inv['plugins'] ) ? (array) $inv['plugins'] : array(), 'service_key' ),
+					wp_list_pluck( isset( $inv['plugins'] ) ? (array) $inv['plugins'] : array(), 'name' ),
+					wp_list_pluck( isset( $inv['technologies'] ) ? (array) $inv['technologies'] : array(), 'name' ),
+					wp_list_pluck( isset( $inv['destinations'] ) ? (array) $inv['destinations'] : array(), 'host' )
+				)
+			)
+		);
+		return ( false !== strpos( $hay, 'clarity' ) );
 	}
 
 	/**
@@ -250,6 +352,15 @@ class Shortcodes {
 		$dns_url       = Page_Generator::instance()->get_rights_url( 'do_not_sell' );
 		$cookie_url    = Page_Generator::instance()->get_page_url( 'cookie_policy' );
 
+		$service_ids = Settings::get( 'service_ids', array() );
+		if ( is_array( $service_ids ) ) {
+			foreach ( $service_ids as $sid_key => $sid_row ) {
+				if ( is_array( $sid_row ) && ! empty( $sid_row['enabled'] ) && ( ! empty( $sid_row['id'] ) || ! empty( $sid_row['code'] ) ) ) {
+					$service_keys[] = (string) $sid_key;
+				}
+			}
+		}
+
 		$has = static function ( $needles ) use ( $service_keys, $plugins, $tech, $destinations ) {
 			$hay = strtolower( implode( ' ', array_merge( $service_keys, wp_list_pluck( $plugins, 'service_key' ), wp_list_pluck( $plugins, 'name' ), wp_list_pluck( $tech, 'name' ), wp_list_pluck( $destinations, 'name' ), wp_list_pluck( $destinations, 'host' ) ) ) );
 			foreach ( (array) $needles as $n ) {
@@ -436,9 +547,39 @@ class Shortcodes {
 				<p><?php esc_html_e( 'Google Tag Manager may be used to manage tags and integrations for analytics, ads, and consent signals. Data collected depends on the tags configured. Where required, tags that load analytics or advertising should respect consent choices before firing.', 'universal-consent-privacy-framework' ); ?></p>
 			<?php endif; ?>
 
-			<?php if ( $has( array( 'clarity', 'microsoft' ) ) ) : ?>
-				<h3><?php esc_html_e( 'Microsoft Clarity and Advertising', 'universal-consent-privacy-framework' ); ?></h3>
-				<p><?php esc_html_e( 'Microsoft Clarity or Microsoft Advertising may capture behavioral metrics, heatmaps, clicks, scrolls, and session replay. They may also collect device and browser information and approximate location. These tools help improve usability and security. Where allowed, they may also support advertising. Microsoft processes data under its privacy statement. Where required, these tools load only after consent.', 'universal-consent-privacy-framework' ); ?></p>
+			<?php if ( $has( array( 'microsoft_clarity', 'clarity.ms', 'clarity' ) ) ) : ?>
+				<h3><?php esc_html_e( 'Microsoft Clarity', 'universal-consent-privacy-framework' ); ?></h3>
+				<p><?php
+					esc_html_e(
+						'We partner with Microsoft Clarity to understand how you use and interact with this website. Clarity may capture behavioral metrics, heatmaps, clicks, scrolls, and session replay, and may collect device and browser information and approximate location, using first- and third-party cookies and similar technologies. We use this information to improve products and services, optimize the site, support fraud and security monitoring, and (where enabled) advertising or Microsoft Advertising integrations.',
+						'universal-consent-privacy-framework'
+					);
+				?></p>
+				<p><?php
+					esc_html_e(
+						'Where GDPR-style rules or our jurisdiction pack require consent, Clarity loads only after you accept Analytics (or an equivalent category). It does not run from mere site use before that choice. You can change or withdraw consent anytime via Cookie Settings.',
+						'universal-consent-privacy-framework'
+					);
+				?></p>
+				<p><?php
+					echo wp_kses(
+						sprintf(
+							/* translators: %s: Microsoft Privacy Statement URL */
+							__( 'For more information about how Microsoft collects and uses your data, visit the <a href="%s" rel="noopener noreferrer" target="_blank">Microsoft Privacy Statement</a>.', 'universal-consent-privacy-framework' ),
+							esc_url( 'https://privacy.microsoft.com/privacystatement' )
+						),
+						array(
+							'a' => array(
+								'href'   => true,
+								'rel'    => true,
+								'target' => true,
+							),
+						)
+					);
+				?></p>
+			<?php elseif ( $has( array( 'microsoft_advertising', 'bing ads', 'bat.bing.com', 'uetag' ) ) ) : ?>
+				<h3><?php esc_html_e( 'Microsoft Advertising', 'universal-consent-privacy-framework' ); ?></h3>
+				<p><?php esc_html_e( 'Microsoft Advertising (Bing UET) may measure visits and conversions for ads. Where required, it loads only after Marketing consent. Microsoft processes data under its privacy statement.', 'universal-consent-privacy-framework' ); ?></p>
 			<?php endif; ?>
 
 			<?php if ( $has( array( 'cloudflare' ) ) ) : ?>
@@ -472,6 +613,11 @@ class Shortcodes {
 
 			<h2><?php esc_html_e( 'Security', 'universal-consent-privacy-framework' ); ?></h2>
 			<p><?php esc_html_e( 'We use reasonable technical and organizational measures such as TLS, access controls, firewalls, malware scanning, and monitoring. No method of transmission or storage is completely secure.', 'universal-consent-privacy-framework' ); ?></p>
+			<?php if ( Settings::get( 'login_security_notice', true ) ) : ?>
+				<h3><?php esc_html_e( 'Account login activity', 'universal-consent-privacy-framework' ); ?></h3>
+				<p><?php echo esc_html( Login_Notice::notice_text() ); ?></p>
+				<p><?php esc_html_e( 'Password-policy and login-security tools (for example plugins that enforce password rotation or record sign-in history) may retain those events separately from cookie consent logs. Staff and customers with accounts should expect this monitoring as part of protecting the site.', 'universal-consent-privacy-framework' ); ?></p>
+			<?php endif; ?>
 
 			<h2><?php esc_html_e( 'Your privacy rights', 'universal-consent-privacy-framework' ); ?></h2>
 			<p><?php esc_html_e( 'Depending on where you live, you may have rights to access, correct, delete, restrict, or object to processing. You may also withdraw consent, request portability, opt out of certain advertising or sale or sharing, limit use of sensitive personal information, and lodge a complaint with a supervisory authority.', 'universal-consent-privacy-framework' ); ?></p>

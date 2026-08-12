@@ -19,7 +19,7 @@ Services with `treatment: consent` and `default_blocking: true` feed the early *
 | `functional` | Embeds & Widgets | `consent` |
 | `security` | Security | `necessary` or `consent` |
 
-Current fleet defaults (keep in sync when reviewing a reference site):
+Current catalog defaults (keep categories aligned when adding vendors):
 
 - **YouTube** (`maps.json`): service + player cookies (`YSC`, `VISITOR_*`, `__Secure-Y*`) → `marketing` / `consent`, `default_blocking: true`
 - **Mapbox** (`maps.json`): `api` / `events` / `tiles.mapbox.com` → `functional` / `consent`, `default_blocking: true` (local Leaflet library is necessary / not gated; tiles gate via Mapbox/OSM)
@@ -54,8 +54,22 @@ Current fleet defaults (keep in sync when reviewing a reference site):
 | File | Role |
 |------|------|
 | `core.json`, `google.json`, `maps.json`, `media-embeds.json`, … | Service + cookie definitions (all folder JSON except `plugin-map` load into Script_Registry) |
+| `chat-heatmaps-extra.json` | Additional chat widgets, session-replay/heatmap hosts, ad DSP extras, media embeds |
 | `email.json` | Transactional SMTP / ESP disclosure services (`smtp.mandrillapp.com` is backend — not a front-end gate) |
 | `plugin-map.json` | Active plugin → service key (detection only) |
+
+## Contribution conventions
+
+Each service object should include:
+
+- `key` — stable snake_case id
+- `category` — `necessary` | `preferences` | `analytics` | `marketing` | `functional` | `security`
+- `treatment` — usually `consent` for gated vendors
+- `script_patterns` / `iframe_patterns` — host or path needles (min ~4 chars) fed to `__ucpfGateExtra` when `default_blocking: true`
+- `cookie_patterns` / `cookies[]` — for Cookie Policy / review classification
+- `default_blocking: true` — required for early network-gate coverage
+
+Network gate is URL/pattern-based. Cookie-name knowledge (Open Cookie Database merge via Cookie Knowledge) classifies observed cookies for policy display; it does not replace URL gating.
 
 See `tools/ucpf-scanner/README.md` and `docs/GETTING-STARTED.md`.
 

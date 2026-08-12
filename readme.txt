@@ -4,7 +4,7 @@ Tags: privacy, gdpr, cookies, consent, cookie banner
 Requires at least: 6.3
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.1.15-alpha
+Stable tag: 0.1.29-alpha
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -98,6 +98,64 @@ Cookie descriptions may fall back to a bundled offline snapshot of the Open Cook
 
 == Changelog ==
 
+= 0.1.29-alpha =
+
+* Harden network-gate against optimizer setAttribute(url) crashes (Hummingbird combine/delay)
+* Auto-exclude UCPF scripts/CSS from Hummingbird, Autoptimize, WP Rocket, LiteSpeed minify/combine/delay
+* Captcha reinit after Security consent / new-tab races (Gravity Forms)
+
+= 0.1.28-alpha =
+
+* UserWay fully hands-off: never cover/park; guard filter must not break fixed a11y toolbar (top-right icon bug)
+
+= 0.1.27-alpha =
+
+* UserWay accessibility widget: necessary / never gated (was Preferences → Embeds)
+
+= 0.1.26-alpha =
+
+* Elementor YouTube/Vimeo: empty .elementor-video shells no longer collapse the consent overlay to 0 height (16:9 fallback for video widgets only)
+
+= 0.1.25-alpha =
+
+* Never wrap <body>/<html>/<head> in consent guards (Calendly script under body was wrapping the whole page and breaking Elementor sticky/MutationObserver)
+* Heal existing body-wrap overlays on load
+
+= 0.1.24-alpha =
+
+* Plugin Check: translators comment, escaped scanner counts, sanitized GET/POST, network-gate via wp_enqueue_script, Stable tag sync
+
+= 0.1.23-alpha =
+
+* Fix: Amelia Booking as first-party form (Security captcha overlay; never park /ameliabooking/)
+* Fix: Google Maps one-shot restore (stop force-reload loops)
+
+= 0.1.21-alpha =
+
+* Fix: Elementor background Vimeo/YouTube — mount cover iframe on the container (not zero-width embed placeholder) so players are visible after consent
+
+= 0.1.20-alpha =
+
+* Fix: Vimeo unlisted privacy hash (h= / path) preserved on post-consent hydrate; never clobber live iframes; restore deferred embed URLs verbatim
+
+= 0.1.19-alpha =
+
+* Fix: Vimeo/YouTube helpers (gtm4wp-vimeo.js) re-fire after player API loads; same-origin JS is no longer blanket-allowed past the gate
+
+= 0.1.18-alpha =
+
+* Fix: stop full LiteSpeed/Rocket/Autoptimize site cache nukes on every UCPF zip update (was racing Cloudflare Cache Files and uniquely breaking site CSS)
+
+= 0.1.17-alpha =
+
+* Fix (any site): layout fonts never gated; never use empty stylesheet href (MIME text/html); same-origin CSS never gated
+* Cloudflare: keep Bypass for all .css/.js + uploads (see docs/CLOUDFLARE-CACHE.md)
+
+= 0.1.16-alpha =
+
+* Video overlays: Enable grants Marketing + Embeds; Elementor/YouTube Shorts shells hydrate after consent
+* Scanner differential: post-revoke leftovers are cleanup warnings (not FAIL)
+
 = 0.1.15-alpha =
 
 * Fix: stop MutationObserver from watching class (was breaking Elementor fade/sticky Motion Effects + Turnstile)
@@ -108,7 +166,7 @@ Cookie descriptions may fall back to a bundled offline snapshot of the Open Cook
 
 = 0.1.13-alpha =
 
-* Hotfix attempt: hard-reload only (still needed full JS restore)
+* Attempted hard-reload-only recovery (full JS restore required in 0.1.14)
 
 = 0.1.12-alpha =
 

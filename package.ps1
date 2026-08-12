@@ -56,6 +56,10 @@ function Should-Exclude([string]$relativePath) {
         if ($part -like "_cmp*") { return $true }
         if ($part -like "_compare*") { return $true }
         if ($part -like "_hotfix*") { return $true }
+        if ($part -like "_dbg*") { return $true }
+        if ($part -like "debug-*") { return $true }
+        if ($part -like "*.log") { return $true }
+        if ($part -like "*.har") { return $true }
     }
     return $false
 }
@@ -160,5 +164,5 @@ Write-Host ""
 Write-Host "Done: $($zipInfo.FullName)"
 Write-Host ("Size: {0:N1} KB" -f ($zipInfo.Length / 1KB))
 Write-Host ""
-Write-Host "Before uploading: delete any broken copy under wp-content/plugins/universal-consent-privacy-framework"
-Write-Host "Then: Plugins > Add New > Upload Plugin > this zip > Activate"
+Write-Host "Upload: Plugins > Add New > Upload Plugin > this zip (WordPress can replace an existing install)."
+Write-Host "If the previous copy is corrupted, delete wp-content/plugins/universal-consent-privacy-framework first, then upload."

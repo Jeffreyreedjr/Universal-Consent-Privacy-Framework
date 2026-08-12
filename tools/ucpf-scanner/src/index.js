@@ -142,7 +142,7 @@ app.get('/health', (_req, res) => {
   res.json({
     ok: true,
     service: 'ucpf-scanner',
-    version: '1.4.0',
+    version: '1.5.1',
     concurrent: config.maxConcurrentScans,
     active: getActiveCount(),
     queue: getQueueLength(),
@@ -223,7 +223,7 @@ app.post('/v1/verify-domain', requireAuth, rateLimit, async (req, res) => {
 
 app.post('/v1/scans', requireAuth, rateLimit, async (req, res) => {
   const url = req.body?.url;
-  const paths = Array.isArray(req.body?.paths) ? req.body.paths : ['/'];
+  const rawPaths = Array.isArray(req.body?.paths) ? req.body.paths : ['/'];
   if (!url || typeof url !== 'string') {
     return res.status(400).json({ error: 'url is required' });
   }
@@ -234,6 +234,20 @@ app.post('/v1/scans', requireAuth, rateLimit, async (req, res) => {
     return res.status(400).json({ error: safe.error });
   }
 
+  const reqOptions =
+    req.body?.options && typeof req.body.options === 'object' ? { ...req.body.options } : {};
+  // WordPress (and CLI --paths) already curated the list — never thin to env maxPagesPerScan.
+  const exactPaths = reqOptions.exactPaths !== false;
+  const optMax = Math.max(0, Number(reqOptions.maxPages) || 0);
+  const pathCap = exactPaths
+    ? Math.min(500, Math.max(rawPaths.length, optMax, 1))
+    : Math.min(500, Math.max(1, config.maxPagesPerScan || 100));
+  const paths = rawPaths.slice(0, pathCap);
+  if (exactPaths) {
+    reqOptions.exactPaths = true;
+    reqOptions.maxPages = Math.max(paths.length, optMax, 1);
+  }
+
   const id = randomUUID();
   const keyFp = req.ucpfKeyFp || fingerprintKey(req.ucpfApiKey || 'local');
   const job = {
@@ -242,8 +256,8 @@ app.post('/v1/scans', requireAuth, rateLimit, async (req, res) => {
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     url: safe.url,
-    paths: paths.slice(0, config.maxPagesPerScan),
-    options: req.body?.options || {},
+    paths,
+    options: reqOptions,
     key_fp: keyFp,
     report: null,
     error: null,
@@ -283,6 +297,8 @@ app.post('/v1/scans', requireAuth, rateLimit, async (req, res) => {
     estimated_wait_hint: position > 0 ? estimatedWaitHint(position) : null,
     active: getActiveCount(),
     max: config.maxConcurrentScans,
+    paths_count: paths.length,
+    exactPaths: exactPaths,
   });
 });
 
@@ -398,6 +414,8 @@ app.get('/v1/scans/:id', requireAuth, rateLimit, (req, res) => {
   const withReport =
     job.status === 'completed' || job.status === 'cancelled' || (job.status === 'cancelling' && job.report);
   const position = job.status === 'queued' ? getQueuePosition(job.id) : 0;
+  const jobPaths = Array.isArray(job.paths) ? job.paths : [];
+  const exactPaths = !!(job.options && job.options.exactPaths !== false);
   return res.json({
     id: job.id,
     status: job.status,
@@ -410,6 +428,9 @@ app.get('/v1/scans/:id', requireAuth, rateLimit, (req, res) => {
     queue_length: getQueueLength(),
     estimated_wait_hint: position > 0 ? estimatedWaitHint(position) : null,
     cancel_requested: isCancelRequested(job.id),
+    paths: jobPaths,
+    paths_count: jobPaths.length,
+    exactPaths,
     report: withReport ? job.report : null,
   });
 });

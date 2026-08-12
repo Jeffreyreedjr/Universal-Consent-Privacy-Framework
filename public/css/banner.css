@@ -1056,9 +1056,26 @@
 .ucpf-consent-guard--embed.ucpf-consent-guard--active {
   width: 100% !important;
   max-width: 100% !important;
-  min-height: 14rem !important;
   /* Keep the card inside the media box (Elementor columns often clip overflow). */
   overflow: hidden !important;
+  /* Size queries so short video boxes can shrink type/buttons instead of clipping. */
+  container-type: size;
+  container-name: ucpf-embed-guard;
+  /* Do NOT force a taller min-height — JS locks the pre-gate box size when needed. */
+}
+
+/*
+ * Safety net: Elementor YouTube/Vimeo widgets often ship an empty .elementor-video
+ * (no iframe yet). Absolute inset panels then paint at 0×0. Only these video shells —
+ * not forms, maps, Calendly, or captcha covers.
+ */
+.ucpf-consent-guard--embed.ucpf-consent-guard--active.elementor-widget-video:not([data-ucpf-size-locked="1"]),
+.ucpf-consent-guard--embed.ucpf-consent-guard--active[data-widget_type="video.default"]:not([data-ucpf-size-locked="1"]),
+.ucpf-consent-guard--embed.ucpf-consent-guard--active[data-ucpf-guard-kind="youtube"]:not([data-ucpf-size-locked="1"]),
+.ucpf-consent-guard--embed.ucpf-consent-guard--active[data-ucpf-guard-kind="vimeo"]:not([data-ucpf-size-locked="1"]) {
+  aspect-ratio: 16 / 9;
+  min-height: 12rem;
+  width: 100%;
 }
 
 /*
@@ -1068,6 +1085,8 @@
  */
 .ucpf-consent-guard--bg.ucpf-consent-guard--active {
   isolation: isolate;
+  container-type: size;
+  container-name: ucpf-embed-guard;
 }
 
 .ucpf-consent-guard--bg > .ucpf-consent-guard__panel {
@@ -1091,12 +1110,18 @@
   background: color-mix(in srgb, var(--ucpf-surface, #111111) 92%, transparent) !important;
   display: flex !important;
   flex-direction: column !important;
-  justify-content: center !important;
+  /* safe center: when content is taller than the box, align to start so the title isn’t clipped */
+  justify-content: flex-start !important;
+  justify-content: safe center !important;
   align-items: center !important;
-  padding: clamp(1rem, 3vw, 1.75rem) !important;
-  gap: 0.75rem !important;
-  overflow: auto !important;
+  padding: clamp(0.65rem, 2.5vw, 1.25rem) !important;
+  gap: 0.5rem !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   pointer-events: auto !important;
+  scrollbar-gutter: stable;
 }
 
 /* On BG hosts, only dim the Elementor video fill — not section content siblings. */
@@ -1121,7 +1146,7 @@
   min-height: 0;
 }
 
-/* Builder video shells are often empty until JS injects an iframe */
+/* Builder video shells keep their own aspect-ratio / padding-bottom sizing. */
 .ucpf-consent-guard--embed.ucpf-consent-guard--active .elementor-video,
 .ucpf-consent-guard--embed.ucpf-consent-guard--active .elementor-wrapper,
 .ucpf-consent-guard--embed.ucpf-consent-guard--active.elementor-widget-video,
@@ -1131,16 +1156,41 @@
 .ucpf-consent-guard--embed.ucpf-consent-guard--active.brxe-video,
 .ucpf-consent-guard--embed.ucpf-consent-guard--active.wp-block-embed-youtube,
 .ucpf-consent-guard--embed.ucpf-consent-guard--active.wp-block-embed-vimeo {
-  min-height: 14rem;
   position: relative;
 }
 
-/* Dim the underlying surface; panel stays interactive above it */
+/* Dim the underlying surface; panel stays interactive above it.
+ * Never apply to document chrome (filter creates a containing block and breaks
+ * position:fixed widgets like UserWay). */
 .ucpf-consent-guard--active > *:not(.ucpf-consent-guard__panel) {
   opacity: 0.4;
   filter: grayscale(0.2);
   pointer-events: none;
   user-select: none;
+}
+
+.ucpf-consent-guard--active > body,
+.ucpf-consent-guard--active > html,
+.ucpf-consent-guard--active > #ucpf-root {
+  opacity: 1 !important;
+  filter: none !important;
+  pointer-events: auto !important;
+  user-select: auto !important;
+}
+
+/* Accessibility toolbar must stay interactive and viewport-fixed */
+.ucpf-consent-guard--active #userwayAccessibilityIcon,
+.ucpf-consent-guard--active .userway_buttons_wrapper,
+.ucpf-consent-guard--active .uwy,
+.ucpf-consent-guard--active [id*="userway"],
+.ucpf-consent-guard--active [class*="userway"],
+#userwayAccessibilityIcon,
+.userway_buttons_wrapper,
+.uwy {
+  opacity: 1 !important;
+  filter: none !important;
+  pointer-events: auto !important;
+  user-select: auto !important;
 }
 
 /*
@@ -1164,9 +1214,11 @@
   transform: none !important;
   overflow-x: hidden !important;
   overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
   display: flex !important;
   flex-direction: column !important;
-  justify-content: center !important;
+  justify-content: flex-start !important;
+  justify-content: safe center !important;
   align-items: stretch !important;
   gap: 0.35rem !important;
   text-align: center !important;
@@ -1183,7 +1235,7 @@
 }
 
 /*
- * Embeds/maps/video: full-bleed glass over the media box (not a cramped floating card).
+ * Embeds/maps/video: full-bleed glass over the original media box (not a taller invented shell).
  */
 .ucpf-consent-guard--embed > .ucpf-consent-guard__panel {
   inset: 0 !important;
@@ -1197,7 +1249,8 @@
   min-height: 0 !important;
   max-height: none !important;
   margin: 0 !important;
-  padding: clamp(1rem, 4%, 1.75rem) !important;
+  padding: clamp(0.65rem, 2.5%, 1.25rem) !important;
+  padding-bottom: max(0.65rem, env(safe-area-inset-bottom, 0px)) !important;
   transform: none !important;
   border-radius: 0 !important;
   border: none !important;
@@ -1208,15 +1261,19 @@
   -webkit-backdrop-filter: blur(10px) saturate(1.1);
   overflow-x: hidden !important;
   overflow-y: auto !important;
-  justify-content: center !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  justify-content: flex-start !important;
+  justify-content: safe center !important;
   align-items: center !important;
-  gap: 0.75rem !important;
+  gap: 0.5rem !important;
+  scrollbar-gutter: stable;
 }
 
 .ucpf-consent-guard--embed > .ucpf-consent-guard__panel .ucpf-consent-guard__title,
 .ucpf-consent-guard--embed > .ucpf-consent-guard__panel .ucpf-consent-guard__body,
 .ucpf-consent-guard--embed > .ucpf-consent-guard__panel .ucpf-consent-guard__actions {
-  width: min(100%, 36rem) !important;
+  width: min(100%, 28rem) !important;
   max-width: 100% !important;
   flex: 0 0 auto !important;
 }
@@ -1351,6 +1408,41 @@
   outline-offset: 2px !important;
 }
 
+/*
+ * Phone / tablet: keep the original media box — shrink copy/buttons via
+ * container queries instead of inventing a taller shell / breaking aspect-ratio.
+ */
+@media (max-width: 1024px) {
+  .ucpf-consent-guard--embed > .ucpf-consent-guard__panel {
+    gap: 0.4rem !important;
+    padding: 0.75rem 0.7rem 0.85rem !important;
+  }
+
+  .ucpf-consent-guard--embed > .ucpf-consent-guard__panel .ucpf-consent-guard__title {
+    font-size: 1rem !important;
+    margin-bottom: 0.25rem !important;
+  }
+
+  .ucpf-consent-guard--embed > .ucpf-consent-guard__panel .ucpf-consent-guard__body {
+    font-size: 0.8125rem !important;
+    line-height: 1.4 !important;
+    margin-bottom: 0.45rem !important;
+  }
+
+  .ucpf-consent-guard--embed > .ucpf-consent-guard__panel .ucpf-consent-guard__actions {
+    flex-direction: column !important;
+    gap: 0.4rem !important;
+  }
+
+  .ucpf-consent-guard--embed > .ucpf-consent-guard__panel .ucpf-consent-guard__btn {
+    width: 100% !important;
+    max-width: 20rem !important;
+    min-height: 2.35rem !important;
+    padding: 0.55rem 0.9rem !important;
+    font-size: 0.8125rem !important;
+  }
+}
+
 @media (max-width: 480px) {
   .ucpf-consent-guard__panel {
     padding: 1.15rem 1rem 1.1rem !important;
@@ -1365,11 +1457,47 @@
   }
 }
 
+/* Short embed boxes (any viewport): compact copy so nothing is cut off mid-button */
+@supports (container-type: size) {
+  @container ucpf-embed-guard (max-height: 260px) {
+    .ucpf-consent-guard__panel {
+      gap: 0.3rem !important;
+      padding: 0.5rem 0.55rem 0.6rem !important;
+      justify-content: flex-start !important;
+    }
+
+    .ucpf-consent-guard__title {
+      font-size: 0.875rem !important;
+      margin-bottom: 0.15rem !important;
+      line-height: 1.25 !important;
+    }
+
+    .ucpf-consent-guard__body {
+      font-size: 0.75rem !important;
+      line-height: 1.3 !important;
+      margin-bottom: 0.3rem !important;
+    }
+
+    .ucpf-consent-guard__actions {
+      flex-direction: column !important;
+      gap: 0.3rem !important;
+    }
+
+    .ucpf-consent-guard__btn {
+      width: 100% !important;
+      min-height: 2rem !important;
+      padding: 0.4rem 0.65rem !important;
+      font-size: 0.75rem !important;
+    }
+  }
+}
+
 /* Empty iframe placeholders need a visible box under the overlay */
 .ucpf-iframe-placeholder {
   display: block;
-  min-height: 14rem;
   width: 100%;
+  min-height: 0;
+  aspect-ratio: 16 / 9;
   background: color-mix(in srgb, var(--ucpf-surface, #111) 88%, #666);
 }
 

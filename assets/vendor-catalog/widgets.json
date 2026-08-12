@@ -37,15 +37,15 @@
       "key": "userway",
       "name": "UserWay Accessibility",
       "provider": "UserWay",
-      "category": "preferences",
-      "treatment": "consent",
-      "description": "Accessibility widget preferences and related cookies.",
+      "category": "necessary",
+      "treatment": "necessary",
+      "description": "Accessibility widget (ADA / WCAG assistive toolbar). Required for site accessibility — never gated behind consent.",
       "privacy_url": "https://userway.org/privacy/",
       "script_patterns": ["cdn.userway.org", "api.userway.org", "userway.org/widget", "userway.org"],
       "cookie_patterns": ["userway*", "uw-*"],
       "cookies": [],
       "iframe_patterns": [],
-      "default_blocking": true
+      "default_blocking": false
     },
     {
       "key": "facebook_feed",

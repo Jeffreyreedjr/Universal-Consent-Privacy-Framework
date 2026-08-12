@@ -140,7 +140,10 @@ class Theme_Manager {
 
 		$custom = Settings::get( 'custom_css' );
 		if ( $custom ) {
-			wp_add_inline_style( 'ucpf-banner', '.ucpf-custom { ' . wp_strip_all_tags( $custom ) . ' }' );
+			$safe = $this->sanitize_custom_css( $custom );
+			if ( $safe ) {
+				wp_add_inline_style( 'ucpf-banner', '.ucpf-custom { ' . $safe . ' }' );
+			}
 		}
 	}
 
@@ -391,11 +394,11 @@ class Theme_Manager {
 				continue;
 			}
 			$hex = sanitize_hex_color( $raw );
-			$clean[ $color_key ] = $hex ? $hex : sanitize_text_field( $raw );
+			$clean[ $color_key ] = $hex ? $hex : '';
 		}
 
 		if ( array_key_exists( 'custom_css', $theme ) ) {
-			$clean['custom_css'] = wp_strip_all_tags( (string) $theme['custom_css'] );
+			$clean['custom_css'] = $this->sanitize_custom_css( $theme['custom_css'] );
 		}
 
 		foreach ( array( 'show_reject_all', 'show_accept_all', 'show_customize', 'floating_prefs_button' ) as $bool_key ) {
@@ -422,7 +425,7 @@ class Theme_Manager {
 				}
 				$raw = (string) $pack['tokens'][ $token_key ];
 				$hex = sanitize_hex_color( $raw );
-				$clean[ $setting_key ] = $hex ? $hex : sanitize_text_field( $raw );
+				$clean[ $setting_key ] = $hex ? $hex : '';
 			}
 		}
 
@@ -468,10 +471,27 @@ class Theme_Manager {
 	}
 
 	/**
-	 * Normalize a color setting to a safe CSS value (hex preferred).
+	 * Sanitize custom CSS for safe embedding inside `.ucpf-custom { ... }`.
+	 *
+	 * Strips tags, style-tag breakouts, and braces that escape the wrapper.
+	 *
+	 * @param mixed $css Raw CSS.
+	 * @return string
+	 */
+	public function sanitize_custom_css( $css ) {
+		$css = wp_strip_all_tags( (string) $css );
+		// Neutralize </style> / <style> breakouts (any casing / whitespace).
+		$css = preg_replace( '/<\/?\s*style\b[^>]*>/i', '', $css );
+		// Prevent leaving the `.ucpf-custom { ... }` wrapper.
+		$css = str_replace( array( '{', '}' ), '', $css );
+		return trim( (string) $css );
+	}
+
+	/**
+	 * Normalize a color setting to a safe hex CSS value.
 	 *
 	 * @param mixed $raw Raw color.
-	 * @return string Empty if unusable.
+	 * @return string Empty if not a valid hex color.
 	 */
 	private function sanitize_token_color( $raw ) {
 		if ( ! is_string( $raw ) && ! is_numeric( $raw ) ) {
@@ -482,12 +502,7 @@ class Theme_Manager {
 			return '';
 		}
 		$hex = sanitize_hex_color( $raw );
-		if ( $hex ) {
-			return $hex;
-		}
-		// Allow limited non-hex tokens (e.g. currentColor) only if alphanumeric-safe.
-		$safe = sanitize_text_field( $raw );
-		return $safe ? $safe : '';
+		return $hex ? $hex : '';
 	}
 
 	/**

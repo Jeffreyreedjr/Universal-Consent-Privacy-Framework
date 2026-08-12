@@ -104,6 +104,48 @@
       "cookies": [],
       "iframe_patterns": [],
       "default_blocking": true
+    },
+    {
+      "key": "jobber",
+      "name": "Jobber Client Hub / Work Request",
+      "provider": "Jobber",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Embedded Jobber work-request and Client Hub forms (iframes + CloudFront snippet).",
+      "privacy_url": "https://getjobber.com/privacy-policy/",
+      "script_patterns": [
+        "getjobber.com",
+        "clienthub.getjobber.com",
+        "d3ey4dbjkt2f6s.cloudfront.net",
+        "work_request_embed_snippet",
+        "work_request_embed"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [
+        "clienthub.getjobber.com",
+        "getjobber.com"
+      ],
+      "default_blocking": true
+    },
+    {
+      "key": "amelia",
+      "name": "Amelia Booking",
+      "provider": "Amelia Booking",
+      "category": "necessary",
+      "treatment": "necessary",
+      "description": "First-party Amelia booking form UI. Captcha (reCAPTCHA etc.) is Security; do not gate Amelia plugin scripts.",
+      "privacy_url": "https://wpamelia.com/privacy-policy/",
+      "script_patterns": [
+        "/ameliabooking/",
+        "wpamelia",
+        "ameliaBooking",
+        "amelia-booking"
+      ],
+      "cookie_patterns": ["amelia*"],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": false
     }
   ]
 }

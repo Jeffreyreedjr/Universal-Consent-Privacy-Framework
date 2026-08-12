@@ -30,6 +30,15 @@ Turnkey path: install plugin → brand → scan → review → go live.
 
 Change profile later under **Advanced Settings**. Behind Cloudflare, enable **geo pack routing** (Advanced) so US visitors get the US privacy baseline and EEA/UK get strict GDPR — see [JURISDICTION-PACKS.md](JURISDICTION-PACKS.md). If you long-cache HTML or use Ignore Query String, add the Cache Rules in [CLOUDFLARE-CACHE.md](CLOUDFLARE-CACHE.md) (also summarized under Advanced → CDN / Cloudflare assets).
 
+### Performance plugins (Hummingbird, Autoptimize, WP Rocket, LiteSpeed)
+
+Do **not** minify, combine, defer, or delay UCPF assets. The consent gate must load early and uncombined. UCPF auto-registers exclusions when those plugins are present; still verify in the optimizer UI:
+
+- Path: `universal-consent-privacy-framework`
+- Handles: `ucpf-network-gate`, `ucpf-consent`, `ucpf-consent-motion`, `ucpf-loader`, `ucpf-form-captcha-guard`, `ucpf-legal`, `ucpf-banner`
+
+Elementor `post-*.css` 404s (unstyled until hard refresh) are builder/CDN cache issues — UCPF does not consent-gate stylesheets. After plugin/theme/UCPF updates, UCPF clears Elementor’s CSS cache by default so files rebuild on the next front-end view; if the layout is still broken, use Elementor → Regenerate CSS & Data and purge Cloudflare (Bypass `/wp-content/uploads/elementor/css/` — see [CLOUDFLARE-CACHE.md](CLOUDFLARE-CACHE.md)).
+
 ## 3. Branding
 
 **Privacy Consent → Banner & Branding**
@@ -94,13 +103,14 @@ Scanner auth: keys required for remote clients; `UCPF_SCANNER_ALLOW_LOCAL=1` onl
 
 ## Multisite
 
-UCPF is **per-site**: each blog has its own settings, GA4/GTM tags, consent logs, and scan inventory.
+UCPF keeps **banner, consent, inventory, and logs per-site**. Scanner / Privacy Preference / agency registry **connection** settings can be shared once under **Network Admin → Privacy Consent**.
 
-1. Open each site’s dashboard → **Integrations** for that site’s measurement IDs; **Cookie Scanner** to scan that site’s `home_url`.
-2. Prefer a distinct Scanner API key per site on a shared scanner host ([SCANNER-SERVER.md](SCANNER-SERVER.md)).
-3. Network-activate provisions tables/cron for existing blogs and for new sites (`wp_initialize_site`).
-4. Consent cookies use WordPress `COOKIEPATH` so subdirectory blogs do not share `ucpf_consent`. Avoid a network-wide `COOKIE_DOMAIN` if sites must keep separate consent (subdomain fleets are safest with host-only cookies).
-5. Do not set `UCPF_SCANNER_API_URL` / `UCPF_SCANNER_API_KEY` in `wp-config.php` unless every blog should share the same scanner endpoint/key.
+1. **Network Admin → Privacy Consent** — set Scanner API URL/key, Privacy API, and registry defaults. Sites inherit when their Advanced fields are blank; filled site fields override.
+2. Existing installs: use **“Use this site’s settings as network defaults”**, then optionally **Clear site overrides** so every blog inherits (banner/scans untouched).
+3. Open each site’s dashboard → **Integrations** for that site’s measurement IDs; **Cookie Scanner** to scan that site’s `home_url` (inventory stays per-site).
+4. Network-activate provisions tables/cron for existing blogs and for new sites (`wp_initialize_site`). New sites inherit network connection settings automatically via empty site fields.
+5. Consent cookies use WordPress `COOKIEPATH` so subdirectory blogs do not share `ucpf_consent`. Avoid a network-wide `COOKIE_DOMAIN` if sites must keep separate consent (subdomain fleets are safest with host-only cookies).
+6. Resolve order for connection keys: `UCPF_SCANNER_API_*` wp-config constants → site override → network setting → brand default. Constants still win if set.
 
 ## Next
 

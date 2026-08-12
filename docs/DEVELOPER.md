@@ -33,7 +33,7 @@ add_action( 'ucpf_loaded', function () {
 
 UCPF ships a local catalog in `assets/vendor-catalog/*.json`. This is the source of truth for known cookies/services (WordPress, WooCommerce, GA4, Meta, Clarity, embeds, etc.). It grows via plugin updates — no phone-home required.
 
-See `assets/vendor-catalog/README.md` for the schema, category conventions, and contribution workflow. When a reference site’s Cookie review settles on better defaults (e.g. YouTube → marketing, PayPal facility cookies → necessary), update the JSON there and ship a release so all sites inherit it. Per-site overrides still win until cleared.
+See `assets/vendor-catalog/README.md` for the schema, category conventions, and contribution workflow. When Cookie review settles on better catalog defaults (e.g. YouTube → marketing, PayPal facility cookies → necessary), update the JSON there and ship a release so installs inherit it. Per-site overrides still win until cleared.
 
 **Offline descriptions also use** the bundled [Open Cookie Database](https://github.com/jkwakman/Open-Cookie-Database) snapshot (`data/open-cookie-database.min.json`, MIT). Refresh with `tools/build-ocd.ps1`. Admin **Cookie lookup** on Cookie Scanner searches catalog → site knowledge → OCD.
 
@@ -69,7 +69,7 @@ Enqueue with `ucpf_asset_version( 'public/js/consent.js' )` (not bare `UCPF_VERS
 UCPF HTML depends on the `ucpf_consent` cookie; Accept / Decline / Save navigate with `?_ucpf=` so PHP re-renders. On Cloudflare Free, add Cache Rules (Bypass should win over Cache Everything / Cache Files):
 
 1. Bypass when `Cookie` contains `ucpf_consent` / `ucpf_dns`, query contains `_ucpf`, or path contains the UCPF plugin dir.
-2. Bypass `/wp-content/uploads/elementor/css/` so year-long Cache Files cannot store HTML soft-404s as `post-*.css`.
+2. Bypass `/wp-content/uploads/elementor/css/` with an **explicit Bypass** rule (excluding the path from Cache Everything is not enough — default `.css` caching still applies). See [CLOUDFLARE-CACHE.md](CLOUDFLARE-CACHE.md).
 3. On Cache Files: 4xx/5xx → no cache; do not Ignore Query String for CSS.
 
 Keep Rocket Loader off for UCPF tags (`data-cfasync="false"` is already set). Full operator checklist: [CLOUDFLARE-CACHE.md](CLOUDFLARE-CACHE.md).
@@ -104,10 +104,26 @@ Unknown cookies are stored for review; necessary WP/Woo cookies default to alway
 
 ## Multisite
 
-- Settings (`ucpf_settings`), scan options, and `{prefix}ucpf_*` tables are **blog-scoped** — different analytics tags and scans per site are supported.
+- Banner, consent, inventory, and `{prefix}ucpf_*` tables stay **blog-scoped**.
+- Connection defaults (scanner URL/key, privacy API, registry mode/URL) live in network option `ucpf_network_settings` (`Network_Settings`). Resolve order in `Settings::get()`: wp-config constant → non-empty site `ucpf_settings` → network → brand/default.
+- Network Admin UI: `admin.php?page=ucpf-network`. Sites can promote overrides and clear network-capable keys network-wide.
 - Consent cookie path comes from `ucpf_cookie_path()` (`COOKIEPATH`); domain from `ucpf_cookie_domain()`. Front config exposes `cookiePath` + `storageSuffix` (blog id) for JS/localStorage isolation.
-- Network activate / deactivate loops all blogs; `wp_initialize_site` provisions network-activated installs for new sites.
+- Network activate / deactivate loops all blogs; `wp_initialize_site` provisions network-activated installs for new sites (they inherit network connection settings when site fields are blank).
 - Filters: `ucpf_cookie_path`, `ucpf_cookie_domain`.
+
+## API secrets (scanner / privacy / Cloudflare)
+
+Stored under `ucpf_settings` but **encrypted at rest** (`ucpf1:` sodium secretbox, or `ucpf1o:` AES-256-GCM) using a key derived from WordPress salts. Admin password fields never echo stored values; leave blank to keep.
+
+Prefer wp-config constants on production (never written to the DB; override UI values):
+
+```php
+define( 'UCPF_SCANNER_API_KEY', '…' );
+define( 'UCPF_PRIVACY_API_KEY', '…' );
+define( 'UCPF_CLOUDFLARE_API_TOKEN', '…' );
+```
+
+Also: `UCPF_SCANNER_API_URL`. Changing `AUTH_KEY` / `SECURE_AUTH_KEY` in `wp-config.php` makes sealed DB secrets unreadable — re-enter them or use constants.
 
 ## Setup Wizard
 

@@ -171,6 +171,9 @@ class Jurisdiction {
 	 * @return string[]
 	 */
 	public function get_pack_ids() {
+		if ( empty( $this->packs ) ) {
+			$this->load_packs();
+		}
 		$ids = array_keys( $this->packs );
 		if ( empty( $ids ) ) {
 			return array( 'strict_gdpr', 'us_baseline', 'global_balanced', 'custom' );

@@ -675,15 +675,23 @@
       "key": "amelia",
       "name": "Amelia Booking",
       "provider": "Amelia Booking",
-      "category": "functional",
-      "treatment": "consent",
-      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
-      "privacy_url": "",
-      "script_patterns": [],
-      "cookie_patterns": [],
+      "category": "necessary",
+      "treatment": "necessary",
+      "description": "First-party Amelia booking UI (like Gravity Forms). reCAPTCHA/Turnstile on the form is a separate Security service; Stripe is payment processing.",
+      "privacy_url": "https://wpamelia.com/privacy-policy/",
+      "script_patterns": [
+        "/ameliabooking/",
+        "wpamelia",
+        "ameliaBooking",
+        "amelia-booking",
+        "am-fs__"
+      ],
+      "cookie_patterns": [
+        "amelia*"
+      ],
       "cookies": [],
       "iframe_patterns": [],
-      "default_blocking": true
+      "default_blocking": false
     },
     {
       "key": "events_calendar",

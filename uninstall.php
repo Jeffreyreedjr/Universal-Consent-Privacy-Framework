@@ -59,6 +59,7 @@ function ucpf_uninstall_current_blog() {
 	wp_clear_scheduled_hook( 'ucpf_scheduled_scan_start' );
 	wp_clear_scheduled_hook( 'ucpf_scheduled_scan_poll' );
 	wp_clear_scheduled_hook( 'ucpf_active_scan_poll' );
+	wp_clear_scheduled_hook( 'ucpf_cloudflare_purge_edge' );
 }
 
 if ( is_multisite() ) {
@@ -74,6 +75,7 @@ if ( is_multisite() ) {
 		restore_current_blog();
 	}
 	delete_site_option( 'ucpf_network_defaults' );
+	delete_network_option( null, 'ucpf_network_settings' );
 } else {
 	ucpf_uninstall_current_blog();
 }

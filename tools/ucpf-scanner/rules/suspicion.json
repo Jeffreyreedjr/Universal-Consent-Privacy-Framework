@@ -1,0 +1,122 @@
+{
+  "version": 1,
+  "description": "URL/path suspicion heuristics for tracking-like assets (not script-body search).",
+  "allowlist": [
+    "jquery.min.js",
+    "jquery.js",
+    "jquery-migrate",
+    "swiper.min.js",
+    "swiper-bundle",
+    "slick.min.js",
+    "wp-includes/js/",
+    "wp-emoji",
+    "devicepx"
+  ],
+  "rules": [
+    {
+      "match": [
+        "pixel-tracking.js",
+        "pixel-tracking",
+        "mailchimp-woocommerce-pixel",
+        "-pixel.js",
+        "/pixel.",
+        "pixel.js"
+      ],
+      "category": "marketing",
+      "treatment": "consent",
+      "suspicion": "high",
+      "provider": "Suspected tracking pixel",
+      "note": "Path/filename looks like a tracking pixel."
+    },
+    {
+      "match": [
+        "-tracking.js",
+        "tracking.js",
+        "/tracking.",
+        "/track.",
+        "tracker.js",
+        "/tracker/"
+      ],
+      "category": "marketing",
+      "treatment": "consent",
+      "suspicion": "high",
+      "provider": "Suspected tracker",
+      "note": "Path/filename looks like a tracker script."
+    },
+    {
+      "match": [
+        "/analytics.",
+        "analytics.js",
+        "gtag/js",
+        "gtm.js",
+        "googletagmanager"
+      ],
+      "category": "analytics",
+      "treatment": "consent",
+      "suspicion": "medium",
+      "provider": "Suspected analytics",
+      "note": "Path looks like analytics instrumentation."
+    },
+    {
+      "match": [
+        "/ads.",
+        "adsense",
+        "remarketing",
+        "/fbq",
+        "/tr?",
+        "facebook.net/en_US/fbevents"
+      ],
+      "category": "marketing",
+      "treatment": "consent",
+      "suspicion": "high",
+      "provider": "Suspected advertising",
+      "note": "Path looks like advertising / remarketing."
+    }
+  ],
+  "gate_needles": [
+    "pixel-tracking.js",
+    "pixel-tracking",
+    "mailchimp-woocommerce-pixel",
+    "-pixel.js",
+    "/pixel.",
+    "pixel.js",
+    "-tracking.js",
+    "tracking.js",
+    "/tracking.",
+    "/track.",
+    "tracker.js",
+    "/analytics.",
+    "analytics.js",
+    "/ads.",
+    "adsense",
+    "remarketing",
+    "mailchimp-for-woocommerce",
+    "mailchimp-woocommerce",
+    "mcjs-connected",
+    "embed.tawk.to",
+    "tidio.co",
+    "client.crisp.chat",
+    "widget.intercom.io",
+    "js.intercomcdn.com",
+    "js.driftt.com",
+    "static.zdassets.com",
+    "static.olark.com",
+    "app.chatwoot.com",
+    "wchat.freshchat.com",
+    "beacon-v2.helpscout.net",
+    "code.jivosite.com",
+    "cdn.mouseflow.com",
+    "script.crazyegg.com",
+    "cdn.luckyorange.com",
+    "t.contentsquare.net",
+    "cdn.inspectlet.com",
+    "js.smartlook.com",
+    "cdn.logrocket.io",
+    "insight.adsrvr.org",
+    "cdn.adroll.com",
+    "ib.adnxs.com",
+    "cdn.branch.io",
+    "js.hs-scripts.com",
+    "js.hs-analytics.net"
+  ]
+}

@@ -213,22 +213,88 @@ function ucpf_bust_asset_cache() {
 }
 
 /**
+ * Whether a URL is first-party theme / Elementor / WP core layout (never consent-gate).
+ *
+ * @param string $url Script, stylesheet, or asset URL.
+ * @return bool
+ */
+function ucpf_is_site_layout_asset( $url ) {
+	$u = strtolower( (string) $url );
+	if ( '' === $u ) {
+		return false;
+	}
+	$needles = array(
+		'/wp-includes/',
+		'/wp-admin/',
+		'/wp-content/themes/',
+		'/wp-content/plugins/elementor/',
+		'/wp-content/plugins/elementor-pro/',
+		'/wp-content/plugins/hello-elementor',
+		'/wp-content/plugins/pro-elements/',
+		'/wp-content/plugins/the-plus-addons-for-elementor',
+		'/wp-content/plugins/essential-addons-for-elementor',
+		'/wp-content/plugins/elementskit',
+		'/wp-content/plugins/header-footer-elementor',
+		'/wp-content/uploads/elementor/',
+		'jquery.min.js',
+		'jquery.js',
+		'jquery-migrate',
+	);
+	/**
+	 * Filter layout-asset path needles that UCPF must never gate.
+	 *
+	 * @param string[] $needles Lowercase path fragments.
+	 * @param string   $url     Original URL.
+	 */
+	$needles = apply_filters( 'ucpf_site_layout_asset_needles', $needles, $url );
+	foreach ( (array) $needles as $n ) {
+		$n = strtolower( (string) $n );
+		if ( $n && false !== strpos( $u, $n ) ) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
  * Flush UCPF asset ?ver= plus common origin / page caches (no Cloudflare API).
  *
- * Debounced so bulk plugin upgrades do not spam purge hooks.
+ * DANGEROUS under Cloudflare Cache Files / Cache Everything: clearing Autoptimize /
+ * Rocket / LiteSpeed deletes CSS bundles while the edge still serves HTML pointing
+ * at those URLs (or caches soft-404 HTML as text/css). Routine zip uploads must
+ * NEVER call the third-party purge path.
+ *
+ * Default: UCPF asset bust only. Full site purge requires explicit allow:
+ * add_filter( 'ucpf_allow_full_site_cache_flush', '__return_true' );
  *
  * @param string $reason Short reason for logs / ucpf_flush_site_caches action.
  * @return void
  */
 function ucpf_flush_site_caches( $reason = '' ) {
 	$reason = is_string( $reason ) ? $reason : '';
-	$lock   = get_transient( 'ucpf_flush_site_caches_lock' );
+	ucpf_bust_asset_cache();
+
+	/**
+	 * Whether to also purge Rocket / LiteSpeed / Autoptimize / etc.
+	 *
+	 * @param bool   $allow  Default false (edge-safe).
+	 * @param string $reason Flush reason slug.
+	 */
+	if ( ! apply_filters( 'ucpf_allow_full_site_cache_flush', false, $reason ) ) {
+		/**
+		 * After UCPF asset bust only (full site purge skipped).
+		 *
+		 * @param string $reason Flush reason slug.
+		 */
+		do_action( 'ucpf_flush_site_caches', $reason );
+		return;
+	}
+
+	$lock = get_transient( 'ucpf_flush_site_caches_lock' );
 	if ( $lock ) {
 		return;
 	}
 	set_transient( 'ucpf_flush_site_caches_lock', 1, 30 );
-
-	ucpf_bust_asset_cache();
 
 	if ( function_exists( 'wp_cache_flush' ) ) {
 		wp_cache_flush();
@@ -268,7 +334,7 @@ function ucpf_flush_site_caches( $reason = '' ) {
 	// phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
 
 	/**
-	 * After UCPF flushes origin / page caches (plugin update, Elementor CSS clear, etc.).
+	 * After UCPF flushes origin / page caches (explicit full flush only).
 	 *
 	 * @param string $reason Flush reason slug.
 	 */

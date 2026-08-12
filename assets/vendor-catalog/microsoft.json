@@ -7,7 +7,7 @@
       "category": "analytics",
       "treatment": "consent",
       "description": "Behavior analytics and session recordings.",
-      "privacy_url": "https://privacy.microsoft.com/",
+      "privacy_url": "https://privacy.microsoft.com/privacystatement",
       "script_patterns": [
         "clarity.ms/tag",
         "clarity.ms"
@@ -105,6 +105,8 @@
         "mailchimp-for-woocommerce",
         "mailchimp-woocommerce",
         "mailchimp-woocommerce-pixel",
+        "pixel-tracking.js",
+        "pixel-tracking",
         "mcjs-connected"
       ],
       "cookie_patterns": [
