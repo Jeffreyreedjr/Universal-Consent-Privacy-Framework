@@ -38,9 +38,86 @@ import { assertSafePublicUrl } from './ssrf.js';
 import { getNodeInfo } from './node-info.js';
 import { compareReports } from './drift.js';
 
+/** Live process capabilities — not read from package.json (copying JSON without restart used to lie). */
+const SCANNER_FEATURES = Object.freeze({ exactPaths: true });
+const PROCESS_STARTED_AT = new Date().toISOString();
+
 const app = express();
 app.set('trust proxy', 1);
-app.use(express.json({ limit: '256kb' }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+app.use(express.text({ type: ['text/plain', 'text/*'], limit: '1mb' }));
+
+/**
+ * WordPress / proxies sometimes POST JSON with Content-Type: x-www-form-urlencoded.
+ * Recover { url, paths, options } so we never silently fall back to ['/'].
+ * @param {import('express').Request} req
+ */
+function coerceJsonBody(req) {
+  let body = req.body;
+  if (typeof body === 'string' && body.trim()) {
+    try {
+      body = JSON.parse(body);
+    } catch {
+      return;
+    }
+  }
+  if (body && typeof body === 'object' && !Array.isArray(body)) {
+    const keys = Object.keys(body);
+    if (keys.length === 1 && String(keys[0]).charAt(0) === '{') {
+      try {
+        body = JSON.parse(keys[0]);
+      } catch {
+        /* keep parsed form body */
+      }
+    }
+  }
+  if (body && typeof body === 'object' && !Array.isArray(body)) {
+    req.body = body;
+  }
+}
+
+/**
+ * @param {unknown} raw
+ * @returns {string[]|null}
+ */
+function coercePathList(raw) {
+  let paths = raw;
+  if (typeof paths === 'string') {
+    const t = paths.trim();
+    if (!t) {
+      return null;
+    }
+    if (t.charAt(0) === '[') {
+      try {
+        paths = JSON.parse(t);
+      } catch {
+        paths = t.split(/[\s,]+/);
+      }
+    } else if (t.indexOf(',') !== -1) {
+      paths = t.split(',');
+    } else {
+      paths = [t];
+    }
+  }
+  if (paths && typeof paths === 'object' && !Array.isArray(paths)) {
+    paths = Object.keys(paths)
+      .sort((a, b) => Number(a) - Number(b))
+      .map((k) => paths[k]);
+  }
+  if (!Array.isArray(paths)) {
+    return null;
+  }
+  const out = paths
+    .map((p) => (p == null ? '' : String(p).trim()))
+    .filter(Boolean);
+  return out.length ? out : null;
+}
+
+app.use((req, _res, next) => {
+  coerceJsonBody(req);
+  next();
+});
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -143,7 +220,10 @@ app.get('/health', (_req, res) => {
   res.json({
     ok: true,
     service: 'ucpf-scanner',
-    version: node.scanner_version || '1.5.2',
+    version: node.scanner_version || '1.5.3',
+    features: SCANNER_FEATURES,
+    started_at: PROCESS_STARTED_AT,
+    pid: process.pid,
     concurrent: config.maxConcurrentScans,
     active: getActiveCount(),
     queue: getQueueLength(),
@@ -157,6 +237,9 @@ app.get('/health', (_req, res) => {
 app.get('/v1/node', requireAuth, (_req, res) => {
   res.json({
     ...getNodeInfo(),
+    features: SCANNER_FEATURES,
+    started_at: PROCESS_STARTED_AT,
+    pid: process.pid,
     capacity: {
       max_concurrent: config.maxConcurrentScans,
       max_queue: config.maxQueue,
@@ -223,11 +306,31 @@ app.post('/v1/verify-domain', requireAuth, rateLimit, async (req, res) => {
 });
 
 app.post('/v1/scans', requireAuth, rateLimit, async (req, res) => {
+  coerceJsonBody(req);
   const url = req.body?.url;
-  const rawPaths = Array.isArray(req.body?.paths) ? req.body.paths : ['/'];
+  const reqOptions =
+    req.body?.options && typeof req.body.options === 'object' ? { ...req.body.options } : {};
+  const exactPaths = reqOptions.exactPaths !== false;
+  const optMax = Math.max(0, Number(reqOptions.maxPages) || 0);
+  const parsedPaths = coercePathList(req.body?.paths);
+
   if (!url || typeof url !== 'string') {
     return res.status(400).json({ error: 'url is required' });
   }
+
+  // Client sent a curated multi-page job but the body did not contain a path array
+  // (wrong Content-Type / proxy). Never silently walk only "/".
+  if (!parsedPaths && (optMax > 1 || (exactPaths && req.body && req.body.paths != null))) {
+    return res.status(400).json({
+      error: 'paths must be a JSON array of URL paths',
+      hint: 'POST Content-Type: application/json with { "paths": ["/", "/about"] }. Restart this Node process after updating tools/ucpf-scanner — copying package.json alone is not enough.',
+      paths_count: 0,
+      exactPaths,
+      features: SCANNER_FEATURES,
+    });
+  }
+
+  const rawPaths = parsedPaths || ['/'];
 
   // Validate URL before claiming queue/slot capacity (no TOCTOU on slots during await).
   const safe = await assertSafePublicUrl(url);
@@ -235,11 +338,7 @@ app.post('/v1/scans', requireAuth, rateLimit, async (req, res) => {
     return res.status(400).json({ error: safe.error });
   }
 
-  const reqOptions =
-    req.body?.options && typeof req.body.options === 'object' ? { ...req.body.options } : {};
   // WordPress (and CLI --paths) already curated the list — never thin to env maxPagesPerScan.
-  const exactPaths = reqOptions.exactPaths !== false;
-  const optMax = Math.max(0, Number(reqOptions.maxPages) || 0);
   const pathCap = exactPaths
     ? Math.min(500, Math.max(rawPaths.length, optMax, 1))
     : Math.min(500, Math.max(1, config.maxPagesPerScan || 100));
@@ -247,6 +346,17 @@ app.post('/v1/scans', requireAuth, rateLimit, async (req, res) => {
   if (exactPaths) {
     reqOptions.exactPaths = true;
     reqOptions.maxPages = Math.max(paths.length, optMax, 1);
+  }
+
+  if (exactPaths && optMax > 1 && paths.length < optMax && paths.length < 2) {
+    return res.status(409).json({
+      error: `exactPaths job kept ${paths.length} path(s) but maxPages=${optMax}`,
+      hint: 'Restart ucpf-scanner after deploying tools/ucpf-scanner 1.5.3+. GET /health must include features.exactPaths.',
+      paths_count: paths.length,
+      paths,
+      exactPaths: true,
+      features: SCANNER_FEATURES,
+    });
   }
 
   const id = randomUUID();
@@ -298,8 +408,10 @@ app.post('/v1/scans', requireAuth, rateLimit, async (req, res) => {
     estimated_wait_hint: position > 0 ? estimatedWaitHint(position) : null,
     active: getActiveCount(),
     max: config.maxConcurrentScans,
+    paths,
     paths_count: paths.length,
     exactPaths: exactPaths,
+    features: SCANNER_FEATURES,
   });
 });
 
@@ -432,6 +544,7 @@ app.get('/v1/scans/:id', requireAuth, rateLimit, (req, res) => {
     paths: jobPaths,
     paths_count: jobPaths.length,
     exactPaths,
+    features: SCANNER_FEATURES,
     report: withReport ? job.report : null,
   });
 });

@@ -299,19 +299,21 @@
 
   function scannerRedeployError(accepted, sent) {
     if (sent > 1 && accepted > 0 && accepted < sent) {
-      return 'Scanner accepted ' + accepted + ' of ' + sent +
-        ' path(s). Redeploy the Scanner API from tools/ucpf-scanner so exactPaths is honored ' +
-        '(see docs/SCANNER-SERVER.md). Updating the WordPress plugin alone is not enough.';
+      return 'Scanner kept ' + accepted + ' of ' + sent +
+        ' page(s). GET /health can show a new version from package.json while an old Node process is still running. Copy tools/ucpf-scanner, restart the service (systemctl restart ucpf-scanner), then confirm /health includes features.exactPaths and version 1.5.3+. Updating the WordPress plugin zip does not update this service.';
     }
-    return 'Multi-page Playwright scans need Scanner API 1.5.1 or newer (GET /health version). Redeploy tools/ucpf-scanner — updating the WordPress plugin alone is not enough (see docs/SCANNER-SERVER.md).';
+    return 'Multi-page Playwright scans need Scanner API 1.5.3+ with features.exactPaths (GET /health). Copy tools/ucpf-scanner and restart the Node process — updating the WordPress plugin zip is not enough (see docs/SCANNER-SERVER.md).';
   }
 
   function remoteAcceptedPages(job) {
     if (!job) {
       return 0;
     }
-    if (job.paths_count) {
-      return Number(job.paths_count) || 0;
+    if (job.paths_count != null && job.paths_count !== '') {
+      var n = Number(job.paths_count);
+      if (isFinite(n) && n >= 0) {
+        return n;
+      }
     }
     if (job.paths && job.paths.length) {
       return job.paths.length;
@@ -324,6 +326,10 @@
       return false;
     }
     var accepted = remoteAcceptedPages(job);
+    // Scanner echoed the curated list — do not second-guess via queued progress.
+    if (accepted >= pathsSent) {
+      return false;
+    }
     if (accepted > 0 && accepted < pathsSent) {
       return true;
     }
@@ -1688,7 +1694,7 @@
       }
       if (scannerJobUnderScanned(job, sent)) {
         restPost('scan/cancel', { job_id: jobId }).catch(function () { /* ignore */ });
-        throw new Error(scannerRedeployError(remoteAcceptedPages(job) || 1, sent));
+        throw new Error(scannerRedeployError(remoteAcceptedPages(job), sent));
       }
       if (job.progress) {
         showScanProgress(job.progress, attempt, $status);

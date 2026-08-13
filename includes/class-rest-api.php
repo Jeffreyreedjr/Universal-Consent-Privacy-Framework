@@ -1115,7 +1115,11 @@ class Rest_Api {
 			$pages_total  = ( ! empty( $job['progress'] ) && is_array( $job['progress'] ) && isset( $job['progress']['pages_total'] ) )
 				? (int) $job['progress']['pages_total']
 				: 0;
-			if ( $sent > 1 && ( ( $accepted > 0 && $accepted < $sent ) || 1 === $pages_total ) ) {
+			if ( $sent > 1 && $accepted >= $sent ) {
+				$job['paths_mismatch'] = false;
+			} elseif ( $sent > 1 && $accepted > 0 && $accepted < $sent ) {
+				$job['paths_mismatch'] = true;
+			} elseif ( $sent > 1 && $accepted < 1 && 1 === $pages_total ) {
 				$job['paths_mismatch'] = true;
 			}
 		}

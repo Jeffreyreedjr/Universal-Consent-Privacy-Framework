@@ -13,10 +13,11 @@ All notable changes to Universal Consent & Privacy Framework are documented here
 - Elementor update resilience: after plugin / theme / UCPF updates, clear Elementor CSS cache (rebuild on enqueue / next view), queue Cloudflare purge on request shutdown (prefix for `uploads/elementor/css`), and show a dismissible admin notice. Setting: **Clear Elementor CSS cache after updates** (Advanced → Cloudflare; default on). Missing CSS files self-heal on `elementor/css-file/before_enqueue`.
 
 ### Changed
-- Scanner API `/health` version **1.5.2**. Redeploy `tools/ucpf-scanner` — the WordPress zip does not include the Node service.
+- Scanner API `/health` version **1.5.3** with live `features.exactPaths` (not only `package.json`). Copy `tools/ucpf-scanner` **and restart Node** — a version bump on disk while the old process is running still walked only `/`.
 
 ### Fixed
-- Playwright no longer silently scans only the homepage when many pages are selected: WordPress compares scanner-accepted vs sent paths, refuses Scanner API hosts below **1.5.1** (`GET /health`), and does not inflate progress `pages_total`. Picker groups show selected/total; remembered picks persist up to 200 URLs.
+- Playwright “Scanner accepted 1 of 14 path(s)” after a plugin + scanner file update: recover JSON bodies sent as `x-www-form-urlencoded`, never default a curated job to `['/']`, and do not treat a missing `paths_count` as 1. Confirm `GET /health` includes `"features":{"exactPaths":true}`.
+- Playwright no longer silently scans only the homepage when many pages are selected: WordPress compares scanner-accepted vs sent paths, refuses Scanner API hosts below **1.5.3** with `features.exactPaths` (`GET /health`), and does not inflate progress `pages_total`. Picker groups show selected/total; remembered picks persist up to 200 URLs.
 - Accept All “Page Unresponsive” after reload (`?_ucpf=…#ucpf_c=…`): Mapster `forceMapster` cleared refire flags and re-cloned every map script until the tab locked. Force-refire is one-shot; clones are never re-cloned; handoff boot no longer re-fires `accepted_all` plus a second full loader scan.
 - Accept All hard-reload path no longer sync-activates every parked script before navigation; consent change handlers coalesce and skip heavy hydrate while reload is pending.
 - Elementor/Cloudflare update path avoids WP-Cron / `spawn_cron` (unreliable with external cron runners). Cache clear stays sync; CF purge runs on shutdown / admin fallback.

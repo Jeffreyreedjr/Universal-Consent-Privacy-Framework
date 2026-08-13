@@ -15,9 +15,10 @@ defined( 'ABSPATH' ) || exit;
 class Privacy_Scan_Importer {
 
 	/**
-	 * Minimum Scanner API /health version that honors exactPaths (no env truncation).
+	 * Minimum Scanner API that honors exactPaths in the *running* process
+	 * (`features.exactPaths` on GET /health — package.json version can lie).
 	 */
-	const MIN_SCANNER_VERSION = '1.5.1';
+	const MIN_SCANNER_VERSION = '1.5.3';
 
 	/**
 	 * Valid UCPF categories (never "unclassified").
@@ -1169,12 +1170,12 @@ class Privacy_Scan_Importer {
 		if ( $sent > 1 && $accepted > 0 && $accepted < $sent ) {
 			return sprintf(
 				/* translators: 1: accepted path count, 2: sent path count */
-				__( 'Scanner accepted %1$d of %2$d path(s). Redeploy the Scanner API from tools/ucpf-scanner so exactPaths is honored (see docs/SCANNER-SERVER.md). Updating the WordPress plugin alone is not enough.', 'universal-consent-privacy-framework' ),
+				__( 'Scanner kept %1$d of %2$d page(s). GET /health can show a new version from package.json while an old Node process is still running. Copy tools/ucpf-scanner, then restart the service (systemctl restart ucpf-scanner). Confirm /health includes "features":{"exactPaths":true} and version 1.5.3+. Updating the WordPress plugin zip does not update this service.', 'universal-consent-privacy-framework' ),
 				$accepted,
 				$sent
 			);
 		}
-		return __( 'Multi-page Playwright scans need Scanner API 1.5.1 or newer (GET /health version). Redeploy tools/ucpf-scanner — updating the WordPress plugin alone is not enough (see docs/SCANNER-SERVER.md).', 'universal-consent-privacy-framework' );
+		return __( 'Multi-page Playwright scans need Scanner API 1.5.3 or newer with features.exactPaths (GET /health). Copy tools/ucpf-scanner and restart the Node process — updating the WordPress plugin zip is not enough (see docs/SCANNER-SERVER.md).', 'universal-consent-privacy-framework' );
 	}
 
 	/**
@@ -1249,8 +1250,12 @@ class Privacy_Scan_Importer {
 			);
 		}
 
-		$version = isset( $health['version'] ) ? sanitize_text_field( (string) $health['version'] ) : '';
-		if ( '' === $version || ! preg_match( '/^\d+\.\d+/', $version ) || version_compare( $version, self::MIN_SCANNER_VERSION, '<' ) ) {
+		$version  = isset( $health['version'] ) ? sanitize_text_field( (string) $health['version'] ) : '';
+		$features = ( isset( $health['features'] ) && is_array( $health['features'] ) ) ? $health['features'] : array();
+		$has_exact = ! empty( $features['exactPaths'] );
+		$version_ok = ( '' !== $version && preg_match( '/^\d+\.\d+/', $version ) && version_compare( $version, self::MIN_SCANNER_VERSION, '>=' ) );
+		// features.exactPaths is hardcoded in the running process — package.json version can lie before restart.
+		if ( ! $has_exact && ! $version_ok ) {
 			return new \WP_Error(
 				'ucpf_scanner_stale',
 				self::scanner_redeploy_message(),
@@ -1258,6 +1263,19 @@ class Privacy_Scan_Importer {
 					'status'           => 409,
 					'scanner_version'  => $version,
 					'required_version' => self::MIN_SCANNER_VERSION,
+					'features'         => $features,
+				)
+			);
+		}
+		if ( ! $has_exact ) {
+			return new \WP_Error(
+				'ucpf_scanner_stale',
+				self::scanner_redeploy_message() . ' ' . __( 'This host is missing features.exactPaths — the Node process was not restarted after the file copy.', 'universal-consent-privacy-framework' ),
+				array(
+					'status'           => 409,
+					'scanner_version'  => $version,
+					'required_version' => self::MIN_SCANNER_VERSION,
+					'features'         => $features,
 				)
 			);
 		}
