@@ -16,7 +16,10 @@
         "i.ytimg.com",
         "yt3.ggpht.com",
         "jnn-pa.googleapis.com",
-        "gtm4wp-youtube"
+        "gtm4wp-youtube",
+        "youtube-feed-pro",
+        "youtube-feed",
+        "sb-youtube.js"
       ],
       "cookie_patterns": ["VISITOR_INFO1_LIVE", "YSC", "PREF", "VISITOR_PRIVACY_METADATA", "__Secure-YNID", "__Secure-ROLLOUT_TOKEN", "__Secure-YEC"],
       "cookies": [

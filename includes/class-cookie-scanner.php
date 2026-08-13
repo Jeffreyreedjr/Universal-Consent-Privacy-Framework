@@ -1130,7 +1130,7 @@ class Cookie_Scanner {
 	 * @return array
 	 */
 	public function normalize_scan_urls( array $urls, $limit = 30 ) {
-		$limit = max( 1, min( self::MAX_SERVER_URLS, (int) $limit ) );
+		$limit = max( 1, min( self::MAX_PICKER_URLS, (int) $limit ) );
 		$out      = array();
 		$seen     = array();
 
@@ -3166,7 +3166,7 @@ class Cookie_Scanner {
 					'label' => $label,
 				);
 			}
-			foreach ( $this->normalize_scan_urls( $normalized, self::MAX_BROWSER_URLS ) as $def ) {
+			foreach ( $this->normalize_scan_urls( $normalized, self::MAX_PICKER_URLS ) as $def ) {
 				$u = isset( $def['url'] ) ? (string) $def['url'] : '';
 				if ( '' === $u ) {
 					continue;

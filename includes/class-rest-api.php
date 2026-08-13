@@ -1034,10 +1034,26 @@ class Rest_Api {
 			return $result;
 		}
 
+		$paths_sent   = count( $paths );
+		$remote_count = is_array( $result ) ? Privacy_Scan_Importer::remote_paths_count( $result ) : 0;
+		if ( $paths_sent > 1 && ( $remote_count < 1 || $remote_count < $paths_sent ) ) {
+			if ( is_array( $result ) && ! empty( $result['id'] ) ) {
+				Privacy_Scan_Importer::cancel_remote_scan( (string) $result['id'] );
+			}
+			return new \WP_Error(
+				'ucpf_scanner_stale',
+				Privacy_Scan_Importer::scanner_redeploy_message( $remote_count, $paths_sent ),
+				array(
+					'status'      => 409,
+					'paths_sent'  => $paths_sent,
+					'paths_count' => $remote_count,
+				)
+			);
+		}
+
 		if ( is_array( $result ) ) {
-			$result['paths']       = $paths;
-			$result['paths_count'] = count( $paths );
-			$result['exactPaths']  = true;
+			$result['paths_sent'] = $paths_sent;
+			$result['exactPaths'] = true;
 		}
 
 		$registered = Active_Scan::instance()->register(
@@ -1089,18 +1105,25 @@ class Rest_Api {
 			if ( ! empty( $active_snap['paths_sent'] ) ) {
 				$job['paths_sent'] = (int) $active_snap['paths_sent'];
 			}
-			if ( empty( $job['paths_count'] ) && ! empty( $active_snap['paths_count'] ) ) {
+			if ( isset( $job['paths_count'] ) ) {
+				$job['paths_count'] = (int) $job['paths_count'];
+			} elseif ( ! empty( $active_snap['paths_count'] ) ) {
 				$job['paths_count'] = (int) $active_snap['paths_count'];
 			}
-			if ( ! empty( $active_snap['progress']['pages_total'] ) && ! empty( $job['progress'] ) && is_array( $job['progress'] ) ) {
-				$job['progress']['pages_total'] = max(
-					isset( $job['progress']['pages_total'] ) ? (int) $job['progress']['pages_total'] : 0,
-					(int) $active_snap['progress']['pages_total']
-				);
+			$sent         = ! empty( $job['paths_sent'] ) ? (int) $job['paths_sent'] : 0;
+			$accepted     = isset( $job['paths_count'] ) ? (int) $job['paths_count'] : 0;
+			$pages_total  = ( ! empty( $job['progress'] ) && is_array( $job['progress'] ) && isset( $job['progress']['pages_total'] ) )
+				? (int) $job['progress']['pages_total']
+				: 0;
+			if ( $sent > 1 && ( ( $accepted > 0 && $accepted < $sent ) || 1 === $pages_total ) ) {
+				$job['paths_mismatch'] = true;
 			}
 		}
 
 		$auto_import = $request->get_param( 'import' );
+		if ( is_array( $job ) && ! empty( $job['paths_mismatch'] ) ) {
+			$auto_import = false;
+		}
 		$status      = isset( $job['status'] ) ? (string) $job['status'] : '';
 		$importable  = in_array( $status, array( 'completed', 'cancelled' ), true );
 		if ( ! empty( $job['report'] ) && ( null === $auto_import || $auto_import || '1' === $auto_import ) && $importable ) {

@@ -170,8 +170,13 @@ class Active_Scan {
 		$paths = ! empty( $context['paths'] ) && is_array( $context['paths'] )
 			? array_values( array_map( 'strval', $context['paths'] ) )
 			: array( '/' );
-		$paths_sent = count( $paths );
-		$paths_count = isset( $job['paths_count'] ) ? (int) $job['paths_count'] : $paths_sent;
+		$paths_sent  = count( $paths );
+		$paths_count = 0;
+		if ( isset( $job['paths_count'] ) && '' !== $job['paths_count'] && null !== $job['paths_count'] ) {
+			$paths_count = (int) $job['paths_count'];
+		} elseif ( ! empty( $job['paths'] ) && is_array( $job['paths'] ) ) {
+			$paths_count = count( $job['paths'] );
+		}
 
 		$status = array(
 			'job_id'     => $job_id,
@@ -200,11 +205,6 @@ class Active_Scan {
 		if ( empty( $status['progress']['message'] ) ) {
 			$status['progress']['message'] = $status['message'];
 			$status['progress']['phase']   = $state;
-		}
-		// Prefer WordPress-sent path count when remote progress under-reports pages_total.
-		if ( $paths_sent > 1 ) {
-			$reported = isset( $status['progress']['pages_total'] ) ? (int) $status['progress']['pages_total'] : 0;
-			$status['progress']['pages_total'] = max( $reported, $paths_sent, $paths_count );
 		}
 
 		$this->set( $status );
@@ -258,11 +258,6 @@ class Active_Scan {
 		}
 		if ( isset( $job['paths_count'] ) ) {
 			$status['paths_count'] = (int) $job['paths_count'];
-		}
-		$sent = isset( $status['paths_sent'] ) ? (int) $status['paths_sent'] : ( ! empty( $status['paths'] ) && is_array( $status['paths'] ) ? count( $status['paths'] ) : 0 );
-		if ( $sent > 1 && is_array( $status['progress'] ) ) {
-			$reported = isset( $status['progress']['pages_total'] ) ? (int) $status['progress']['pages_total'] : 0;
-			$status['progress']['pages_total'] = max( $reported, $sent, isset( $status['paths_count'] ) ? (int) $status['paths_count'] : 0 );
 		}
 		if ( ! empty( $job['position'] ) ) {
 			$status['position'] = (int) $job['position'];

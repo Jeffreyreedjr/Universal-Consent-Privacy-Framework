@@ -55,7 +55,7 @@ UCPF_SCANNER_API_KEYS=generate-a-long-random-secret-here
 | `UCPF_SCANNER_PORT` | Default `3847` |
 | `UCPF_SCANNER_API_KEYS` | Comma-separated API keys. **Required** for any non-loopback client (including WordPress on another host). |
 | `UCPF_SCANNER_ALLOW_LOCAL=1` | Optional. Allows **unauthenticated** calls from loopback only. Do not use this as a substitute for keys on a public API. |
-| `UCPF_SCANNER_MAX_PAGES` | Cap pages per job when the client does **not** send a curated list (default 100). WordPress admin selections set `exactPaths: true` and are **not** truncated by this env var (hard ceiling 500). **Redeploy this service** after pulling plugin/scanner fixes — the WordPress zip never ships `tools/ucpf-scanner`. |
+| `UCPF_SCANNER_MAX_PAGES` | Cap pages per job when the client does **not** send a curated list (default 100). WordPress admin selections set `exactPaths: true` and are **not** truncated by this env var (hard ceiling 500). WordPress **refuses** multi-page jobs if `GET /health` reports a version below **1.5.1**. **Redeploy this service** after pulling plugin/scanner fixes — the WordPress zip never ships `tools/ucpf-scanner`. |
 | `UCPF_SCANNER_MAX_CONCURRENT` | Parallel Chromium jobs (default 2). Budget ~1–2 GB RAM each. |
 | `UCPF_SCANNER_MAX_QUEUE` | Waiting jobs when slots are full (default **200**) |
 | `UCPF_SCANNER_MAX_RUNNING_PER_KEY` | Max running jobs per API key (default **1**) |
@@ -87,6 +87,15 @@ Smoke test:
 ```bash
 curl -s http://127.0.0.1:3847/health
 ```
+
+WordPress multi-page scans require `/health` `version` **1.5.1 or newer** (this tree reports **1.5.2**). Updating the WordPress plugin zip does **not** update this Node service. After every scanner fix, copy/redeploy `tools/ucpf-scanner` and confirm:
+
+```bash
+curl -s http://127.0.0.1:3847/health
+# { "ok": true, "version": "1.5.2", ... }
+```
+
+If version is missing or older than 1.5.1, Cookie Scanner will refuse to start a multi-page job instead of silently walking only `/`.
 
 Authenticated check (same key you put in `.env`):
 
@@ -230,7 +239,7 @@ Raise `UCPF_SCANNER_MAX_QUEUE` for large scheduled waves. When the queue is full
 
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
-| GET | `/health` | No | Liveness + queue depth |
+| GET | `/health` | No | Liveness, queue depth, and `version` (WordPress requires **1.5.1+** for multi-page jobs) |
 | GET | `/v1/node` | Yes* | Node metadata + capacity |
 | POST | `/v1/scans` | Yes* | Start or enqueue scan (202 + `position`) |
 | POST | `/v1/scans/:id/cancel` | Yes* | Cancel **your** job (ownership by API key) |

@@ -3711,7 +3711,8 @@
       "category": "marketing",
       "treatment": "consent",
       "importance": "non_essential",
-      "note": "inferred_slug: true"
+      "note": "inferred_slug: true",
+      "service_key": "instagram_feed"
     },
     "speed-optimizer": {
       "provider": "Speed Optimizer",

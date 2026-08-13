@@ -139,17 +139,18 @@ async function executeJob(job) {
 }
 
 app.get('/health', (_req, res) => {
+  const node = getNodeInfo();
   res.json({
     ok: true,
     service: 'ucpf-scanner',
-    version: '1.5.1',
+    version: node.scanner_version || '1.5.2',
     concurrent: config.maxConcurrentScans,
     active: getActiveCount(),
     queue: getQueueLength(),
     max_queue: config.maxQueue,
     persist: getPersistMode(),
     jobs: listJobs().length,
-    node: getNodeInfo(),
+    node,
   });
 });
 

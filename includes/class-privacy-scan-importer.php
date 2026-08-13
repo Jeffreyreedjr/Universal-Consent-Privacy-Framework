@@ -15,6 +15,11 @@ defined( 'ABSPATH' ) || exit;
 class Privacy_Scan_Importer {
 
 	/**
+	 * Minimum Scanner API /health version that honors exactPaths (no env truncation).
+	 */
+	const MIN_SCANNER_VERSION = '1.5.1';
+
+	/**
 	 * Valid UCPF categories (never "unclassified").
 	 *
 	 * @return string[]
@@ -1152,6 +1157,115 @@ class Privacy_Scan_Importer {
 	}
 
 	/**
+	 * Admin-facing copy when the Scanner API is too old or dropped curated paths.
+	 *
+	 * @param int $accepted Paths the scanner kept.
+	 * @param int $sent     Paths WordPress sent.
+	 * @return string
+	 */
+	public static function scanner_redeploy_message( $accepted = 0, $sent = 0 ) {
+		$accepted = (int) $accepted;
+		$sent     = (int) $sent;
+		if ( $sent > 1 && $accepted > 0 && $accepted < $sent ) {
+			return sprintf(
+				/* translators: 1: accepted path count, 2: sent path count */
+				__( 'Scanner accepted %1$d of %2$d path(s). Redeploy the Scanner API from tools/ucpf-scanner so exactPaths is honored (see docs/SCANNER-SERVER.md). Updating the WordPress plugin alone is not enough.', 'universal-consent-privacy-framework' ),
+				$accepted,
+				$sent
+			);
+		}
+		return __( 'Multi-page Playwright scans need Scanner API 1.5.1 or newer (GET /health version). Redeploy tools/ucpf-scanner — updating the WordPress plugin alone is not enough (see docs/SCANNER-SERVER.md).', 'universal-consent-privacy-framework' );
+	}
+
+	/**
+	 * Paths the remote job actually kept (never fall back to WordPress-sent count).
+	 *
+	 * @param array $job Remote job or POST /v1/scans response.
+	 * @return int
+	 */
+	public static function remote_paths_count( array $job ) {
+		if ( isset( $job['paths_count'] ) && '' !== $job['paths_count'] && null !== $job['paths_count'] ) {
+			return (int) $job['paths_count'];
+		}
+		if ( ! empty( $job['paths'] ) && is_array( $job['paths'] ) ) {
+			return count( $job['paths'] );
+		}
+		return 0;
+	}
+
+	/**
+	 * GET Scanner API /health.
+	 *
+	 * @return array|\WP_Error
+	 */
+	public static function get_scanner_health() {
+		$api = self::api_base();
+		$key = self::api_key();
+		if ( ! $api ) {
+			return new \WP_Error( 'ucpf_scanner_unconfigured', __( 'Scanner API URL is not configured.', 'universal-consent-privacy-framework' ), array( 'status' => 400 ) );
+		}
+
+		$response = wp_remote_get(
+			trailingslashit( $api ) . 'health',
+			array(
+				'timeout' => 8,
+				'headers' => self::api_headers( $key ),
+			)
+		);
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		$code = (int) wp_remote_retrieve_response_code( $response );
+		$data = json_decode( (string) wp_remote_retrieve_body( $response ), true );
+		if ( $code >= 400 || ! is_array( $data ) ) {
+			return new \WP_Error(
+				'ucpf_scanner_http',
+				__( 'Scanner API /health did not return a valid response.', 'universal-consent-privacy-framework' ),
+				array( 'status' => $code ? $code : 502 )
+			);
+		}
+
+		return $data;
+	}
+
+	/**
+	 * Refuse multi-page jobs on Scanner API hosts older than MIN_SCANNER_VERSION.
+	 *
+	 * @param int $path_count Curated path count.
+	 * @return true|\WP_Error
+	 */
+	public static function assert_scanner_version_for_multipage( $path_count ) {
+		if ( (int) $path_count <= 1 ) {
+			return true;
+		}
+
+		$health = self::get_scanner_health();
+		if ( is_wp_error( $health ) ) {
+			return new \WP_Error(
+				'ucpf_scanner_stale',
+				self::scanner_redeploy_message() . ' ' . __( 'Could not read Scanner API /health.', 'universal-consent-privacy-framework' ),
+				array( 'status' => 502 )
+			);
+		}
+
+		$version = isset( $health['version'] ) ? sanitize_text_field( (string) $health['version'] ) : '';
+		if ( '' === $version || ! preg_match( '/^\d+\.\d+/', $version ) || version_compare( $version, self::MIN_SCANNER_VERSION, '<' ) ) {
+			return new \WP_Error(
+				'ucpf_scanner_stale',
+				self::scanner_redeploy_message(),
+				array(
+					'status'           => 409,
+					'scanner_version'  => $version,
+					'required_version' => self::MIN_SCANNER_VERSION,
+				)
+			);
+		}
+
+		return true;
+	}
+
+	/**
 	 * Create a remote deep scan job.
 	 *
 	 * @param string $url     Target URL.
@@ -1201,6 +1315,11 @@ class Privacy_Scan_Importer {
 		);
 		if ( ! empty( $options['interact'] ) ) {
 			$scan_options['interact'] = true;
+		}
+
+		$gated = self::assert_scanner_version_for_multipage( count( $paths ) );
+		if ( is_wp_error( $gated ) ) {
+			return $gated;
 		}
 
 		$body = array(

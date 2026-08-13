@@ -268,6 +268,20 @@
     '.am-fs__wrapper',
   ];
 
+  /** Smash Balloon YouTube Feed Pro — shortcode roots (not the #youtube-feed-loader spinner). */
+  var YOUTUBE_FEED_MARKERS = [
+    '.sb_youtube',
+    '[id^="sb_youtube"]',
+    '#regular-youtube-container',
+    '#live-youtube-container',
+  ];
+
+  /** Smash Balloon Social Wall (Instagram / mixed social). */
+  var SOCIAL_WALL_MARKERS = [
+    '.sb-wall',
+    '[id^="sb-wall"]',
+  ];
+
   var VIDEO_MARKERS = [
     'iframe[src*="youtube.com"]',
     'iframe[data-src*="youtube.com"]',
@@ -1069,6 +1083,98 @@
     return node;
   }
 
+  /**
+   * Smash Balloon YouTube Feed / Social Wall roots — decorate in place.
+   * Never treat #youtube-feed-loader (spinner) as a cover host.
+   *
+   * @param {Element|null} node
+   * @return {boolean}
+   */
+  function isYoutubeFeedLoader(node) {
+    if (!node || node.nodeType !== 1) {
+      return false;
+    }
+    if (node.id === 'youtube-feed-loader') {
+      return true;
+    }
+    try {
+      return !!(node.closest && node.closest('#youtube-feed-loader'));
+    } catch (eLoad) {
+      return false;
+    }
+  }
+
+  function isSmashBalloonFeedHost(node) {
+    if (!node || node.nodeType !== 1) {
+      return false;
+    }
+    if (isYoutubeFeedLoader(node)) {
+      return false;
+    }
+    var id = String(node.id || '');
+    if (id === 'regular-youtube-container' || id === 'live-youtube-container') {
+      return true;
+    }
+    if (id.indexOf('sb_youtube') === 0 || id.indexOf('sb-wall') === 0) {
+      return true;
+    }
+    if (!node.classList) {
+      return false;
+    }
+    return node.classList.contains('sb_youtube') || node.classList.contains('sb-wall');
+  }
+
+  function youtubeFeedHostContainer(node) {
+    if (!node || isYoutubeFeedLoader(node)) {
+      return null;
+    }
+    if (node.classList && node.classList.contains('sb_youtube')) {
+      return node;
+    }
+    if (node.closest) {
+      var feed = node.closest('.sb_youtube');
+      if (feed && !isYoutubeFeedLoader(feed)) {
+        return feed;
+      }
+    }
+    if (node.querySelector) {
+      var inner = node.querySelector('.sb_youtube');
+      if (inner && !isYoutubeFeedLoader(inner)) {
+        return inner;
+      }
+    }
+    if (node.id === 'regular-youtube-container' || node.id === 'live-youtube-container') {
+      return node;
+    }
+    return isSmashBalloonFeedHost(node) ? node : null;
+  }
+
+  function socialWallHostContainer(node) {
+    if (!node || node.nodeType !== 1) {
+      return null;
+    }
+    if (node.classList && node.classList.contains('sb-wall')) {
+      return node;
+    }
+    if (node.closest) {
+      var wall = node.closest('.sb-wall');
+      if (wall) {
+        return wall;
+      }
+    }
+    if (node.querySelector) {
+      var innerWall = node.querySelector('.sb-wall');
+      if (innerWall) {
+        return innerWall;
+      }
+    }
+    var id = String(node.id || '');
+    if (id.indexOf('sb-wall') === 0) {
+      return node;
+    }
+    return null;
+  }
+
   function isBuilderShell(node) {
     if (!node || !node.classList) {
       return false;
@@ -1094,7 +1200,8 @@
       node.classList.contains('wp-block-embed-vimeo') ||
       node.classList.contains('wp-block-video') ||
       node.classList.contains('wp-block-embed') ||
-      node.classList.contains('jobber-inline-work-request')
+      node.classList.contains('jobber-inline-work-request') ||
+      isSmashBalloonFeedHost(node)
     );
   }
 
@@ -1540,7 +1647,7 @@
     if (!target || isForbiddenGuardHost(target) || isUserWayNode(target) || hasAllCategories(cats)) {
       return;
     }
-    if (mode === 'embed' && isEffectivelyHidden(target)) {
+    if (mode === 'embed' && isEffectivelyHidden(target) && !isSmashBalloonFeedHost(target)) {
       return;
     }
     var key = kind + ':' + cats.join('+');
@@ -3031,6 +3138,44 @@
     }, 2500);
   }
 
+  /**
+   * After Marketing+Embeds: Smash Balloon feeds were parked. One-shot resize so
+   * list/masonry layouts measure after the overlay is removed. Do not call
+   * Smash Balloon internals or loop applyConsent (Mapster freeze).
+   */
+  var smashBalloonHydrated = false;
+
+  function ensureSmashBalloonIfNeeded() {
+    if (smashBalloonHydrated) {
+      return;
+    }
+    if (!hasCategoryConsent('marketing') || !hasCategoryConsent('functional')) {
+      return;
+    }
+    var hasFeed = false;
+    try {
+      hasFeed = !!document.querySelector('.sb_youtube, .sb-wall, [id^="sb_youtube"], [id^="sb-wall"]');
+    } catch (eQ) {
+      hasFeed = false;
+    }
+    if (!hasFeed) {
+      return;
+    }
+    smashBalloonHydrated = true;
+    try {
+      if (window.jQuery) {
+        window.jQuery(window).trigger('resize');
+      }
+    } catch (eJq) {
+      /* ignore */
+    }
+    try {
+      window.dispatchEvent(new Event('resize'));
+    } catch (eEv) {
+      /* ignore */
+    }
+  }
+
   function videoHostContainer(node) {
     if (!node) {
       return null;
@@ -3367,7 +3512,7 @@
       if (mode === 'embed' && !isVisualEmbedSurface(target)) {
         return;
       }
-      if (mode === 'embed' && isEffectivelyHidden(target)) {
+      if (mode === 'embed' && isEffectivelyHidden(target) && !isSmashBalloonFeedHost(target)) {
         return;
       }
       for (var i = 0; i < seen.length; i++) {
@@ -3524,11 +3669,33 @@
         push(host, 'widget', category, 'embed', ensureEmbedConsentCategories([category]));
       }
     );
+    // Smash Balloon YouTube Feed — cover the feed root, never the spinner icon.
+    queryAll(YOUTUBE_FEED_MARKERS).forEach(function (node) {
+      if (isYoutubeFeedLoader(node)) {
+        return;
+      }
+      var host = youtubeFeedHostContainer(node);
+      if (host && !isYoutubeFeedLoader(host)) {
+        push(host, 'youtube', 'marketing', 'embed', ensureVideoConsentCategories(['marketing']));
+      }
+    });
+
+    // Smash Balloon Social Wall (Instagram CDN / lightbox) — Marketing + Embeds.
+    queryAll(SOCIAL_WALL_MARKERS).forEach(function (node) {
+      var host = socialWallHostContainer(node);
+      if (host) {
+        push(host, 'embed', 'marketing', 'embed', ensureEmbedConsentCategories(['marketing']));
+      }
+    });
+
     // YouTube / Vimeo always — including Elementor when leaveBuildersAlone is on.
     // Layout skips stay elsewhere; video covers must still run before consent.
     // Same-origin / Elementor Self Hosted media must never be covered.
     queryAll(VIDEO_MARKERS).forEach(function (node) {
       if (!isVisualEmbedSurface(node)) {
+        return;
+      }
+      if (node.closest && (node.closest('.sb_youtube') || node.closest('.sb-wall'))) {
         return;
       }
       if (isSelfHostedVideoSurface(node)) {
@@ -4487,6 +4654,7 @@
       ensureCaptchasIfNeeded();
       // Always hydrate videos after consent — builders must not block GDPR unlock.
       ensureVideosIfNeeded();
+      ensureSmashBalloonIfNeeded();
       // Maps: same class of failure as Vimeo (API parked, widget already ran).
       ensureMapsIfNeeded();
       // Layout-only Elementor Motion FX recovery stays behind leaveBuildersAlone.
@@ -4533,6 +4701,7 @@
     refresh();
     resyncAllGuards();
     ensureVideosIfNeeded();
+    ensureSmashBalloonIfNeeded();
     ensureMapsIfNeeded();
     ensureCaptchasIfNeeded();
     if (!leaveBuildersAlone()) {

@@ -394,6 +394,13 @@
       u.indexOf('youtube.com/embed') !== -1 ||
       u.indexOf('youtube-nocookie.com') !== -1 ||
       u.indexOf('gtm4wp-youtube') !== -1 ||
+      u.indexOf('i.ytimg.com') !== -1 ||
+      u.indexOf('yt3.ggpht.com') !== -1 ||
+      u.indexOf('youtube-feed-pro') !== -1 ||
+      u.indexOf('sb-youtube.js') !== -1 ||
+      u.indexOf('cdninstagram.com') !== -1 ||
+      u.indexOf('/plugins/social-wall/') !== -1 ||
+      u.indexOf('sb-wall') !== -1 ||
       u.indexOf('googleadservices.com') !== -1 ||
       u.indexOf('googlesyndication.com') !== -1 ||
       u.indexOf('doubleclick.net') !== -1 ||

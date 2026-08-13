@@ -281,6 +281,8 @@
     deepPollTimer: null,
     deepFailStreak: 0,
     deepJobId: null,
+    /** Pages WordPress sent for the current Playwright job (fail if scanner walks fewer). */
+    pathsSent: 0,
     /** true when this tab owns REST polling for the deep scan */
     deepPollLeader: false,
     deepTabId: 't' + String(Date.now()) + '-' + Math.random().toString(36).slice(2, 8),
@@ -293,6 +295,50 @@
     }
   } catch (eChan) {
     deepScanChannel = null;
+  }
+
+  function scannerRedeployError(accepted, sent) {
+    if (sent > 1 && accepted > 0 && accepted < sent) {
+      return 'Scanner accepted ' + accepted + ' of ' + sent +
+        ' path(s). Redeploy the Scanner API from tools/ucpf-scanner so exactPaths is honored ' +
+        '(see docs/SCANNER-SERVER.md). Updating the WordPress plugin alone is not enough.';
+    }
+    return 'Multi-page Playwright scans need Scanner API 1.5.1 or newer (GET /health version). Redeploy tools/ucpf-scanner — updating the WordPress plugin alone is not enough (see docs/SCANNER-SERVER.md).';
+  }
+
+  function remoteAcceptedPages(job) {
+    if (!job) {
+      return 0;
+    }
+    if (job.paths_count) {
+      return Number(job.paths_count) || 0;
+    }
+    if (job.paths && job.paths.length) {
+      return job.paths.length;
+    }
+    return 0;
+  }
+
+  function scannerJobUnderScanned(job, pathsSent) {
+    if (pathsSent < 2 || !job) {
+      return false;
+    }
+    var accepted = remoteAcceptedPages(job);
+    if (accepted > 0 && accepted < pathsSent) {
+      return true;
+    }
+    var pagesTotal = job.progress && job.progress.pages_total;
+    if (Number(pagesTotal) === 1) {
+      return true;
+    }
+    var logs = (job.progress && job.progress.log) || [];
+    var i;
+    for (i = 0; i < logs.length; i++) {
+      if (/session\(s\)\s*·\s*1 page\(s\)/.test(String(logs[i] || ''))) {
+        return true;
+      }
+    }
+    return false;
   }
 
   function deepScanBroadcast(msg) {
@@ -953,12 +999,20 @@
       }
       any = true;
       var title = groupLabels[groupId] || groupId;
+      var selectedInGroup = 0;
+      rows.forEach(function (row) {
+        if (scanPickerState.selected[row.url]) {
+          selectedInGroup += 1;
+        }
+      });
+      var allSelected = selectedInGroup === rows.length && rows.length > 0;
       var $group = $('<div class="ucpf-scanner-group"></div>').attr('data-group', groupId);
       var $head = $('<div class="ucpf-scanner-group__head"></div>');
-      $head.append($('<strong class="ucpf-scanner-group__title"></strong>').text(title + ' (' + rows.length + ')'));
+      $head.append($('<strong class="ucpf-scanner-group__title"></strong>').text(title + ' (' + selectedInGroup + ' of ' + rows.length + ' selected)'));
       var $sel = $('<button type="button" class="button-link ucpf-scanner-group__select"></button>')
-        .text('Select group')
-        .attr('data-group', groupId);
+        .text(allSelected ? 'Clear group' : 'Select group')
+        .attr('data-group', groupId)
+        .attr('data-action', allSelected ? 'clear' : 'select');
       $head.append($sel);
       $group.append($head);
 
@@ -1125,12 +1179,18 @@
 
   $(document).on('click', '.ucpf-scanner-group__select', function () {
     var group = $(this).attr('data-group');
+    var action = $(this).attr('data-action') || 'select';
     (scanPickerState.available || []).forEach(function (item) {
       if (!item || item.group !== group) {
         return;
       }
       var url = normalizeSiteUrl(item.url);
-      if (url) {
+      if (!url) {
+        return;
+      }
+      if (action === 'clear') {
+        delete scanPickerState.selected[url];
+      } else {
         scanPickerState.selected[url] = item.label || url;
       }
     });
@@ -1547,6 +1607,7 @@
       scanRuntime.cancelled = false;
       scanRuntime.deepFailStreak = 0;
       scanRuntime.deepJobId = job.job_id;
+      scanRuntime.pathsSent = Number(job.paths_sent || 0) || 0;
       scanRuntime.abortController = (typeof AbortController !== 'undefined') ? new AbortController() : null;
       setScanBusy(true);
       $('#ucpf-stop-scan').prop('hidden', false);
@@ -1620,6 +1681,14 @@
       }
       if (!job) {
         throw new Error('Empty scanner response');
+      }
+      var sent = Number(job.paths_sent || scanRuntime.pathsSent || 0) || 0;
+      if (sent > 1) {
+        scanRuntime.pathsSent = sent;
+      }
+      if (scannerJobUnderScanned(job, sent)) {
+        restPost('scan/cancel', { job_id: jobId }).catch(function () { /* ignore */ });
+        throw new Error(scannerRedeployError(remoteAcceptedPages(job) || 1, sent));
       }
       if (job.progress) {
         showScanProgress(job.progress, attempt, $status);
@@ -1780,6 +1849,7 @@
     scanRuntime.cancelled = false;
     scanRuntime.deepFailStreak = 0;
     scanRuntime.deepJobId = null;
+    scanRuntime.pathsSent = 0;
     scanRuntime.abortController = (typeof AbortController !== 'undefined') ? new AbortController() : null;
     var signal = scanRuntime.abortController ? scanRuntime.abortController.signal : null;
     setScanBusy(true);
@@ -1856,16 +1926,14 @@
       var job = pack && pack.job;
       var profileHint = (pack && pack.profileHint) || '';
       var pathsSent = (pack && pack.pathsSent) || 0;
+      scanRuntime.pathsSent = pathsSent;
       if (!job || !job.id) {
         throw new Error('Scanner did not return a job id. Check Advanced → Scanner API URL/key.');
       }
-      var pathsCount = job.paths_count || (job.paths && job.paths.length) || 0;
-      if (pathsSent > 1 && pathsCount > 0 && pathsCount < pathsSent) {
-        throw new Error(
-          'Scanner accepted ' + pathsCount + ' of ' + pathsSent +
-            ' path(s). Redeploy the Scanner API from tools/ucpf-scanner so exactPaths is honored ' +
-            '(see docs/SCANNER-SERVER.md). Updating the WordPress plugin alone is not enough.'
-        );
+      var pathsCount = remoteAcceptedPages(job);
+      if (pathsSent > 1 && (!pathsCount || pathsCount < pathsSent)) {
+        restPost('scan/cancel', { job_id: job.id }).catch(function () { /* ignore */ });
+        throw new Error(scannerRedeployError(pathsCount, pathsSent));
       }
       if (pathsCount > 0) {
         profileHint = profileHint.replace(/(\d+)\s*page\(s\)/, pathsCount + ' page(s)');

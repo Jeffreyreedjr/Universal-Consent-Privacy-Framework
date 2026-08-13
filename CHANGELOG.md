@@ -7,11 +7,16 @@ All notable changes to Universal Consent & Privacy Framework are documented here
 ### Added
 - Multisite **Network Admin** connection settings (`ucpf_network_settings`): shared Scanner API URL/key, Privacy Preference API, and agency registry defaults. Sites inherit when Advanced fields are blank; filled site fields override. Promote-from-site + clear-overrides tools for existing installs.
 - Elementor Video **open-inline** fallback: when park/restore and Elementor `runReadyTrigger` leave `.elementor-wrapper.elementor-open-inline` empty, inject/restore `iframe.elementor-video` from `data-settings` (`youtube_url` / `vimeo_url`). Background inject and existing video handling unchanged.
+- Smash Balloon **YouTube Feed** (`.sb_youtube`, live/regular containers) and **Social Wall** (`.sb-wall` Instagram) consent covers: Marketing + Embeds overlay, park `youtube-feed-pro` / `social-wall` scripts, skip `#youtube-feed-loader`. Existing Elementor video, maps, Calendly, forms, and captcha covers unchanged.
 - Mapster WP Maps / MapLibre: catalog patterns park `mapster-wp-maps*` scripts server-side; embed guard covers `.mapster-wp-maps` containers; post-consent one-shot force-refire + canvas hydrate so maps leave the loader after Marketing+Embeds.
 - MapLibre CDN hosts (`unpkg` / `jsdelivr` / demotiles) classified as Embeds in the network gate.
 - Elementor update resilience: after plugin / theme / UCPF updates, clear Elementor CSS cache (rebuild on enqueue / next view), queue Cloudflare purge on request shutdown (prefix for `uploads/elementor/css`), and show a dismissible admin notice. Setting: **Clear Elementor CSS cache after updates** (Advanced → Cloudflare; default on). Missing CSS files self-heal on `elementor/css-file/before_enqueue`.
 
+### Changed
+- Scanner API `/health` version **1.5.2**. Redeploy `tools/ucpf-scanner` — the WordPress zip does not include the Node service.
+
 ### Fixed
+- Playwright no longer silently scans only the homepage when many pages are selected: WordPress compares scanner-accepted vs sent paths, refuses Scanner API hosts below **1.5.1** (`GET /health`), and does not inflate progress `pages_total`. Picker groups show selected/total; remembered picks persist up to 200 URLs.
 - Accept All “Page Unresponsive” after reload (`?_ucpf=…#ucpf_c=…`): Mapster `forceMapster` cleared refire flags and re-cloned every map script until the tab locked. Force-refire is one-shot; clones are never re-cloned; handoff boot no longer re-fires `accepted_all` plus a second full loader scan.
 - Accept All hard-reload path no longer sync-activates every parked script before navigation; consent change handlers coalesce and skip heavy hydrate while reload is pending.
 - Elementor/Cloudflare update path avoids WP-Cron / `spawn_cron` (unreliable with external cron runners). Cache clear stays sync; CF purge runs on shutdown / admin fallback.

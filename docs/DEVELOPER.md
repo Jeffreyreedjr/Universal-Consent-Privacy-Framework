@@ -60,7 +60,7 @@ UCPF.openPreferences({ highlight: 'security' });
 UCPF.on('ucpf:consent:changed', (state) => {});
 ```
 
-Consent surface guard (`public/js/form-captcha-guard.js`): CAPTCHA → Security; maps (incl. Mapbox) → Functional; YouTube → Marketing; Vimeo → Functional. Overlays use the active `bannerTheme` (and custom accent tokens copied from `#ucpf-root`). Unlock via category CTA or Save Preferences (hard reload).
+Consent surface guard (`public/js/form-captcha-guard.js`): CAPTCHA → Security; maps (incl. Mapbox) → Functional; YouTube (including Smash Balloon YouTube Feed) → Marketing; Smash Balloon Social Wall → Marketing; Vimeo → Functional. Overlays use the active `bannerTheme` (and custom accent tokens copied from `#ucpf-root`). Unlock via category CTA or Save Preferences (hard reload).
 
 ## Front-end asset versions / CDN
 

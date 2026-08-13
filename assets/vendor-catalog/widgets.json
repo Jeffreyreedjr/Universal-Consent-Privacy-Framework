@@ -55,7 +55,13 @@
       "treatment": "consent",
       "description": "Facebook social feed embeds and related third-party requests.",
       "privacy_url": "https://smashballoon.com/privacy-policy/",
-      "script_patterns": ["facebook.com/plugins", "connect.facebook.net", "sb-facebook"],
+      "script_patterns": [
+        "facebook.com/plugins",
+        "connect.facebook.net",
+        "sb-facebook",
+        "social-wall",
+        "sb-wall"
+      ],
       "cookie_patterns": ["sb_*", "cff_*"],
       "cookies": [],
       "iframe_patterns": ["facebook.com"],
@@ -69,7 +75,14 @@
       "treatment": "consent",
       "description": "Instagram feed embeds.",
       "privacy_url": "https://smashballoon.com/privacy-policy/",
-      "script_patterns": ["instagram.com", "cdninstagram.com", "sb-instagram"],
+      "script_patterns": [
+        "instagram.com",
+        "cdninstagram.com",
+        "sb-instagram",
+        "social-wall",
+        "sb-wall",
+        "sbsw"
+      ],
       "cookie_patterns": ["sbi_*"],
       "cookies": [],
       "iframe_patterns": ["instagram.com"],
