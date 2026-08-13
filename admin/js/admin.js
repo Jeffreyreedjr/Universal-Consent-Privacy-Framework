@@ -300,7 +300,7 @@
   function scannerRedeployError(accepted, sent) {
     if (sent > 1 && accepted > 0 && accepted < sent) {
       return 'Scanner kept ' + accepted + ' of ' + sent +
-        ' page(s). GET /health can show a new version from package.json while an old Node process is still running. Copy tools/ucpf-scanner, restart the service (systemctl restart ucpf-scanner), then confirm /health includes features.exactPaths and version 1.5.3+. Updating the WordPress plugin zip does not update this service.';
+        ' page(s). GET /health can show a new version from package.json while an old Node process is still running. Copy tools/ucpf-scanner, restart the service (systemctl restart ucpf-scanner), then confirm /health includes features.exactPaths and version 1.5.4+. Updating the WordPress plugin zip does not update this service.';
     }
     return 'Multi-page Playwright scans need Scanner API 1.5.3+ with features.exactPaths (GET /health). Copy tools/ucpf-scanner and restart the Node process — updating the WordPress plugin zip is not enough (see docs/SCANNER-SERVER.md).';
   }
@@ -2023,6 +2023,7 @@
       url: (ucpfAdmin && ucpfAdmin.homeUrl) ? ucpfAdmin.homeUrl : window.location.origin,
       urls: urls,
       paths: pathList,
+      pathList: pathList.join('\n'),
       merge_logged_in: $('#ucpf-playwright-merge-auth').is(':checked'),
       options: {
         depth: depth,
@@ -2059,6 +2060,28 @@
       }
       if (/rate limit/i.test(msg)) {
         throw new Error('Scanner rate limit hit. Wait ~30s and try again (polls no longer count against the limit after you update the scanner).');
+      }
+      if (retry < 1 && (status === 502 || status === 504 || /connection refused|bad gateway|unreachable/i.test(msg))) {
+        setStatus(
+          '#ucpf-scan-status',
+          'Scanner API returned 502 (nginx could not reach Node). Waiting 5s in case ucpf-scanner is still restarting…',
+          true
+        );
+        return new Promise(function (resolve) {
+          window.setTimeout(resolve, 5000);
+        }).then(function () {
+          return startDeepScanJob(urls, depth, signal, retry + 1);
+        });
+      }
+      if (status === 502 || status === 504 || /unreachable|connection refused|bad gateway/i.test(msg)) {
+        throw new Error(
+          'Scanner API is unreachable (nginx 502 / connection refused). The Node process is down or still restarting. Wait until GET /health works, then try again.'
+        );
+      }
+      if (/exactPaths job kept|paths_collapsed|only \d+ path/i.test(msg)) {
+        throw new Error(
+          'Selected pages collapsed to a single path before Playwright ran. This is not a scanner restart issue. Update the WordPress plugin zip (sends paths + pathList) and copy tools/ucpf-scanner 1.5.4+, then restart Node.'
+        );
       }
       throw err;
     });

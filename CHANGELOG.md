@@ -13,9 +13,11 @@ All notable changes to Universal Consent & Privacy Framework are documented here
 - Elementor update resilience: after plugin / theme / UCPF updates, clear Elementor CSS cache (rebuild on enqueue / next view), queue Cloudflare purge on request shutdown (prefix for `uploads/elementor/css`), and show a dismissible admin notice. Setting: **Clear Elementor CSS cache after updates** (Advanced → Cloudflare; default on). Missing CSS files self-heal on `elementor/css-file/before_enqueue`.
 
 ### Changed
+- Scanner API `/health` version **1.5.4**: merge `paths` + newline `pathList` + `urls[].path` so a stripped JSON array cannot collapse a job to `/`. A 409 `maxPages=14` with 1 path is a payload problem, not a missing restart.
 - Scanner API `/health` version **1.5.3** with live `features.exactPaths` (not only `package.json`). Copy `tools/ucpf-scanner` **and restart Node** — a version bump on disk while the old process is running still walked only `/`.
 
 ### Fixed
+- Playwright 409 `exactPaths job kept 1 path(s) but maxPages=14`: WordPress no longer forwards a larger JS `maxPages` after sanitizing the path list; selected URLs are kept (path extracted from absolute URLs, UTF-8 permalinks); `pathList` is sent as a newline string. nginx 502 `connection refused` during `systemctl restart` is treated as “Node is down”, not a stale scanner.
 - Playwright “Scanner accepted 1 of 14 path(s)” after a plugin + scanner file update: recover JSON bodies sent as `x-www-form-urlencoded`, never default a curated job to `['/']`, and do not treat a missing `paths_count` as 1. Confirm `GET /health` includes `"features":{"exactPaths":true}`.
 - Playwright no longer silently scans only the homepage when many pages are selected: WordPress compares scanner-accepted vs sent paths, refuses Scanner API hosts below **1.5.3** with `features.exactPaths` (`GET /health`), and does not inflate progress `pages_total`. Picker groups show selected/total; remembered picks persist up to 200 URLs.
 - Accept All “Page Unresponsive” after reload (`?_ucpf=…#ucpf_c=…`): Mapster `forceMapster` cleared refire flags and re-cloned every map script until the tab locked. Force-refire is one-shot; clones are never re-cloned; handoff boot no longer re-fires `accepted_all` plus a second full loader scan.

@@ -1219,9 +1219,59 @@ class Cookie_Scanner {
 	}
 
 	/**
+	 * Coerce paths / pathList / urls from a REST or scanner body into strings.
+	 *
+	 * @param mixed $raw Array, newline/JSON string, or url objects.
+	 * @return string[]
+	 */
+	public function coerce_scan_path_list( $raw ) {
+		if ( null === $raw || false === $raw || '' === $raw ) {
+			return array();
+		}
+		if ( is_string( $raw ) ) {
+			$t = trim( $raw );
+			if ( '' === $t ) {
+				return array();
+			}
+			if ( '[' === $t[0] ) {
+				$decoded = json_decode( $t, true );
+				if ( is_array( $decoded ) ) {
+					return $this->coerce_scan_path_list( $decoded );
+				}
+				$raw = preg_split( '/[\r\n]+/', $t );
+			} elseif ( false !== strpos( $t, "\n" ) ) {
+				$raw = preg_split( '/\r?\n/', $t );
+			} else {
+				$raw = array( $t );
+			}
+		}
+		if ( ! is_array( $raw ) ) {
+			return array();
+		}
+		$out = array();
+		foreach ( $raw as $item ) {
+			if ( is_array( $item ) ) {
+				if ( ! empty( $item['path'] ) && is_string( $item['path'] ) ) {
+					$out[] = $item['path'];
+				} elseif ( ! empty( $item['url'] ) && is_string( $item['url'] ) ) {
+					$out[] = $item['url'];
+				}
+				continue;
+			}
+			if ( is_scalar( $item ) ) {
+				$s = trim( (string) $item );
+				if ( '' !== $s ) {
+					$out[] = $s;
+				}
+			}
+		}
+		return $out;
+	}
+
+	/**
 	 * Sanitize one relative scan path (/… only). Returns null if rejected.
 	 *
-	 * @param string $path Raw path or path-like string.
+	 * @param string $path Raw path, path-like string, or absolute same-site URL.
 	 * @return string|null
 	 */
 	public function sanitize_scan_path( $path ) {
@@ -1229,23 +1279,35 @@ class Cookie_Scanner {
 		if ( '' === $path ) {
 			return null;
 		}
-		// Reject absolute / protocol-relative URLs and scheme-like prefixes.
-		if ( preg_match( '#^[a-z][a-z0-9+.-]*:#i', $path ) || 0 === strpos( $path, '//' ) ) {
+		// Absolute URL → path + query (admin / proxies sometimes forward full URLs).
+		if ( preg_match( '#^https?://#i', $path ) ) {
+			$parsed = wp_parse_url( $path );
+			if ( ! is_array( $parsed ) ) {
+				return null;
+			}
+			$path = ( isset( $parsed['path'] ) && '' !== $parsed['path'] ) ? $parsed['path'] : '/';
+			if ( ! empty( $parsed['query'] ) ) {
+				$path .= '?' . $parsed['query'];
+			}
+		}
+		if ( 0 === strpos( $path, '//' ) || preg_match( '#^[a-z][a-z0-9+.-]*:#i', $path ) ) {
 			return null;
 		}
-		// Reject embedded // (protocol-relative or authority breakout) and traversal.
-		if ( false !== strpos( $path, '//' ) || false !== strpos( $path, '..' ) ) {
+		if ( false !== strpos( $path, '..' ) ) {
+			return null;
+		}
+		$path = preg_replace( '#/{2,}#', '/', $path );
+		if ( ! is_string( $path ) || '' === $path ) {
 			return null;
 		}
 		if ( '/' !== $path[0] ) {
 			$path = '/' . ltrim( $path, '/' );
 		}
-		// Normalize empty path to homepage.
 		if ( '/' !== $path && '' === ltrim( $path, '/' ) ) {
 			$path = '/';
 		}
-		// Only allow a safe path character set (plus query string).
-		if ( ! preg_match( '#^/[A-Za-z0-9._~:/?#\[\]@!$&\'()*+,;=%\-]*$#', $path ) ) {
+		// Reject control characters; allow UTF-8 permalinks (accents, etc.).
+		if ( preg_match( '/[\x00-\x1F\x7F]/', $path ) ) {
 			return null;
 		}
 		return $path;

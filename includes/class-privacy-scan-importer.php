@@ -1170,12 +1170,21 @@ class Privacy_Scan_Importer {
 		if ( $sent > 1 && $accepted > 0 && $accepted < $sent ) {
 			return sprintf(
 				/* translators: 1: accepted path count, 2: sent path count */
-				__( 'Scanner kept %1$d of %2$d page(s). GET /health can show a new version from package.json while an old Node process is still running. Copy tools/ucpf-scanner, then restart the service (systemctl restart ucpf-scanner). Confirm /health includes "features":{"exactPaths":true} and version 1.5.3+. Updating the WordPress plugin zip does not update this service.', 'universal-consent-privacy-framework' ),
+				__( 'Scanner kept %1$d of %2$d page(s). GET /health can show a new version from package.json while an old Node process is still running. Copy tools/ucpf-scanner, then restart the service (systemctl restart ucpf-scanner). Confirm /health includes "features":{"exactPaths":true} and version 1.5.4+. Updating the WordPress plugin zip does not update this service.', 'universal-consent-privacy-framework' ),
 				$accepted,
 				$sent
 			);
 		}
 		return __( 'Multi-page Playwright scans need Scanner API 1.5.3 or newer with features.exactPaths (GET /health). Copy tools/ucpf-scanner and restart the Node process — updating the WordPress plugin zip is not enough (see docs/SCANNER-SERVER.md).', 'universal-consent-privacy-framework' );
+	}
+
+	/**
+	 * Admin-facing copy when nginx cannot reach the Node process (restart window).
+	 *
+	 * @return string
+	 */
+	public static function scanner_unreachable_message() {
+		return __( 'Scanner API is unreachable (nginx 502 / connection refused). The Node process is down or still restarting. Wait until GET /health succeeds, then try again. Updating the WordPress plugin zip does not start this service.', 'universal-consent-privacy-framework' );
 	}
 
 	/**
@@ -1244,8 +1253,8 @@ class Privacy_Scan_Importer {
 		$health = self::get_scanner_health();
 		if ( is_wp_error( $health ) ) {
 			return new \WP_Error(
-				'ucpf_scanner_stale',
-				self::scanner_redeploy_message() . ' ' . __( 'Could not read Scanner API /health.', 'universal-consent-privacy-framework' ),
+				'ucpf_scanner_unreachable',
+				self::scanner_unreachable_message() . ' ' . __( 'Could not read Scanner API /health.', 'universal-consent-privacy-framework' ),
 				array( 'status' => 502 )
 			);
 		}
@@ -1310,13 +1319,9 @@ class Privacy_Scan_Importer {
 		$exact = ! isset( $options['exactPaths'] ) || ! empty( $options['exactPaths'] );
 		$path_count = count( $paths );
 		if ( $exact ) {
-			$max_pages = max(
-				$path_count,
-				isset( $options['maxPages'] ) ? absint( $options['maxPages'] ) : 0,
-				1
-			);
-			$max_pages = min( Cookie_Scanner::MAX_PICKER_URLS, max( 1, $max_pages ) );
-			// Keep every selected path; do not array_slice by depth maxPages.
+			// Never inherit a larger JS maxPages than the sanitized path list
+			// (that 14-vs-1 mismatch made Scanner API 1.5.3 return 409).
+			$max_pages = min( Cookie_Scanner::MAX_PICKER_URLS, max( $path_count, 1 ) );
 		} else {
 			$max_pages = isset( $options['maxPages'] ) ? absint( $options['maxPages'] ) : $mapped['maxPages'];
 			if ( $max_pages < 1 ) {
@@ -1341,9 +1346,10 @@ class Privacy_Scan_Importer {
 		}
 
 		$body = array(
-			'url'     => esc_url_raw( $url ),
-			'paths'   => $paths,
-			'options' => $scan_options,
+			'url'      => esc_url_raw( $url ),
+			'paths'    => $paths,
+			'pathList' => implode( "\n", $paths ),
+			'options'  => $scan_options,
 		);
 
 		$response = wp_remote_post(
@@ -1356,6 +1362,13 @@ class Privacy_Scan_Importer {
 		);
 
 		if ( is_wp_error( $response ) ) {
+			if ( 'http_request_failed' === $response->get_error_code() ) {
+				return new \WP_Error(
+					'ucpf_scanner_unreachable',
+					self::scanner_unreachable_message(),
+					array( 'status' => 502 )
+				);
+			}
 			return $response;
 		}
 
@@ -1366,7 +1379,11 @@ class Privacy_Scan_Importer {
 			if ( is_array( $data ) && ! empty( $data['hint'] ) ) {
 				$msg .= ' ' . sanitize_text_field( (string) $data['hint'] );
 			}
-			if ( 503 === $code || ( is_array( $data ) && ! empty( $data['error'] ) && false !== stripos( (string) $data['error'], 'queue is full' ) ) ) {
+			if ( 502 === $code || 504 === $code ) {
+				$msg = self::scanner_unreachable_message();
+			} elseif ( 409 === $code && is_array( $data ) && ! empty( $data['error'] ) && false !== stripos( (string) $data['error'], 'exactPaths job kept' ) ) {
+				$msg = __( 'Selected pages collapsed to a single path before Playwright ran. This is not a scanner restart issue. Update this plugin zip (sends paths + pathList) and deploy Scanner API 1.5.4+.', 'universal-consent-privacy-framework' );
+			} elseif ( 503 === $code || ( is_array( $data ) && ! empty( $data['error'] ) && false !== stripos( (string) $data['error'], 'queue is full' ) ) ) {
 				$msg = __( 'Scanner queue is full. Wait and retry — do not cancel other sites’ jobs on a shared scanner.', 'universal-consent-privacy-framework' );
 				if ( is_array( $data ) && ! empty( $data['retry_after'] ) ) {
 					$msg .= ' ' . sprintf(
@@ -1435,7 +1452,7 @@ class Privacy_Scan_Importer {
 			if ( 404 === $code ) {
 				$msg = __( 'Scan job not found (scanner may have restarted). Start a new scan.', 'universal-consent-privacy-framework' );
 			} elseif ( 502 === $code || 504 === $code ) {
-				$msg = __( 'Scanner gateway error. The scan service may be overloaded or down.', 'universal-consent-privacy-framework' );
+				$msg = self::scanner_unreachable_message();
 			}
 			return new \WP_Error( 'ucpf_scanner_http', $msg, array( 'status' => $code ? $code : 502 ) );
 		}

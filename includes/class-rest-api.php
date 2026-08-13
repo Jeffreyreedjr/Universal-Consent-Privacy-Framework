@@ -933,8 +933,7 @@ class Rest_Api {
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function post_scan_deep( $request ) {
-		$body    = $request->get_json_params();
-		$body    = is_array( $body ) ? $body : array();
+		$body    = $this->request_json_body( $request );
 		$scanner = Cookie_Scanner::instance();
 
 		// Force scan origin to same-site (home_url / site_url hosts only).
@@ -946,59 +945,47 @@ class Rest_Api {
 			$url        = ! empty( $normalized[0]['url'] ) ? $normalized[0]['url'] : home_url( '/' );
 		}
 
-		$paths = array();
-		if ( ! empty( $body['paths'] ) && is_array( $body['paths'] ) ) {
-			// Prefer explicit paths from the admin (most reliable).
-			$paths = $body['paths'];
+		$raw = array_merge(
+			$scanner->coerce_scan_path_list( isset( $body['paths'] ) ? $body['paths'] : null ),
+			$scanner->coerce_scan_path_list( isset( $body['pathList'] ) ? $body['pathList'] : null ),
+			$scanner->coerce_scan_path_list( isset( $body['urls'] ) ? $body['urls'] : null )
+		);
+		$claimed = count( $raw );
+		if ( ! empty( $body['options'] ) && is_array( $body['options'] ) && ! empty( $body['options']['maxPages'] ) ) {
+			$claimed = max( $claimed, (int) $body['options']['maxPages'] );
 		}
-		if ( ! $paths && ! empty( $body['urls'] ) && is_array( $body['urls'] ) ) {
-			foreach ( $body['urls'] as $item ) {
-				// Prefer explicit path from the admin picker (homepage often has no path in normalized URL).
-				if ( is_array( $item ) && ! empty( $item['path'] ) && is_string( $item['path'] ) ) {
-					$paths[] = $item['path'];
-					continue;
-				}
-				$u = is_array( $item ) && ! empty( $item['url'] ) ? $item['url'] : (string) $item;
-				// Relative path string.
-				if ( is_string( $u ) && 0 === strpos( $u, '/' ) && ! preg_match( '#^[a-z][a-z0-9+.-]*:#i', $u ) && 0 !== strpos( $u, '//' ) ) {
-					$paths[] = $u;
-					continue;
-				}
-				$parsed = wp_parse_url( $u );
-				if ( ! is_array( $parsed ) ) {
-					continue;
-				}
-				// Absolute URLs must be same-site before we accept their path.
-				if ( ! empty( $parsed['host'] ) ) {
-					$abs = esc_url_raw( (string) $u );
-					if ( ! $abs || ! $scanner->is_same_site_url( $abs ) ) {
-						continue;
-					}
-					if ( ! empty( $parsed['path'] ) ) {
-						$paths[] = $parsed['path'] . ( ! empty( $parsed['query'] ) ? '?' . $parsed['query'] : '' );
-					} else {
-						$paths[] = '/';
-					}
-					continue;
-				}
-				if ( ! empty( $parsed['path'] ) ) {
-					$paths[] = $parsed['path'];
-				}
-			}
-		}
+
+		$paths = $scanner->sanitize_scan_paths( $raw, Cookie_Scanner::MAX_PICKER_URLS );
 		// Last resort: derive paths from normalized URL defs.
 		if ( ! $paths && ! empty( $body['urls'] ) && is_array( $body['urls'] ) ) {
-			foreach ( $scanner->normalize_scan_urls( $body['urls'], Cookie_Scanner::MAX_SERVER_URLS ) as $def ) {
+			foreach ( $scanner->normalize_scan_urls( $body['urls'], Cookie_Scanner::MAX_PICKER_URLS ) as $def ) {
 				if ( empty( $def['url'] ) ) {
 					continue;
 				}
 				$p = wp_parse_url( (string) $def['url'], PHP_URL_PATH );
 				$paths[] = ( null === $p || '' === $p ) ? '/' : $p;
 			}
+			$paths = $scanner->sanitize_scan_paths( $paths, Cookie_Scanner::MAX_PICKER_URLS );
 		}
-		$paths = $scanner->sanitize_scan_paths( $paths, Cookie_Scanner::MAX_PICKER_URLS );
 		if ( ! $paths ) {
 			$paths = array( '/' );
+		}
+
+		if ( $claimed > 1 && count( $paths ) < 2 ) {
+			return new \WP_Error(
+				'ucpf_scan_paths_collapsed',
+				sprintf(
+					/* translators: 1: selected page count, 2: paths kept after sanitize */
+					__( 'Selected %1$d page(s) but only %2$d path(s) survived sanitizing. The Scanner API was not started. Check that selected URLs are on this site (same host as home_url). Updating or restarting the scanner will not restore dropped pages.', 'universal-consent-privacy-framework' ),
+					$claimed,
+					count( $paths )
+				),
+				array(
+					'status'     => 409,
+					'claimed'    => $claimed,
+					'paths_kept' => count( $paths ),
+				)
+			);
 		}
 
 		$options = array();
@@ -1009,12 +996,10 @@ class Rest_Api {
 			$options['depth'] = $body['depth'];
 		}
 		// Always honor the admin's full page list (never fall back to depth caps).
+		// maxPages must match the sanitized list — a larger JS count with one kept
+		// path made Scanner API 1.5.3 return 409 "restart ucpf-scanner".
 		$options['exactPaths'] = true;
-		$options['maxPages']   = max(
-			isset( $options['maxPages'] ) ? (int) $options['maxPages'] : 0,
-			count( $paths ),
-			1
-		);
+		$options['maxPages']   = max( count( $paths ), 1 );
 
 		if ( Active_Scan::instance()->is_active() ) {
 			$active = Active_Scan::instance()->get();
@@ -1859,6 +1844,59 @@ class Rest_Api {
 			return $result;
 		}
 		return rest_ensure_response( $result );
+	}
+
+	/**
+	 * JSON body for scan/deep: prefer raw JSON when security plugins flatten arrays.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return array
+	 */
+	private function request_json_body( $request ) {
+		$body = $request->get_json_params();
+		if ( ! is_array( $body ) ) {
+			$body = array();
+		}
+		$raw = (string) $request->get_body();
+		if ( $raw ) {
+			$decoded = json_decode( $raw, true );
+			if ( is_array( $decoded ) ) {
+				$params_n = $this->body_path_hint_count( $body );
+				$raw_n    = $this->body_path_hint_count( $decoded );
+				if ( $raw_n > $params_n || ( empty( $body['pathList'] ) && ! empty( $decoded['pathList'] ) ) ) {
+					$body = array_merge( $body, $decoded );
+				}
+			}
+		}
+		if ( empty( $body['paths'] ) && empty( $body['urls'] ) && empty( $body['pathList'] ) ) {
+			$params = $request->get_params();
+			if ( is_array( $params ) ) {
+				$body = array_merge( $body, $params );
+			}
+		}
+		return $body;
+	}
+
+	/**
+	 * How many path-like items a request body appears to carry (pre-sanitize).
+	 *
+	 * @param array $body Body.
+	 * @return int
+	 */
+	private function body_path_hint_count( array $body ) {
+		$n = 0;
+		if ( ! empty( $body['paths'] ) && is_array( $body['paths'] ) ) {
+			$n = max( $n, count( $body['paths'] ) );
+		} elseif ( ! empty( $body['paths'] ) && is_string( $body['paths'] ) ) {
+			$n = max( $n, substr_count( (string) $body['paths'], "\n" ) + 1 );
+		}
+		if ( ! empty( $body['urls'] ) && is_array( $body['urls'] ) ) {
+			$n = max( $n, count( $body['urls'] ) );
+		}
+		if ( ! empty( $body['pathList'] ) && is_string( $body['pathList'] ) ) {
+			$n = max( $n, substr_count( $body['pathList'], "\n" ) + 1 );
+		}
+		return $n;
 	}
 
 	/**

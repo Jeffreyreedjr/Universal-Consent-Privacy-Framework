@@ -55,7 +55,7 @@ UCPF_SCANNER_API_KEYS=generate-a-long-random-secret-here
 | `UCPF_SCANNER_PORT` | Default `3847` |
 | `UCPF_SCANNER_API_KEYS` | Comma-separated API keys. **Required** for any non-loopback client (including WordPress on another host). |
 | `UCPF_SCANNER_ALLOW_LOCAL=1` | Optional. Allows **unauthenticated** calls from loopback only. Do not use this as a substitute for keys on a public API. |
-| `UCPF_SCANNER_MAX_PAGES` | Cap pages per job when the client does **not** send a curated list (default 100). WordPress admin selections set `exactPaths: true` and are **not** truncated by this env var (hard ceiling 500). WordPress **refuses** multi-page jobs unless `GET /health` includes **`features.exactPaths: true`** (Scanner API **1.5.3+**). Copying `package.json` without **restarting Node** used to report a new version while the old process still walked only `/`. **Redeploy this service** after pulling plugin/scanner fixes — the WordPress zip never ships `tools/ucpf-scanner`. |
+| `UCPF_SCANNER_MAX_PAGES` | Cap pages per job when the client does **not** send a curated list (default 100). WordPress admin selections set `exactPaths: true` and are **not** truncated by this env var (hard ceiling 500). WordPress **refuses** multi-page jobs unless `GET /health` includes **`features.exactPaths: true`** (Scanner API **1.5.3+**; prefer **1.5.4** for `pathList` recovery). Copying `package.json` without **restarting Node** used to report a new version while the old process still walked only `/`. **Redeploy this service** after pulling plugin/scanner fixes — the WordPress zip never ships `tools/ucpf-scanner`. |
 | `UCPF_SCANNER_MAX_CONCURRENT` | Parallel Chromium jobs (default 2). Budget ~1–2 GB RAM each. |
 | `UCPF_SCANNER_MAX_QUEUE` | Waiting jobs when slots are full (default **200**) |
 | `UCPF_SCANNER_MAX_RUNNING_PER_KEY` | Max running jobs per API key (default **1**) |
@@ -88,12 +88,16 @@ Smoke test:
 curl -s http://127.0.0.1:3847/health
 ```
 
-WordPress multi-page scans require `/health` **`features.exactPaths: true`** (this tree reports **1.5.3**). Updating the WordPress plugin zip does **not** update this Node service. After every scanner fix, copy `tools/ucpf-scanner`, **restart the process**, and confirm:
+WordPress multi-page scans require `/health` **`features.exactPaths: true`** (this tree reports **1.5.4**). Updating the WordPress plugin zip does **not** update this Node service. After every scanner fix, copy `tools/ucpf-scanner`, **restart the process**, and confirm:
 
 ```bash
 curl -s http://127.0.0.1:3847/health
-# { "ok": true, "version": "1.5.3", "features": { "exactPaths": true }, "pid": 1234, ... }
+# { "ok": true, "version": "1.5.4", "features": { "exactPaths": true }, "pid": 1234, ... }
 ```
+
+nginx `connect() failed (111: Connection refused) while connecting to upstream` during that restart is expected: the proxy returns **502** until Node is listening again. Wait for `/health`, then start the scan — do not treat those 502s as a path-list bug.
+
+A **409** `exactPaths job kept 1 path(s) but maxPages=14` means the POST body only had one path (WordPress sanitized the list or a WAF stripped the JSON array). It is **not** fixed by restarting 1.5.3. Update the WordPress plugin (sends `paths` + newline `pathList`) and deploy scanner **1.5.4**.
 
 If `features.exactPaths` is missing, Cookie Scanner will refuse to start a multi-page job. A new `version` from `package.json` with no `features` object means the old Node process is still running — `systemctl restart ucpf-scanner` (or equivalent).
 

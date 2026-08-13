@@ -92,9 +92,11 @@ function coercePathList(raw) {
       try {
         paths = JSON.parse(t);
       } catch {
-        paths = t.split(/[\s,]+/);
+        paths = t.split(/\r?\n/);
       }
-    } else if (t.indexOf(',') !== -1) {
+    } else if (t.indexOf('\n') !== -1) {
+      paths = t.split(/\r?\n/);
+    } else if (t.indexOf(',') !== -1 && t.charAt(0) === '/') {
       paths = t.split(',');
     } else {
       paths = [t];
@@ -112,6 +114,69 @@ function coercePathList(raw) {
     .map((p) => (p == null ? '' : String(p).trim()))
     .filter(Boolean);
   return out.length ? out : null;
+}
+
+/**
+ * Merge paths / pathList / urls[].path so a WAF that strips JSON arrays
+ * cannot collapse a curated job to ['/'].
+ * @param {object|undefined} body
+ * @returns {string[]|null}
+ */
+function collectScanPaths(body) {
+  if (!body || typeof body !== 'object') {
+    return null;
+  }
+  const chunks = [coercePathList(body.paths)];
+  if (typeof body.pathList === 'string') {
+    chunks.push(coercePathList(body.pathList.split(/\r?\n/)));
+  } else {
+    chunks.push(coercePathList(body.pathList));
+  }
+  if (Array.isArray(body.urls)) {
+    chunks.push(
+      coercePathList(
+        body.urls.map((item) => {
+          if (!item) {
+            return '';
+          }
+          if (typeof item === 'string') {
+            return item;
+          }
+          return item.path || item.url || '';
+        })
+      )
+    );
+  }
+  const seen = new Set();
+  const merged = [];
+  for (const list of chunks) {
+    if (!list) {
+      continue;
+    }
+    for (const raw of list) {
+      let s = String(raw || '').trim();
+      if (!s) {
+        continue;
+      }
+      if (/^https?:\/\//i.test(s)) {
+        try {
+          const u = new URL(s);
+          s = (u.pathname || '/') + (u.search || '');
+        } catch {
+          continue;
+        }
+      }
+      if (s !== '/' && s.endsWith('/')) {
+        s = s.slice(0, -1) || '/';
+      }
+      if (seen.has(s)) {
+        continue;
+      }
+      seen.add(s);
+      merged.push(s);
+    }
+  }
+  return merged.length ? merged : null;
 }
 
 app.use((req, _res, next) => {
@@ -220,7 +285,7 @@ app.get('/health', (_req, res) => {
   res.json({
     ok: true,
     service: 'ucpf-scanner',
-    version: node.scanner_version || '1.5.3',
+    version: node.scanner_version || '1.5.4',
     features: SCANNER_FEATURES,
     started_at: PROCESS_STARTED_AT,
     pid: process.pid,
@@ -312,7 +377,7 @@ app.post('/v1/scans', requireAuth, rateLimit, async (req, res) => {
     req.body?.options && typeof req.body.options === 'object' ? { ...req.body.options } : {};
   const exactPaths = reqOptions.exactPaths !== false;
   const optMax = Math.max(0, Number(reqOptions.maxPages) || 0);
-  const parsedPaths = coercePathList(req.body?.paths);
+  const parsedPaths = collectScanPaths(req.body);
 
   if (!url || typeof url !== 'string') {
     return res.status(400).json({ error: 'url is required' });
@@ -320,10 +385,10 @@ app.post('/v1/scans', requireAuth, rateLimit, async (req, res) => {
 
   // Client sent a curated multi-page job but the body did not contain a path array
   // (wrong Content-Type / proxy). Never silently walk only "/".
-  if (!parsedPaths && (optMax > 1 || (exactPaths && req.body && req.body.paths != null))) {
+  if (!parsedPaths && (optMax > 1 || (exactPaths && req.body && (req.body.paths != null || req.body.pathList != null)))) {
     return res.status(400).json({
-      error: 'paths must be a JSON array of URL paths',
-      hint: 'POST Content-Type: application/json with { "paths": ["/", "/about"] }. Restart this Node process after updating tools/ucpf-scanner — copying package.json alone is not enough.',
+      error: 'paths must be a JSON array of URL paths (or pathList newline string)',
+      hint: 'POST Content-Type: application/json with { "paths": ["/", "/about"] } or pathList. Copy tools/ucpf-scanner 1.5.4+ and restart Node.',
       paths_count: 0,
       exactPaths,
       features: SCANNER_FEATURES,
@@ -345,13 +410,14 @@ app.post('/v1/scans', requireAuth, rateLimit, async (req, res) => {
   const paths = rawPaths.slice(0, pathCap);
   if (exactPaths) {
     reqOptions.exactPaths = true;
-    reqOptions.maxPages = Math.max(paths.length, optMax, 1);
+    // Honor the recovered path list, not a stale larger maxPages from WordPress.
+    reqOptions.maxPages = Math.max(paths.length, 1);
   }
 
-  if (exactPaths && optMax > 1 && paths.length < optMax && paths.length < 2) {
+  if (exactPaths && optMax > 1 && paths.length < 2) {
     return res.status(409).json({
       error: `exactPaths job kept ${paths.length} path(s) but maxPages=${optMax}`,
-      hint: 'Restart ucpf-scanner after deploying tools/ucpf-scanner 1.5.3+. GET /health must include features.exactPaths.',
+      hint: 'The POST body only contained one path. This is not a restart issue — WordPress (or a WAF) stripped the page list. Update the WordPress plugin so it sends paths + pathList, then copy tools/ucpf-scanner 1.5.4+ and restart Node.',
       paths_count: paths.length,
       paths,
       exactPaths: true,
