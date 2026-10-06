@@ -63,9 +63,14 @@ class Admin {
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_menu_assets' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
+		add_action( 'admin_notices', array( $this, 'maybe_integrations_save_notice' ) );
 		add_action( 'admin_notices', array( $this, 'maybe_active_scan_notice' ) );
 		add_action( 'admin_notices', array( $this, 'maybe_elementor_css_notice' ) );
+		add_action( 'admin_notices', array( $this, 'maybe_tags_policy_refresh_notice' ) );
 		add_action( 'admin_init', array( $this, 'maybe_dismiss_elementor_css_notice' ) );
+		add_action( 'admin_init', array( $this, 'maybe_handle_gtm_scan_suggestions' ) );
+		add_action( 'admin_init', array( $this, 'maybe_handle_refresh_policies_for_tags' ) );
+		add_action( 'admin_post_ucpf_save_integrations', array( $this, 'handle_save_integrations' ) );
 		add_action( 'admin_post_ucpf_save_wizard', array( $this, 'handle_wizard_save' ) );
 		add_action( 'admin_post_ucpf_export_logs', array( $this, 'handle_export_logs' ) );
 		add_action( 'admin_post_ucpf_purge_cloudflare', array( $this, 'handle_purge_cloudflare' ) );
@@ -74,6 +79,8 @@ class Admin {
 		add_action( 'admin_post_ucpf_clear_network_overrides', array( $this, 'handle_clear_network_overrides' ) );
 		add_action( 'admin_post_ucpf_promote_network_from_site', array( $this, 'handle_promote_network_from_site' ) );
 		add_action( 'update_option_' . Settings::OPTION_KEY, array( $this, 'maybe_schedule_cloudflare_zone_resolve' ), 20, 2 );
+		add_action( 'update_option_' . Settings::OPTION_KEY, array( $this, 'maybe_refresh_privacy_on_ai_disclosure' ), 25, 2 );
+		add_action( 'update_option_' . Settings::OPTION_KEY, array( $this, 'maybe_refresh_policies_on_google_tags' ), 26, 2 );
 		add_action( 'shutdown', array( $this, 'maybe_run_cloudflare_zone_resolve' ), 20 );
 	}
 
@@ -127,6 +134,121 @@ class Admin {
 		} finally {
 			self::$cf_zone_resolve_running = false;
 		}
+	}
+
+	/**
+	 * Regenerate Privacy Policy when AI image disclosure setting changes.
+	 *
+	 * @param mixed $old Previous option.
+	 * @param mixed $new New option.
+	 * @return void
+	 */
+	public function maybe_refresh_privacy_on_ai_disclosure( $old, $new ) {
+		if ( Settings::is_internal_update() ) {
+			return;
+		}
+		if ( ! is_array( $old ) || ! is_array( $new ) ) {
+			return;
+		}
+		$old_mode = isset( $old['ai_image_disclosure'] ) ? sanitize_key( (string) $old['ai_image_disclosure'] ) : 'off';
+		$new_mode = isset( $new['ai_image_disclosure'] ) ? sanitize_key( (string) $new['ai_image_disclosure'] ) : 'off';
+		if ( $old_mode === $new_mode ) {
+			return;
+		}
+		$pages = isset( $new['generated_pages'] ) && is_array( $new['generated_pages'] ) ? $new['generated_pages'] : array();
+		if ( empty( $pages['privacy_policy'] ) || ! get_post( (int) $pages['privacy_policy'] ) ) {
+			return;
+		}
+		Page_Generator::instance()->refresh_privacy_policy_page();
+	}
+
+	/**
+	 * When GA4/GTM IDs or GTM partner disclosures change, refresh Cookie + Privacy pages.
+	 *
+	 * @param mixed $old Previous option.
+	 * @param mixed $new New option.
+	 * @return void
+	 */
+	public function maybe_refresh_policies_on_google_tags( $old, $new ) {
+		if ( Settings::is_internal_update() ) {
+			return;
+		}
+		if ( ! is_array( $old ) || ! is_array( $new ) ) {
+			return;
+		}
+		$old_ids = isset( $old['service_ids'] ) && is_array( $old['service_ids'] ) ? $old['service_ids'] : array();
+		$new_ids = isset( $new['service_ids'] ) && is_array( $new['service_ids'] ) ? $new['service_ids'] : array();
+		if ( Tracking_Templates::policy_relevant_fingerprint( $old_ids ) === Tracking_Templates::policy_relevant_fingerprint( $new_ids ) ) {
+			return;
+		}
+		self::refresh_policies_for_managed_tags( true );
+	}
+
+	/**
+	 * Bust inventory cache and refresh generated Cookie + Privacy pages for managed tags.
+	 *
+	 * @param bool $set_notice Whether to show an admin notice.
+	 * @return bool True when at least one page refreshed.
+	 */
+	public static function refresh_policies_for_managed_tags( $set_notice = false ) {
+		Cookie_Scanner::bust_policy_inventory_cache();
+		$pages = Settings::get( 'generated_pages', array() );
+		if ( ! is_array( $pages ) ) {
+			$pages = array();
+		}
+		$did = false;
+		if ( ! empty( $pages['cookie_policy'] ) && get_post( (int) $pages['cookie_policy'] ) ) {
+			$did = Page_Generator::instance()->refresh_cookie_policy_page() || $did;
+		}
+		if ( ! empty( $pages['privacy_policy'] ) && get_post( (int) $pages['privacy_policy'] ) ) {
+			$did = Page_Generator::instance()->refresh_privacy_policy_page() || $did;
+		}
+		if ( $set_notice && $did ) {
+			update_option( 'ucpf_tags_policy_refresh_notice', 1, false );
+		}
+		return $did;
+	}
+
+	/**
+	 * Admin notice after Google tag / GTM disclosure save refreshed policies.
+	 *
+	 * @return void
+	 */
+	public function maybe_tags_policy_refresh_notice() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		if ( ! get_option( 'ucpf_tags_policy_refresh_notice', false ) ) {
+			return;
+		}
+		delete_option( 'ucpf_tags_policy_refresh_notice' );
+		$pages_url = admin_url( 'admin.php?page=ucpf-pages' );
+		echo '<div class="notice notice-success is-dismissible"><p>';
+		echo esc_html__( 'Cookie and Privacy policies refreshed for Google tag / GTM disclosure changes.', 'universal-consent-privacy-framework' );
+		echo ' <a href="' . esc_url( $pages_url ) . '">' . esc_html__( 'Generated Pages', 'universal-consent-privacy-framework' ) . '</a>';
+		echo '</p></div>';
+	}
+
+	/**
+	 * Manual “Refresh policies for current tags” on Integrations.
+	 *
+	 * @return void
+	 */
+	public function maybe_handle_refresh_policies_for_tags() {
+		if ( ! is_admin() || ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		if ( empty( $_GET['ucpf_refresh_policies_tags'] ) ) {
+			return;
+		}
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+		if ( 'ucpf-integrations' !== $page ) {
+			return;
+		}
+		check_admin_referer( 'ucpf_refresh_policies_tags' );
+		self::refresh_policies_for_managed_tags( true );
+		wp_safe_redirect( remove_query_arg( array( 'ucpf_refresh_policies_tags', '_wpnonce' ) ) );
+		exit;
 	}
 
 	/**
@@ -354,7 +476,7 @@ class Admin {
 		);
 		echo '<div class="notice notice-warning is-dismissible"><p>';
 		echo esc_html__(
-			'UCPF cleared Elementor CSS cache after an update and queued a Cloudflare purge. Hard-refresh the front end once. If styles still show MIME text/html: enable Automatic Cloudflare purge (API token) under Advanced → Cloudflare, Purge Everything once, and keep an explicit Bypass (not only a Cache Everything exclusion) for /wp-content/uploads/elementor/css/ — see docs/CLOUDFLARE-CACHE.md.',
+			'UCPF cleared Elementor CSS cache after an update, purged origin HTML page caches (Hummingbird / Rocket / LiteSpeed / etc.), and queued a Cloudflare purge. Hard-refresh the front end once on a clean URL (no ?_ucpf=). If a page still looks unstyled until Accept All: purge Hummingbird Page Cache (or equivalent) for that URL — Accept adds ?_ucpf= which bypasses stale HTML that omitted elementor-post-{ID}.css. If styles show MIME text/html: enable Automatic Cloudflare purge under Advanced → Cloudflare, Purge Everything once, and keep Bypass/short TTL only for /wp-content/uploads/elementor/css/ — see docs/CLOUDFLARE-CACHE.md.',
 			'universal-consent-privacy-framework'
 		);
 		echo ' <a href="' . esc_url( $dismiss ) . '">' . esc_html__( 'Dismiss', 'universal-consent-privacy-framework' ) . '</a>';
@@ -616,10 +738,33 @@ class Admin {
 		}
 
 		if ( isset( $input['service_ids'] ) || ! empty( $input['_ucpf_tracking_form'] ) ) {
-			$clean['service_ids'] = Tracking_Templates::sanitize_service_ids(
-				isset( $input['service_ids'] ) ? $input['service_ids'] : array(),
-				isset( $current['service_ids'] ) ? $current['service_ids'] : array()
-			);
+			$current_ids = isset( $current['service_ids'] ) && is_array( $current['service_ids'] ) ? $current['service_ids'] : array();
+			$posted_ids  = isset( $input['service_ids'] ) && is_array( $input['service_ids'] ) ? $input['service_ids'] : array();
+
+			// Truncated POST: form marker present but service_ids never arrived — do not wipe.
+			if ( ! empty( $input['_ucpf_tracking_form'] ) && ! $posted_ids && $current_ids ) {
+				$clean['service_ids'] = $current_ids;
+				add_settings_error(
+					'ucpf_settings',
+					'ucpf_tracking_truncated',
+					__( 'Tracking tags were not updated because the browser submitted an incomplete form (often max_input_vars). Your previous Google / tracking IDs were kept. Try saving again, or ask your host to raise PHP max_input_vars.', 'universal-consent-privacy-framework' ),
+					'error'
+				);
+			} else {
+				$clean['service_ids'] = Tracking_Templates::sanitize_service_ids( $posted_ids, $current_ids );
+
+				$gtm = isset( $clean['service_ids']['google_tag_manager'] ) && is_array( $clean['service_ids']['google_tag_manager'] )
+					? $clean['service_ids']['google_tag_manager']
+					: array();
+				if ( ! empty( $gtm['enabled'] ) && ! Tracking_Templates::row_has_ids( 'google_tag_manager', $gtm ) ) {
+					add_settings_error(
+						'ucpf_settings',
+						'ucpf_gtm_missing_ids',
+						__( 'Google Tag Manager is enabled but no valid container/tag ID was saved. Enter a GTM-… or GT-… ID (e.g. GTM-XXXXXXX or GT-XXXXXXXX) and save again.', 'universal-consent-privacy-framework' ),
+						'error'
+					);
+				}
+			}
 		}
 
 		if ( ! empty( $input['_ucpf_advanced_form'] ) ) {
@@ -699,7 +844,8 @@ class Admin {
 				$clean['geo_jurisdiction_routing'] = true;
 			}
 			$clean['output_buffer_safe_iframes'] = ! empty( $input['output_buffer_safe_iframes'] );
-			$clean['scheduled_scan_enabled']    = ! empty( $input['scheduled_scan_enabled'] );
+			// Automated Deep scans retired — always force off (manual Cookie Scanner only).
+			$clean['scheduled_scan_enabled']    = false;
 			$clean['scheduled_scan_auto_apply'] = ! empty( $input['scheduled_scan_auto_apply'] );
 			$interval = isset( $input['scheduled_scan_interval'] ) ? sanitize_key( $input['scheduled_scan_interval'] ) : 'monthly';
 			$clean['scheduled_scan_interval'] = in_array( $interval, array( 'weekly', 'monthly' ), true ) ? $interval : 'monthly';
@@ -715,6 +861,8 @@ class Admin {
 				);
 				$clean['scheduled_scan_notify_email'] = implode( ', ', $emails );
 			}
+			wp_clear_scheduled_hook( Scheduled_Scan::HOOK_START );
+			wp_clear_scheduled_hook( Scheduled_Scan::HOOK_POLL );
 
 			$clean['cloudflare_purge_enabled']        = ! empty( $input['cloudflare_purge_enabled'] );
 			$clean['cloudflare_purge_on_updates']     = ! empty( $input['cloudflare_purge_on_updates'] );
@@ -741,6 +889,8 @@ class Admin {
 			$clean['auto_refresh_cookie_policy_after_scan'] = ! empty( $input['auto_refresh_cookie_policy_after_scan'] );
 			$clean['data_request_page_url']                 = isset( $input['data_request_page_url'] ) ? esc_url_raw( (string) $input['data_request_page_url'] ) : '';
 			$clean['do_not_sell_page_url']                  = isset( $input['do_not_sell_page_url'] ) ? esc_url_raw( (string) $input['do_not_sell_page_url'] ) : '';
+			$ai_disclosure                                  = isset( $input['ai_image_disclosure'] ) ? sanitize_key( (string) $input['ai_image_disclosure'] ) : 'off';
+			$clean['ai_image_disclosure']                   = in_array( $ai_disclosure, array( 'off', 'website' ), true ) ? $ai_disclosure : 'off';
 		}
 
 		if ( isset( $input['google_consent_mode'] ) ) {
@@ -982,7 +1132,7 @@ class Admin {
 				if ( empty( $service_ids[ $key ] ) || ! is_array( $service_ids[ $key ] ) || empty( $service_ids[ $key ]['enabled'] ) ) {
 					continue;
 				}
-				if ( empty( $service_ids[ $key ]['id'] ) && empty( $service_ids[ $key ]['code'] ) ) {
+				if ( ! Tracking_Templates::row_has_ids( $key, $service_ids[ $key ] ) ) {
 					$label = isset( $meta['label'] ) ? $meta['label'] : $key;
 					$warnings[] = sprintf(
 						/* translators: %s: service label */
@@ -1474,6 +1624,174 @@ class Admin {
 	}
 
 	/**
+	 * Save Integrations via admin-post (bypasses options.php nested-array pitfalls).
+	 *
+	 * @return void
+	 */
+	public function handle_save_integrations() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Unauthorized', 'universal-consent-privacy-framework' ) );
+		}
+		check_admin_referer( 'ucpf_save_integrations' );
+
+		$option_key = Settings::OPTION_KEY;
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized below.
+		$posted = isset( $_POST[ $option_key ] ) && is_array( $_POST[ $option_key ] ) ? wp_unslash( $_POST[ $option_key ] ) : array();
+
+		$current_ids = Settings::get( 'service_ids', array() );
+		if ( ! is_array( $current_ids ) ) {
+			$current_ids = array();
+		}
+		$posted_ids = isset( $posted['service_ids'] ) && is_array( $posted['service_ids'] ) ? $posted['service_ids'] : array();
+
+		$clean_ids = Tracking_Templates::sanitize_service_ids( $posted_ids, $current_ids );
+
+		$gcm = isset( $posted['google_consent_mode'] ) ? sanitize_key( $posted['google_consent_mode'] ) : Settings::get( 'google_consent_mode', 'basic' );
+		if ( ! in_array( $gcm, array( 'off', 'basic', 'advanced' ), true ) ) {
+			$gcm = 'basic';
+		}
+
+		$ok = Settings::update(
+			array(
+				'service_ids'         => $clean_ids,
+				'google_consent_mode' => $gcm,
+			)
+		);
+
+		$gtm = isset( $clean_ids['google_tag_manager'] ) && is_array( $clean_ids['google_tag_manager'] )
+			? $clean_ids['google_tag_manager']
+			: array();
+
+		$messages = array();
+		if ( ! $ok ) {
+			$messages[] = array(
+				'type' => 'error',
+				'text' => __( 'Could not write settings to the database. Check object cache / DB permissions, then try again.', 'universal-consent-privacy-framework' ),
+			);
+		} else {
+			$messages[] = array(
+				'type' => 'success',
+				'text' => __( 'Tracking tags saved.', 'universal-consent-privacy-framework' ),
+			);
+		}
+
+		if ( ! empty( $gtm['enabled'] ) && ! Tracking_Templates::row_has_ids( 'google_tag_manager', $gtm ) ) {
+			$messages[] = array(
+				'type' => 'error',
+				'text' => __( 'Google Tag Manager is enabled but no valid GTM-… or GT-… ID was saved. Enter an ID (e.g. GTM-XXXXXXX or GT-XXXXXXXX) and save again.', 'universal-consent-privacy-framework' ),
+			);
+		} elseif ( ! empty( $gtm['enabled'] ) && Tracking_Templates::row_has_ids( 'google_tag_manager', $gtm ) ) {
+			$ids = array();
+			foreach ( Tracking_Templates::gtm_containers_from_row( $gtm ) as $c ) {
+				if ( ! empty( $c['id'] ) ) {
+					$ids[] = $c['id'];
+				}
+			}
+			$messages[] = array(
+				'type' => 'success',
+				'text' => sprintf(
+					/* translators: %s: comma-separated Google tag IDs */
+					__( 'Google Tag Manager enabled with: %s', 'universal-consent-privacy-framework' ),
+					implode( ', ', $ids )
+				),
+			);
+		}
+
+		// Settings::update() sets is_internal_update — auto policy hook is skipped; refresh explicitly.
+		if ( $ok && Tracking_Templates::policy_relevant_fingerprint( $current_ids ) !== Tracking_Templates::policy_relevant_fingerprint( $clean_ids ) ) {
+			$did_pages = self::refresh_policies_for_managed_tags( true );
+			$messages[] = array(
+				'type' => 'success',
+				'text' => $did_pages
+					? __( 'Cookie and Privacy Policy pages were refreshed for the updated Google tags.', 'universal-consent-privacy-framework' )
+					: __( 'Policy cookie inventory was updated for the Google tags. Generate Cookie/Privacy pages (or click Refresh policies) if those pages are not created yet.', 'universal-consent-privacy-framework' ),
+			);
+		}
+
+		set_transient( 'ucpf_integrations_save_notice_' . get_current_user_id(), $messages, 60 );
+
+		$redirect = add_query_arg(
+			array(
+				'page'                   => 'ucpf-integrations',
+				'ucpf_integrations_saved' => $ok ? '1' : '0',
+			),
+			admin_url( 'admin.php' )
+		);
+		wp_safe_redirect( $redirect );
+		exit;
+	}
+
+	/**
+	 * Flash notices after Integrations admin-post save.
+	 *
+	 * @return void
+	 */
+	public function maybe_integrations_save_notice() {
+		if ( ! is_admin() || ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only screen gate; notice uses a user-scoped transient set after a nonce-checked save.
+		if ( 'ucpf-integrations' !== $page ) {
+			return;
+		}
+		$key  = 'ucpf_integrations_save_notice_' . get_current_user_id();
+		$msgs = get_transient( $key );
+		if ( ! is_array( $msgs ) || ! $msgs ) {
+			return;
+		}
+		delete_transient( $key );
+		foreach ( $msgs as $msg ) {
+			if ( ! is_array( $msg ) || empty( $msg['text'] ) ) {
+				continue;
+			}
+			$type = isset( $msg['type'] ) && 'error' === $msg['type'] ? 'error' : 'success';
+			printf(
+				'<div class="notice notice-%1$s is-dismissible"><p>%2$s</p></div>',
+				esc_attr( $type ),
+				esc_html( (string) $msg['text'] )
+			);
+		}
+	}
+
+	/**
+	 * Apply or dismiss GTM scan suggestions (Integrations query args).
+	 */
+	public function maybe_handle_gtm_scan_suggestions() {
+		if ( ! is_admin() || ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only screen gate; mutating actions below call check_admin_referer().
+		if ( 'ucpf-integrations' !== $page && 'ucpf-wizard' !== $page ) {
+			return;
+		}
+
+		if ( ! empty( $_GET['ucpf_dismiss_gtm_suggestions'] ) ) {
+			check_admin_referer( 'ucpf_dismiss_gtm_suggestions' );
+			Tracking_Templates::dismiss_gtm_scan_suggestions();
+			wp_safe_redirect( remove_query_arg( array( 'ucpf_dismiss_gtm_suggestions', '_wpnonce' ) ) );
+			exit;
+		}
+
+		if ( ! empty( $_GET['ucpf_apply_gtm_suggestions'] ) ) {
+			check_admin_referer( 'ucpf_apply_gtm_suggestions' );
+			$pending = Tracking_Templates::get_pending_gtm_scan_suggestions( Settings::get( 'service_ids', array() ) );
+			if ( ! empty( $pending['ids'] ) ) {
+				$current = Settings::get( 'service_ids', array() );
+				$partial   = Tracking_Templates::merge_gtm_suggestions_into_partial( $pending['ids'], $current );
+				Settings::update(
+					array(
+						'service_ids' => Tracking_Templates::merge_service_ids( $partial, $current ),
+					)
+				);
+				Tracking_Templates::dismiss_gtm_scan_suggestions( $pending['ids'] );
+				// Fingerprint change on update_option refreshes policies when IDs were added.
+			}
+			wp_safe_redirect( remove_query_arg( array( 'ucpf_apply_gtm_suggestions', '_wpnonce' ) ) );
+			exit;
+		}
+	}
+
+	/**
 	 * Developer API page.
 	 */
 	public function render_developer() {
@@ -1648,8 +1966,10 @@ class Admin {
 
 		// Merge any posted ID fields (wizard Statistics / Services steps).
 		if ( ! empty( $_POST['service_ids'] ) && is_array( $_POST['service_ids'] ) ) {
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized by Tracking_Templates::sanitize_posted_service_ids().
+			$posted_service_ids  = wp_unslash( $_POST['service_ids'] );
 			$service_ids         = Tracking_Templates::merge_service_ids(
-				map_deep( wp_unslash( $_POST['service_ids'] ), 'sanitize_text_field' ),
+				Tracking_Templates::sanitize_posted_service_ids( $posted_service_ids ),
 				$service_ids
 			);
 			$service_ids_changed = true;

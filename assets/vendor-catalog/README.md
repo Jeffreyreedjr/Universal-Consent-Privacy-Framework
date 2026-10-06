@@ -23,7 +23,8 @@ Current catalog defaults (keep categories aligned when adding vendors):
 
 - **YouTube** (`maps.json`): service + player cookies (`YSC`, `VISITOR_*`, `__Secure-Y*`) → `marketing` / `consent`, `default_blocking: true`
 - **Mapbox** (`maps.json`): `api` / `events` / `tiles.mapbox.com` → `functional` / `consent`, `default_blocking: true` (local Leaflet library is necessary / not gated; tiles gate via Mapbox/OSM)
-- **PayPal checkout cookies** (`l7_az`, `sc_f`, `KHcl0EuY7AKSMgfvHl7J5E7hPtK`) → `necessary` / `necessary` (payment facility); PayPal **scripts/iframes** stay `functional` / `consent` + blocked until consent
+- **PayPal checkout cookies** (`l7_az`, `sc_f`, `KHcl0EuY7AKSMgfvHl7J5E7hPtK`) → `necessary` / `necessary` (payment facility); PayPal **scripts/iframes** stay `functional` / `consent` + blocked until consent. PayPal often uses `disableSetCookie` — inventory may show SDK/hosts without classic Set-Cookie.
+- **Braintree** hosted fields / tokenization → `functional` / `consent` (used by Gravity Forms PayPal Checkout / PPCP).
 - **WooCommerce Order Attribution** (`sbjs_*`) → `analytics` / `consent`, blocked until analytics consent
 - **Calendly** session cookies → `functional` / `consent` (embeds)
 - **Shipping / tax widgets** (`shipping.json`): Shippo, UPS, USPS, FedEx, DHL, EasyPost, ShipStation, Printful, Avalara, TaxJar → `functional` / `consent`, `default_blocking: true` (needed for checkout when rates/address validation run in the browser; only load after Embeds & Widgets + when checkout triggers them)

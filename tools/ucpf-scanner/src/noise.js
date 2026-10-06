@@ -75,17 +75,24 @@ export function shouldIgnoreCookieLeak(name) {
 
 /**
  * @param {string} urlOrHost
+ * @param {string} [provider]
  */
-export function shouldIgnoreUrlLeak(urlOrHost) {
+export function shouldIgnoreUrlLeak(urlOrHost, provider = '') {
   const v = String(urlOrHost || '').toLowerCase();
-  if (!v) return false;
+  const p = String(provider || '').toLowerCase();
+  const hay = `${v} ${p}`.trim();
+  if (!hay) return false;
   const f = getFilters();
+  for (const row of f.leak_ignore_providers || []) {
+    const label = String(row.provider || '').toLowerCase();
+    if (label && hay.includes(label)) return true;
+  }
   for (const row of f.leak_ignore_hosts || []) {
     const h = String(row.host || '').toLowerCase();
-    if (h && v.includes(h)) return true;
+    if (h && hay.includes(h)) return true;
   }
   for (const sub of f.leak_ignore_url_substrings || []) {
-    if (sub && v.includes(String(sub).toLowerCase())) return true;
+    if (sub && hay.includes(String(sub).toLowerCase())) return true;
   }
   return false;
 }
@@ -195,8 +202,14 @@ export function filterConsentLeaks(leaks) {
     if (!row || typeof row !== 'object') return false;
     const type = row.type || '';
     const name = row.name || '';
-    if (type === 'cookie' && shouldIgnoreCookieLeak(name)) return false;
-    if (type !== 'cookie' && shouldIgnoreUrlLeak(name)) return false;
+    const provider = row.provider || '';
+    if (type === 'cookie') {
+      if (shouldIgnoreCookieLeak(name)) return false;
+      // Provider-only ignores (e.g. Cloudflare Web Analytics) still apply.
+      if (shouldIgnoreUrlLeak(name, provider)) return false;
+      return true;
+    }
+    if (shouldIgnoreUrlLeak(name, provider)) return false;
     return true;
   });
 }

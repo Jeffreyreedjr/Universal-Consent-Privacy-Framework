@@ -13,6 +13,50 @@
   // Legacy flag used by earlier builds.
   window.__ucpfCaptchaGuard = true;
 
+
+  /**
+   * GF paints .gform_wrapper { display:none } until its own JS unhides it.
+   * Checkout overlays attach to the inner <form>, so a stuck wrapper hides the
+   * entire consent card (blank white gap). Force-reveal while guarded.
+   */
+  function revealGformShellForGuard(node) {
+    if (!node) {
+      return null;
+    }
+    var wrap = null;
+    try {
+      if (node.classList && node.classList.contains('gform_wrapper')) {
+        wrap = node;
+      } else if (node.closest) {
+        wrap = node.closest('.gform_wrapper');
+      }
+    } catch (eFind) {
+      wrap = null;
+    }
+    if (!wrap) {
+      return null;
+    }
+    var before = '';
+    try {
+      before = wrap.style.display || '';
+    } catch (eBefore) {
+      before = '';
+    }
+    var computed = '';
+    try {
+      computed = window.getComputedStyle(wrap).display || '';
+    } catch (eCs) {
+      computed = '';
+    }
+    if (before === 'none' || computed === 'none') {
+      try {
+        wrap.style.setProperty('display', 'block', 'important');
+        wrap.setAttribute('data-ucpf-gform-revealed', '1');
+      } catch (eSet) { /* ignore */ }
+    }
+    return wrap;
+  }
+
   /**
    * When true: skip Elementor Motion FX / sticky layout recovery hacks only.
    * Consent overlays, captcha covers, and video parking ALWAYS run on every
@@ -231,6 +275,21 @@
     'iframe[data-src*="openstreetmap.org"]',
     'iframe[src*="mapbox.com"]',
     'iframe[data-src*="mapbox.com"]',
+    'iframe[src*="mapme.com"]',
+    'iframe[data-src*="mapme.com"]',
+    'iframe[data-lazy-src*="mapme.com"]',
+    'iframe[src*="maphub.net"]',
+    'iframe[data-src*="maphub.net"]',
+    'iframe[src*="batchgeo.com"]',
+    'iframe[data-src*="batchgeo.com"]',
+    'iframe[src*="zeemaps.com"]',
+    'iframe[data-src*="zeemaps.com"]',
+    'iframe[src*="umap.openstreetmap.fr"]',
+    'iframe[data-src*="umap.openstreetmap.fr"]',
+    'iframe[src*="arcgis.com"]',
+    'iframe[data-src*="arcgis.com"]',
+    'iframe[src*="bing.com/maps"]',
+    'iframe[data-src*="bing.com/maps"]',
   ];
 
   /** Calendly scheduling embeds (inline widgets + iframes; Elementor popups inject late). */
@@ -366,6 +425,28 @@
     '.wc-block-checkout',
     '.wp-block-woocommerce-checkout',
     '.wc-block-cart__submit-container',
+  ];
+
+  /**
+   * Gravity Forms / Woo PayPal button shells — Embeds for the SDK.
+   * Do not climb to form.cart (that incorrectly covers Add to Cart with checkout CAPTCHA copy).
+   * One Woo express surface only (.ppc-button-wrapper) — never .ppcp-messages (duplicate overlays).
+   */
+  var PAYPAL_PAYMENT_SELECTORS = [
+    '.gform_wrapper .gform_ppcp_custom_card_fields',
+    '.gform_wrapper .gform_ppcp',
+    '.gform_wrapper [class*="gform_ppcp"]',
+    '.gform_wrapper [id*="paypal"]',
+    '.gform_wrapper .ginput_container_paypal',
+    'form[id^="gform_"] .gform_ppcp_custom_card_fields',
+    'form[id^="gform_"] [class*="gform_ppcp"]',
+    '#gform_paypal_sdk-js',
+    '[data-paypal-button]',
+    '.paypal-buttons',
+    'div[id^="paypal-button"]',
+    // WooCommerce PayPal Payments express — single shell (not messaging strip).
+    '.ppc-button-wrapper',
+    '.ppcp-button-wrapper',
   ];
 
   /** @type {WeakMap<Element, string>} */
@@ -677,6 +758,17 @@
         categories: cats.length ? cats : ['security'],
       };
     }
+    if (kind === 'paypal') {
+      return {
+        title: t('paypalGuardTitle', 'PayPal needs Embeds & Widgets'),
+        body: t(
+          'paypalGuardBody',
+          'PayPal buttons load in a secure payment widget. Enable Embeds & Widgets so the buttons can appear. This is separate from newsletter / marketing embeds on the page.'
+        ),
+        enable: t('paypalGuardEnable', 'Enable Embeds & Widgets & continue'),
+        categories: cats.length ? cats : ['functional'],
+      };
+    }
     if (kind === 'map') {
       return {
         title: t('embedGuardMapTitle', 'Map blocked until you allow Marketing & Embeds'),
@@ -847,6 +939,180 @@
       }
     }
     return false;
+  }
+
+  /** True when node is inside a Gravity Forms / generic PayPal payment surface. */
+  function isPayPalPaymentSurface(node) {
+    if (!node) {
+      return false;
+    }
+    if (gformHasPayPalPayment(node)) {
+      return true;
+    }
+    if (node.matches) {
+      try {
+        if (node.matches(PAYPAL_PAYMENT_SELECTORS.join(','))) {
+          return true;
+        }
+      } catch (eMatch) { /* ignore */ }
+    }
+    if (node.closest) {
+      for (var i = 0; i < PAYPAL_PAYMENT_SELECTORS.length; i++) {
+        try {
+          if (node.closest(PAYPAL_PAYMENT_SELECTORS[i])) {
+            return true;
+          }
+        } catch (eClose) { /* ignore */ }
+      }
+    }
+    return false;
+  }
+
+  /** Whether a GF form/wrapper hosts PayPal Checkout / PPCP / SDK. */
+  function gformHasPayPalPayment(root) {
+    if (!root || !root.querySelector) {
+      // Script tags / SDK markers on the page still count for wrapper-less embeds.
+      if (root && root.id && String(root.id).indexOf('gform_paypal_sdk') !== -1) {
+        return true;
+      }
+      return false;
+    }
+    if (
+      root.querySelector(
+        '[class*="gform_ppcp"], .ginput_container_paypal, [id*="paypal-button"], .paypal-buttons, [data-paypal-button]'
+      )
+    ) {
+      return true;
+    }
+    var html = '';
+    try {
+      html = String(root.innerHTML || '').toLowerCase();
+    } catch (eHtml) {
+      html = '';
+    }
+    if (html.indexOf('gform_ppcp') !== -1 || html.indexOf('paypal.com/sdk') !== -1) {
+      return true;
+    }
+    // Pedigree: parked or live PayPal SDK anywhere under this form's document section.
+    try {
+      if (
+        document.querySelector(
+          'script#gform_paypal_sdk-js, script[data-src*="paypal.com/sdk"], script[src*="paypal.com/sdk"]'
+        ) &&
+        (root.classList && root.classList.contains('gform_wrapper')) ||
+          (root.id && String(root.id).indexOf('gform') === 0) ||
+          (root.querySelector && root.querySelector('form[id^="gform_"]'))
+      ) {
+        // Only claim wrappers that also look like payment/donation forms.
+        return !!(
+          root.querySelector(
+            '.gfield--type-product, .gfield--type-total, .ginput_amount, .gform_payment, [class*="donation"], [class*="payment"]'
+          ) || html.indexOf('ppcp') !== -1 || html.indexOf('paypal') !== -1
+        );
+      }
+    } catch (eSdk) { /* ignore */ }
+    return false;
+  }
+
+  /** Prefer GF wrapper or Woo PayPal button shell — never form.cart / Add to Cart. */
+  function resolvePayPalPaymentHost(node) {
+    if (!node) {
+      return null;
+    }
+    if (node.tagName === 'SCRIPT') {
+      var wrap =
+        (node.closest &&
+          (node.closest('.gform_wrapper') ||
+            node.closest('form[id^="gform_"]') ||
+            node.closest('.elementor-widget-html') ||
+            node.closest('[data-widget_type="html.default"]'))) ||
+        null;
+      return wrap || node.parentElement || node;
+    }
+    if (node.closest) {
+      var gf =
+        node.closest('form[id^="gform_"]') ||
+        node.closest('.gform_wrapper') ||
+        null;
+      if (gf) {
+        return gf;
+      }
+      // WooCommerce PayPal Payments express — one shell for messages + buttons.
+      // Prefer .ppc-button-wrapper; never host empty .ppcp-messages alone (duplicate panels).
+      if (node.classList && node.classList.contains('ppcp-messages')) {
+        var btnShell =
+          (node.parentElement &&
+            node.parentElement.querySelector('.ppc-button-wrapper, .ppcp-button-wrapper')) ||
+          null;
+        return btnShell;
+      }
+      var wooPay =
+        node.closest('.ppc-button-wrapper') ||
+        node.closest('.ppcp-button-wrapper') ||
+        null;
+      if (wooPay) {
+        return wooPay;
+      }
+      // Standalone Smart Buttons stack (not inside form.cart).
+      var buttons = node.closest('.paypal-buttons') || node.closest('div[id^="paypal-button"]');
+      if (buttons) {
+        var underWoo =
+          buttons.closest('.ppc-button-wrapper') || buttons.closest('.ppcp-button-wrapper');
+        if (underWoo) {
+          return underWoo;
+        }
+        var cartForm = buttons.closest('form.cart, form.woocommerce-cart, form.checkout, form.woocommerce-checkout');
+        // If buttons sit under Add to Cart, host the button wrapper only — never the whole form.
+        if (cartForm) {
+          return buttons.parentElement && buttons.parentElement !== cartForm ? buttons.parentElement : buttons;
+        }
+        return buttons;
+      }
+    }
+    return node;
+  }
+
+  /** True when host is a Gravity Forms payment surface (not Woo product PayPal). */
+  function isGravityPayPalHost(host) {
+    if (!host) {
+      return false;
+    }
+    try {
+      if (host.classList && host.classList.contains('gform_wrapper')) {
+        return true;
+      }
+      if (host.id && String(host.id).indexOf('gform') === 0) {
+        return true;
+      }
+      if (host.closest && (host.closest('.gform_wrapper') || host.closest('form[id^="gform_"]'))) {
+        return true;
+      }
+    } catch (eGf) { /* ignore */ }
+    return false;
+  }
+
+  /**
+   * Categories for a PayPal surface: Woo product express = Embeds only.
+   * Security only when on real checkout or GF with captcha / sitewide captcha on GF.
+   */
+  function payPalConsentCategories(host, node, sitewideCaptcha) {
+    var onCheckout = isCheckoutSurface(host) || isCheckoutSurface(node);
+    if (onCheckout) {
+      return ['security', 'functional'];
+    }
+    var hasCaptcha =
+      formHasCaptchaSignal(host) ||
+      (host &&
+        host.querySelector &&
+        host.querySelector('.gfield--type-captcha, .ginput_recaptcha, .gform_recaptcha, [data-sitekey]'));
+    if (hasCaptcha) {
+      return ['security', 'functional'];
+    }
+    // Sitewide invisible captcha applies to GF forms, not Woo Add to Cart / express PayPal.
+    if (sitewideCaptcha && isGravityPayPalHost(host)) {
+      return ['security', 'functional'];
+    }
+    return ['functional'];
   }
 
   function onOpenPrefs(category, e) {
@@ -1185,12 +1451,23 @@
     if (node.getAttribute('data-widget_type') === 'html.default') {
       return true;
     }
+    if (node.getAttribute('data-widget_type') === 'google_maps.default') {
+      return true;
+    }
+    var wt = node.getAttribute('data-widget_type') || '';
+    if (wt.indexOf('google_maps') !== -1) {
+      return true;
+    }
     if (isBackgroundVideoShell(node) || isBackgroundVideoOwner(node)) {
+      return true;
+    }
+    if (isMapShell(node)) {
       return true;
     }
     return (
       node.classList.contains('elementor-widget-video') ||
       node.classList.contains('elementor-widget-html') ||
+      node.classList.contains('elementor-widget-google_maps') ||
       node.classList.contains('elementor-widget-container') ||
       node.classList.contains('et_pb_video') ||
       node.classList.contains('wpb_video_widget') ||
@@ -1203,6 +1480,130 @@
       node.classList.contains('jobber-inline-work-request') ||
       isSmashBalloonFeedHost(node)
     );
+  }
+
+  /**
+   * Outer map widget shells — decorate in place (do not wrap / nest covers).
+   *
+   * @param {Element} node
+   * @return {boolean}
+   */
+  function isMapShell(node) {
+    if (!node || !node.classList) {
+      return false;
+    }
+    if (node.classList.contains('elementor-widget-google_maps')) {
+      return true;
+    }
+    if (node.classList.contains('wpgmza_map_container') || node.classList.contains('wpgmza_map')) {
+      return true;
+    }
+    if (
+      node.classList.contains('mapster-wp-maps-container') ||
+      node.classList.contains('mapster-wp-maps') ||
+      node.classList.contains('mapster-map')
+    ) {
+      return true;
+    }
+    var id = String(node.id || '');
+    if (id.indexOf('mapster-wp-maps') === 0) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Prefer the outermost map host so nested markers (gm-style inside wpgmza, etc.)
+   * do not each get their own consent cover.
+   *
+   * @param {Element} node
+   * @return {Element|null}
+   */
+  function resolveMapHost(node) {
+    if (!node || node.nodeType !== 1) {
+      return null;
+    }
+    if (node.closest) {
+      var elWidget =
+        node.closest('.elementor-widget-google_maps') ||
+        node.closest('[data-widget_type="google_maps.default"]') ||
+        node.closest('[data-widget_type*="google_maps"]');
+      if (elWidget) {
+        return elWidget;
+      }
+      var wpgmzaOuter = node.closest('.wpgmza_map_container');
+      if (wpgmzaOuter) {
+        return wpgmzaOuter;
+      }
+      var mapsterOuter =
+        node.closest('.mapster-wp-maps-container') ||
+        node.closest('.mapster-wp-maps') ||
+        node.closest('[id^="mapster-wp-maps"]');
+      if (mapsterOuter) {
+        return mapsterOuter;
+      }
+      var leaflet = node.closest('.leaflet-container');
+      if (leaflet) {
+        return leaflet;
+      }
+      var mapbox = node.closest('.mapboxgl-map');
+      if (mapbox) {
+        return mapbox;
+      }
+      var maplibre = node.closest('.maplibregl-map');
+      if (maplibre && !node.closest('.mapster-wp-maps, .mapster-wp-maps-container')) {
+        return maplibre;
+      }
+    }
+    // Google's internal .gm-style is never a good cover host by itself.
+    if (node.classList && node.classList.contains('gm-style')) {
+      if (node.parentElement) {
+        var parentMap = resolveMapHost(node.parentElement);
+        if (parentMap && parentMap !== node) {
+          return parentMap;
+        }
+        return node.parentElement;
+      }
+    }
+    if (node.tagName === 'IFRAME' && node.parentElement) {
+      if (node.parentElement.classList && node.parentElement.classList.contains('ucpf-consent-guard')) {
+        return node;
+      }
+      var iframeHost = resolveMapHost(node.parentElement);
+      return iframeHost || node.parentElement;
+    }
+    return node;
+  }
+
+  /**
+   * YouTube Shorts are vertical — a 16:9 floor looks like a giant empty void.
+   *
+   * @param {Element} host
+   * @return {boolean}
+   */
+  function isYoutubeShortsSurface(host) {
+    if (!host || host.nodeType !== 1) {
+      return false;
+    }
+    try {
+      var settings = parseDataSettings(host);
+      var url = settings && settings.youtube_url ? String(settings.youtube_url) : '';
+      if (/youtube\.com\/shorts\//i.test(url) || /youtu\.be\/shorts\//i.test(url)) {
+        return true;
+      }
+      var raw = host.getAttribute('data-settings') || '';
+      if (/shorts%2F|shorts\\\/|shorts\//i.test(raw)) {
+        return true;
+      }
+      var iframe = host.querySelector && host.querySelector('iframe[src], iframe[data-src]');
+      if (iframe) {
+        var src = (iframe.getAttribute('src') || iframe.getAttribute('data-src') || '').toLowerCase();
+        if (src.indexOf('/shorts/') !== -1) {
+          return true;
+        }
+      }
+    } catch (eShorts) { /* ignore */ }
+    return false;
   }
 
   /**
@@ -1233,8 +1634,105 @@
   }
 
   /**
-   * Lock the host to its pre-gate size so parked iframes don’t collapse the box
-   * (and we don’t invent a taller 14–22rem shell that looks wrong).
+   * Map widgets that often measure ~0px before tiles paint.
+   *
+   * @param {Element} host
+   * @return {boolean}
+   */
+  function isCollapsedMapShell(host) {
+    if (!host || host.nodeType !== 1) {
+      return false;
+    }
+    if (isMapShell(host)) {
+      return true;
+    }
+    var kind = host.getAttribute('data-ucpf-guard-kind') || '';
+    if (kind === 'map') {
+      return true;
+    }
+    if (!host.classList) {
+      return false;
+    }
+    return (
+      host.classList.contains('elementor-widget-google_maps') ||
+      host.classList.contains('wpgmza_map_container') ||
+      host.classList.contains('wpgmza_map') ||
+      host.classList.contains('mapster-wp-maps-container') ||
+      host.classList.contains('mapster-wp-maps') ||
+      host.classList.contains('maplibregl-map') ||
+      host.classList.contains('mapboxgl-map') ||
+      host.classList.contains('leaflet-container')
+    );
+  }
+
+  /**
+   * True for embed/widget consent hosts (not forms, not background video).
+   * Used for the generic collapsed-shell floor (Calendly, HTML widgets, etc.).
+   *
+   * @param {Element} host
+   * @return {boolean}
+   */
+  function isEmbedGuardHost(host) {
+    if (!host || host.nodeType !== 1) {
+      return false;
+    }
+    if (host.classList) {
+      if (host.classList.contains('ucpf-consent-guard--form')) {
+        return false;
+      }
+      if (host.classList.contains('ucpf-consent-guard--bg')) {
+        return false;
+      }
+      if (host.classList.contains('ucpf-consent-guard--embed')) {
+        return true;
+      }
+    }
+    var kind = host.getAttribute('data-ucpf-guard-kind') || '';
+    return (
+      kind === 'calendly' ||
+      kind === 'widget' ||
+      kind === 'embed' ||
+      kind === 'youtube' ||
+      kind === 'vimeo' ||
+      kind === 'map'
+    );
+  }
+
+  /**
+   * Apply a modest min-height so absolute inset panels have a paintable box
+   * when the host is still collapsed (hidden popup, empty widget shell, etc.).
+   *
+   * @param {Element} host
+   * @return {void}
+   */
+  function applyEmbedFloor(host) {
+    if (!host || host.nodeType !== 1) {
+      return;
+    }
+    try {
+      host.style.setProperty('min-height', '22rem', 'important');
+      host.style.setProperty('width', '100%', 'important');
+      host.setAttribute('data-ucpf-size-locked', '1');
+      host.setAttribute('data-ucpf-guard-min-h', 'embed-floor');
+      host.setAttribute('data-ucpf-aspect-fallback', '1');
+      var floorInner =
+        host.querySelector('.calendly-inline-widget') ||
+        host.querySelector('[data-url*="calendly"]') ||
+        host.querySelector('iframe[data-ucpf-parked="1"]') ||
+        host.querySelector('iframe[data-src]') ||
+        host.querySelector('.elementor-widget-container');
+      if (floorInner && floorInner !== host && !floorInner.getAttribute('data-ucpf-aspect-fallback')) {
+        floorInner.style.setProperty('min-height', '22rem', 'important');
+        floorInner.style.setProperty('width', '100%', 'important');
+        floorInner.setAttribute('data-ucpf-aspect-fallback', '1');
+      }
+    } catch (eFloor) { /* ignore */ }
+  }
+
+  /**
+   * Lock the host to its pre-gate size so parked iframes don’t collapse the box.
+   * Video/map get aspect fallbacks; other embeds get a generic floor when collapsed
+   * (Elementor popups often measure 0 until shown). Forms never invent height.
    *
    * @param {Element} host
    * @return {void}
@@ -1298,15 +1796,23 @@
     }
 
     var targetH = Math.max(measured, attrH);
-    // Empty Elementor YouTube/Vimeo shells: invent a 16:9 box so the glass overlay is visible.
-    // Do NOT do this for maps/forms/widgets — only collapsed video players.
+    // Empty Elementor YouTube/Vimeo shells: invent a box so the glass overlay is visible.
     if (targetH < 80 && isCollapsedVideoShell(host)) {
       try {
-        host.style.setProperty('aspect-ratio', '16 / 9', 'important');
+        var shorts = isYoutubeShortsSurface(host);
+        var ratio = shorts ? '9 / 16' : '16 / 9';
+        var minH = shorts ? '18rem' : '12rem';
+        host.style.setProperty('aspect-ratio', ratio, 'important');
         host.style.setProperty('width', '100%', 'important');
-        host.style.setProperty('min-height', '12rem', 'important');
+        host.style.setProperty('min-height', minH, 'important');
+        if (shorts) {
+          host.style.setProperty('max-width', '24rem', 'important');
+          host.style.setProperty('margin-left', 'auto', 'important');
+          host.style.setProperty('margin-right', 'auto', 'important');
+          host.setAttribute('data-ucpf-shorts', '1');
+        }
         host.setAttribute('data-ucpf-size-locked', '1');
-        host.setAttribute('data-ucpf-guard-min-h', 'aspect-16-9');
+        host.setAttribute('data-ucpf-guard-min-h', shorts ? 'aspect-9-16' : 'aspect-16-9');
         host.setAttribute('data-ucpf-aspect-fallback', '1');
         // Give the inner Elementor fill a height so layout isn’t empty under the panel.
         var inner =
@@ -1314,16 +1820,42 @@
           host.querySelector('.elementor-video') ||
           host.querySelector('.elementor-widget-container');
         if (inner && !inner.getAttribute('data-ucpf-aspect-fallback')) {
-          inner.style.setProperty('aspect-ratio', '16 / 9', 'important');
-          inner.style.setProperty('min-height', '12rem', 'important');
+          inner.style.setProperty('aspect-ratio', ratio, 'important');
+          inner.style.setProperty('min-height', minH, 'important');
           inner.style.setProperty('width', '100%', 'important');
           inner.setAttribute('data-ucpf-aspect-fallback', '1');
         }
       } catch (eAspect) { /* ignore */ }
       return;
     }
-    // Aspect-ratio shells (Elementor fit) already size themselves — only lock if we have a real box.
+    // Collapsed map shells: modest 16:9 so Marketing+Embeds cover is visible before tiles.
+    if (targetH < 80 && isCollapsedMapShell(host)) {
+      try {
+        host.style.setProperty('aspect-ratio', '16 / 9', 'important');
+        host.style.setProperty('width', '100%', 'important');
+        host.style.setProperty('min-height', '14rem', 'important');
+        host.setAttribute('data-ucpf-size-locked', '1');
+        host.setAttribute('data-ucpf-guard-min-h', 'aspect-16-9-map');
+        host.setAttribute('data-ucpf-aspect-fallback', '1');
+        var mapInner =
+          host.querySelector('.elementor-widget-container') ||
+          host.querySelector('.wpgmza_map') ||
+          host.querySelector('.mapster-wp-maps') ||
+          host.querySelector('.maplibregl-map');
+        if (mapInner && mapInner !== host && !mapInner.getAttribute('data-ucpf-aspect-fallback')) {
+          mapInner.style.setProperty('aspect-ratio', '16 / 9', 'important');
+          mapInner.style.setProperty('min-height', '14rem', 'important');
+          mapInner.style.setProperty('width', '100%', 'important');
+          mapInner.setAttribute('data-ucpf-aspect-fallback', '1');
+        }
+      } catch (eMapAspect) { /* ignore */ }
+      return;
+    }
+    // Collapsed Calendly / HTML widgets / other embeds (e.g. Elementor popup not yet shown).
     if (targetH < 80) {
+      if (isEmbedGuardHost(host)) {
+        applyEmbedFloor(host);
+      }
       return;
     }
     // Cap runaway measurements (full-page wrappers).
@@ -1335,6 +1867,162 @@
       host.setAttribute('data-ucpf-size-locked', '1');
       host.setAttribute('data-ucpf-guard-min-h', String(targetH));
     } catch (eLock) { /* ignore */ }
+  }
+
+  /**
+   * Clear an embed-floor lock and re-measure (e.g. after Elementor popup opens).
+   *
+   * @param {Element} host
+   * @return {void}
+   */
+  function refreshEmbedBoxSize(host) {
+    if (!host || host.nodeType !== 1) {
+      return;
+    }
+    if (host.getAttribute('data-ucpf-guard-min-h') === 'embed-floor') {
+      clearEmbedBoxSize(host);
+    }
+    preserveEmbedBoxSize(host);
+  }
+
+  /**
+   * Re-run size lock for active embed guards under a root (popup body, document).
+   *
+   * @param {Element|Document|null} root
+   * @return {void}
+   */
+  function remeasureActiveEmbedGuards(root) {
+    var scope = root && root.querySelectorAll ? root : document;
+    var hosts;
+    try {
+      hosts = scope.querySelectorAll('.ucpf-consent-guard--embed.ucpf-consent-guard--active');
+    } catch (eQ) {
+      return;
+    }
+    Array.prototype.forEach.call(hosts, function (host) {
+      refreshEmbedBoxSize(host);
+    });
+  }
+
+  /**
+   * Elementor popups often attach guards while display:none — remasure on show.
+   *
+   * @return {void}
+   */
+  function bindElementorPopupRemeasure() {
+    function resolvePopupRoot(id, instance) {
+      var root = null;
+      try {
+        if (instance && instance.$element && instance.$element[0]) {
+          root = instance.$element[0];
+        } else if (instance && instance.$ && instance.$[0]) {
+          root = instance.$[0];
+        }
+      } catch (eInst) {
+        root = null;
+      }
+      if (!root && id != null && id !== '') {
+        try {
+          root =
+            document.getElementById('elementor-popup-modal-' + id) ||
+            document.querySelector('[data-elementor-id="' + id + '"].elementor-location-popup') ||
+            document.querySelector('.elementor-popup-modal[data-elementor-id="' + id + '"]');
+        } catch (eId) {
+          root = null;
+        }
+      }
+      if (!root) {
+        try {
+          root =
+            document.querySelector('.elementor-popup-modal:not([aria-hidden="true"]) .dialog-lightbox-message') ||
+            document.querySelector('.elementor-popup-modal .dialog-widget-content') ||
+            document.querySelector('.elementor-location-popup');
+        } catch (eFb) {
+          root = null;
+        }
+      }
+      return root;
+    }
+
+    function onPopupShow(event, id, instance) {
+      var root = resolvePopupRoot(id, instance);
+      var run = function () {
+        // Popup bodies inject GF/Woo forms after first scan — re-collect captcha/checkout guards.
+        try {
+          refresh();
+        } catch (eRef) { /* ignore */ }
+        remeasureActiveEmbedGuards(root || document);
+      };
+      window.setTimeout(run, 50);
+      window.setTimeout(run, 300);
+      window.setTimeout(run, 800);
+    }
+
+    try {
+      document.addEventListener('elementor/popup/show', function (ev) {
+        var detail = ev && ev.detail ? ev.detail : null;
+        var id = detail && detail.id != null ? detail.id : null;
+        var instance = detail && detail.instance ? detail.instance : null;
+        onPopupShow(ev, id, instance);
+      });
+    } catch (eNat) { /* ignore */ }
+
+    function bindJquery() {
+      try {
+        if (!window.jQuery || !window.jQuery.fn) {
+          return false;
+        }
+        window.jQuery(document).on('elementor/popup/show', onPopupShow);
+        return true;
+      } catch (eJq) {
+        return false;
+      }
+    }
+    if (!bindJquery()) {
+      [100, 500, 2000].forEach(function (ms) {
+        window.setTimeout(bindJquery, ms);
+      });
+    }
+  }
+
+  /**
+   * Light fallback when Elementor's popup event is missed: remasure floor-locked
+   * embeds inside a visible popup / lightbox message.
+   *
+   * @return {void}
+   */
+  function remeasureVisiblePopupEmbeds() {
+    var roots;
+    try {
+      roots = document.querySelectorAll(
+        '.elementor-popup-modal .dialog-lightbox-message, .elementor-location-popup, .dialog-lightbox-message'
+      );
+    } catch (eRoots) {
+      return;
+    }
+    Array.prototype.forEach.call(roots, function (root) {
+      if (!root || !root.querySelector) {
+        return;
+      }
+      var floor = null;
+      try {
+        floor = root.querySelector(
+          '.ucpf-consent-guard--embed.ucpf-consent-guard--active[data-ucpf-guard-min-h="embed-floor"]'
+        );
+      } catch (eFloor) {
+        floor = null;
+      }
+      if (!floor) {
+        return;
+      }
+      try {
+        var cs = window.getComputedStyle ? window.getComputedStyle(root) : null;
+        if (cs && (cs.display === 'none' || cs.visibility === 'hidden')) {
+          return;
+        }
+      } catch (eCs) { /* continue */ }
+      remeasureActiveEmbedGuards(root);
+    });
   }
 
   /**
@@ -1394,9 +2082,13 @@
     // Builder entrance animations (e.g. Elementor .elementor-invisible) use
     // visibility:hidden until Motion FX runs. Consent covers must still attach
     // before the embed loads — otherwise the section reveals with no overlay.
+    // Check ancestors: Quick Tip cards put the class on the parent e-con, not the widget.
     var entranceAnim = false;
     try {
-      entranceAnim = !!(el.classList && el.classList.contains('elementor-invisible'));
+      entranceAnim = !!(
+        (el.classList && el.classList.contains('elementor-invisible')) ||
+        (el.closest && el.closest('.elementor-invisible, .elementor-motion-effects-element'))
+      );
     } catch (eInv) { /* ignore */ }
     try {
       if (window.getComputedStyle) {
@@ -1492,6 +2184,45 @@
     );
   }
 
+  /** Smush / Elementor lazy iframe placeholders — not real media. */
+  function isLazyEmbedPlaceholderSrc(url) {
+    var u = String(url || '').trim();
+    if (!u || u === 'about:blank') {
+      return true;
+    }
+    var lower = u.toLowerCase();
+    return lower.indexOf('data:') === 0 || lower.indexOf('blob:') === 0;
+  }
+
+  /**
+   * Real YouTube/Vimeo URL from a (possibly Smush-lazy) iframe.
+   * Prefer data-src when src is a data:/blob: placeholder.
+   *
+   * @param {Element} iframe
+   * @return {string}
+   */
+  function resolveVideoEmbedUrl(iframe) {
+    if (!iframe || !iframe.getAttribute) {
+      return '';
+    }
+    var live = iframe.getAttribute('src') || '';
+    var deferred =
+      iframe.getAttribute('data-src') ||
+      iframe.getAttribute('data-lazy-src') ||
+      iframe.getAttribute('data-original') ||
+      '';
+    if (isVideoPlayerUrl(deferred) && (isLazyEmbedPlaceholderSrc(live) || !isVideoPlayerUrl(live))) {
+      return deferred;
+    }
+    if (isVideoPlayerUrl(live)) {
+      return live;
+    }
+    if (isVideoPlayerUrl(deferred)) {
+      return deferred;
+    }
+    return '';
+  }
+
   /**
    * Stop players loading under the cover — park src onto data-src until consent.
    * Also claim iframes already emptied by network-gate so restore can find them.
@@ -1503,17 +2234,41 @@
     }
     var nodes = host.querySelectorAll('iframe');
     Array.prototype.forEach.call(nodes, function (iframe) {
-      var src = iframe.getAttribute('src') || '';
-      var parked = iframe.getAttribute('data-src') || '';
-      var candidate = src && src !== 'about:blank' ? src : parked;
+      var candidate = resolveVideoEmbedUrl(iframe);
       if (!candidate || !isVideoPlayerUrl(candidate)) {
         return;
       }
-      if (!iframe.getAttribute('data-src')) {
-        iframe.setAttribute('data-src', candidate);
-      }
+      iframe.setAttribute('data-src', candidate);
       iframe.setAttribute('data-ucpf-parked', '1');
-      if (!src || src === 'about:blank') {
+      // Smush / lazysizes will copy data-src → src if these classes remain.
+      try {
+        iframe.classList.remove('lazyload', 'lazyloaded', 'lazyloading');
+        iframe.classList.add('no-lazyload', 'skip-lazy');
+      } catch (eCls) { /* ignore */ }
+      try {
+        iframe.setAttribute('data-no-lazyload', '1');
+        iframe.setAttribute('data-skip-lazy-load', '1');
+        iframe.removeAttribute('data-lazy-src');
+      } catch (eLazy) { /* ignore */ }
+      // Do not force 442px heights on Elementor open-inline cards.
+      try {
+        if (
+          iframe.classList.contains('elementor-video-iframe') ||
+          (iframe.closest && iframe.closest('.elementor-wrapper.elementor-open-inline, .elementor-widget-video'))
+        ) {
+          iframe.removeAttribute('data-ucpf-iframe-h');
+          iframe.style.removeProperty('min-height');
+          iframe.style.removeProperty('height');
+        }
+      } catch (eH) { /* ignore */ }
+      var src = iframe.getAttribute('src') || '';
+      if (!src || isLazyEmbedPlaceholderSrc(src) || src === 'about:blank') {
+        try {
+          iframe.removeAttribute('src');
+        } catch (eRmPh) { /* ignore */ }
+        try {
+          iframe.src = '';
+        } catch (eSrcPh) { /* ignore */ }
         return;
       }
       try {
@@ -1541,6 +2296,18 @@
     iframe.removeAttribute('data-ucpf-parked');
     iframe.removeAttribute('data-ucpf-gated');
     iframe.removeAttribute('data-ucpf-category');
+    iframe.removeAttribute('data-ucpf-service');
+    iframe.removeAttribute('data-ucpf-iframe-h');
+    try {
+      iframe.classList.remove('lazyload', 'lazyloaded', 'lazyloading');
+      if (!iframe.classList.contains('elementor-video-iframe') && !iframe.classList.contains('elementor-video')) {
+        iframe.classList.add('elementor-video-iframe');
+      }
+    } catch (eCls) { /* ignore */ }
+    try {
+      iframe.style.removeProperty('min-height');
+      iframe.style.removeProperty('height');
+    } catch (eSt) { /* ignore */ }
     try {
       iframe.src = src;
     } catch (eProp) {
@@ -1574,7 +2341,9 @@
         attr.name === 'data-src' ||
         attr.name === 'data-ucpf-gated' ||
         attr.name === 'data-ucpf-parked' ||
-        attr.name === 'data-ucpf-category'
+        attr.name === 'data-ucpf-category' ||
+        attr.name === 'data-ucpf-service' ||
+        attr.name === 'data-ucpf-iframe-h'
       ) {
         return;
       }
@@ -1585,6 +2354,12 @@
     if (!fresh.className && iframe.className) {
       fresh.className = iframe.className;
     }
+    try {
+      fresh.classList.remove('lazyload', 'lazyloaded', 'lazyloading');
+      if (!fresh.classList.contains('elementor-video-iframe') && !fresh.classList.contains('elementor-video')) {
+        fresh.classList.add('elementor-video-iframe');
+      }
+    } catch (eFreshCls) { /* ignore */ }
     if (iframe.classList && iframe.classList.contains('elementor-video')) {
       fresh.classList.add('elementor-video');
     }
@@ -1690,6 +2465,16 @@
     wrap.setAttribute('data-ucpf-guard-kind', kind);
     wrap.setAttribute('data-ucpf-guard-category', cats.join(','));
     wrap.classList.add('ucpf-consent-guard--active');
+    // Woo PayPal button shells are often short — keep Enable clickable.
+    if (kind === 'paypal' && mode === 'form') {
+      try {
+        var h = wrap.getBoundingClientRect().height || 0;
+        if (h < 140) {
+          wrap.style.setProperty('min-height', '160px', 'important');
+          wrap.setAttribute('data-ucpf-paypal-minh', '1');
+        }
+      } catch (eMin) { /* ignore */ }
+    }
     if (isBg || wrap.classList.contains('ucpf-consent-guard--bg')) {
       wrap.classList.add('ucpf-consent-guard--bg');
       // Never apply --embed (relative/min-height/width) to Elementor absolute e-cons.
@@ -1708,6 +2493,19 @@
       preserveEmbedBoxSize(wrap);
       if (wrap !== target) {
         preserveEmbedBoxSize(target);
+      }
+      // YouTube Shorts: prefer a phone-shaped cover instead of a full-bleed 16:9 void.
+      if ((kind === 'youtube' || kind === 'vimeo') && isYoutubeShortsSurface(wrap)) {
+        try {
+          wrap.style.setProperty('aspect-ratio', '9 / 16', 'important');
+          wrap.style.setProperty('max-width', '24rem', 'important');
+          wrap.style.setProperty('width', '100%', 'important');
+          wrap.style.setProperty('margin-left', 'auto', 'important');
+          wrap.style.setProperty('margin-right', 'auto', 'important');
+          wrap.style.setProperty('min-height', '18rem', 'important');
+          wrap.setAttribute('data-ucpf-shorts', '1');
+          wrap.setAttribute('data-ucpf-size-locked', '1');
+        } catch (eShortsLock) { /* ignore */ }
       }
     }
     syncThemeOnto(wrap);
@@ -1753,7 +2551,17 @@
     }
 
     if (mode === 'form') {
-      lockFields(target);
+      // Unhide GF shells that are still display:none so the overlay is paint-visible.
+      revealGformShellForGuard(wrap);
+      revealGformShellForGuard(target);
+      // Checkout/PayPal: overlay only — never disable inputs. Disabled fields are
+      // omitted from FormData/jQuery.serialize, so GF PayPal createOrder submits
+      // with no amount and returns "payment total must be greater than 0".
+      if (kind !== 'checkout') {
+        lockFields(target);
+      } else {
+        unlockFields(target);
+      }
     }
     if (isVideoKind || isBg) {
       parkVideoIframes(target);
@@ -1977,7 +2785,19 @@
       }
     }
     if (el.tagName === 'IFRAME') {
-      var iframeSrc = el.getAttribute('src') || el.getAttribute('data-src') || '';
+      var live = el.getAttribute('src') || '';
+      var deferred = el.getAttribute('data-src') || el.getAttribute('data-lazy-src') || '';
+      // Smush sets src=data:svg placeholder while data-src holds player.vimeo.com —
+      // that must not count as first-party / self-hosted media.
+      var iframeSrc =
+        deferred && isLazyEmbedPlaceholderSrc(live)
+          ? deferred
+          : live && !isLazyEmbedPlaceholderSrc(live)
+            ? live
+            : deferred || live;
+      if (iframeSrc && isLazyEmbedPlaceholderSrc(iframeSrc)) {
+        return false;
+      }
       if (iframeSrc && isSameOriginMediaUrl(iframeSrc) && !isVideoPlayerUrl(iframeSrc)) {
         return true;
       }
@@ -2190,7 +3010,7 @@
       return false;
     }
     if (
-      /(jobber|getjobber|work_request|typeform|jotform|hsforms|hubspot\.com\/.*form|calendly|wufoo|fillout\.com|tally\.so|forms\.office)/.test(
+      /(jobber|getjobber|work_request|typeform|jotform|hsforms|hubspot\.com\/.*form|calendly|wufoo|fillout\.com|tally\.so|forms\.office|paypal\.com\/sdk|paypalobjects|braintreegateway|gform_paypal_sdk)/.test(
         blob
       )
     ) {
@@ -2215,7 +3035,7 @@
    * .calendly-inline-widget later — re-run init after Functional consent.
    */
   function reinitCalendlyWidgets() {
-    if (!hasCategoryConsent('functional')) {
+    if (!hasCategoryConsent('marketing') || !hasCategoryConsent('functional')) {
       return;
     }
     if (window.UCPFLoader && typeof window.UCPFLoader.applyConsent === 'function') {
@@ -2481,6 +3301,106 @@
   }
 
   /**
+   * Consent/park races can leave Elementor's BG shell with a live iframe but still
+   * elementor-loading + elementor-invisible (blank hero). Heal without adding a second iframe.
+   * Elementor may re-add those classes if its YT onReady never fired — CSS + observer stick.
+   *
+   * @param {Element} box
+   * @param {HTMLIFrameElement} [iframe]
+   * @return {boolean}
+   */
+  function healElementorBackgroundVideo(box, iframe) {
+    if (!box) {
+      return false;
+    }
+    var live =
+      iframe ||
+      box.querySelector('iframe.elementor-background-video-embed[src]:not(.elementor-video-iframe)') ||
+      box.querySelector('iframe.elementor-background-video-embed[src]');
+    if (!live) {
+      return false;
+    }
+    var src = '';
+    try {
+      src = live.getAttribute('src') || live.src || '';
+    } catch (eSrc) {
+      src = '';
+    }
+    if (!src || src === 'about:blank' || /^javascript:/i.test(src)) {
+      return false;
+    }
+    try {
+      box.classList.remove('elementor-loading', 'elementor-invisible');
+      box.classList.add('ucpf-bg-video-ready');
+      box.setAttribute('data-ucpf-bg-healed', '1');
+    } catch (eCls) { /* ignore */ }
+    try {
+      // Belt-and-suspenders: Elementor CSS uses visibility:hidden on .elementor-invisible.
+      box.style.visibility = 'visible';
+      box.style.opacity = '1';
+    } catch (eStyle) { /* ignore */ }
+    try {
+      sizeElementorBackgroundIframe(live, box);
+    } catch (eSize) { /* ignore */ }
+    return true;
+  }
+
+  /**
+   * Scan every Elementor background-video shell with a live player and heal stuck loading state.
+   *
+   * @return {number}
+   */
+  function healAllElementorBackgroundVideos() {
+    var n = 0;
+    try {
+      queryAll(['.elementor-background-video-container']).forEach(function (box) {
+        if (healElementorBackgroundVideo(box)) {
+          n += 1;
+        }
+      });
+    } catch (eAll) { /* ignore */ }
+    return n;
+  }
+
+  var bgVideoHealObserver = null;
+
+  /**
+   * If Elementor re-adds loading/invisible after a missed YT ready, strip again.
+   */
+  function watchElementorBackgroundVideos() {
+    if (bgVideoHealObserver || typeof MutationObserver !== 'function') {
+      return;
+    }
+    try {
+      bgVideoHealObserver = new MutationObserver(function (records) {
+        var need = false;
+        for (var i = 0; i < records.length; i++) {
+          var t = records[i].target;
+          if (
+            t &&
+            t.classList &&
+            t.classList.contains('elementor-background-video-container') &&
+            (t.classList.contains('elementor-loading') || t.classList.contains('elementor-invisible'))
+          ) {
+            need = true;
+            break;
+          }
+        }
+        if (need) {
+          healAllElementorBackgroundVideos();
+        }
+      });
+      bgVideoHealObserver.observe(document.documentElement, {
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['class'],
+      });
+    } catch (eObs) {
+      bgVideoHealObserver = null;
+    }
+  }
+
+  /**
    * Player URL matching Elementor's background Vimeo/YouTube iframe (keep privacy hash).
    *
    * @param {string} link
@@ -2587,6 +3507,7 @@
     owner.setAttribute('data-ucpf-bg-native', '1');
     owner.removeAttribute('data-ucpf-video-hydrated');
     box.removeAttribute('data-ucpf-video-hydrated');
+    healElementorBackgroundVideo(box, iframe);
     return true;
   }
 
@@ -2654,9 +3575,31 @@
     if (!root || !root.querySelector) {
       return false;
     }
-    return !!root.querySelector(
+    var nodes = root.querySelectorAll(
       'iframe[src*="youtube.com"], iframe[src*="youtu.be"], iframe[src*="youtube-nocookie.com"], iframe[src*="player.vimeo.com"], iframe[src*="vimeo.com"]'
     );
+    for (var i = 0; i < nodes.length; i++) {
+      var iframe = nodes[i];
+      if (!iframe) {
+        continue;
+      }
+      if (iframe.getAttribute('data-ucpf-gated') === '1' || iframe.getAttribute('data-ucpf-parked') === '1') {
+        continue;
+      }
+      var src = '';
+      try {
+        src = iframe.getAttribute('src') || '';
+      } catch (eSrc) {
+        src = '';
+      }
+      if (!src || src === 'about:blank' || isLazyEmbedPlaceholderSrc(src)) {
+        continue;
+      }
+      if (isVideoPlayerUrl(src)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -2791,7 +3734,8 @@
       /vimeo/i.test(vimLink || existingEmbedUrl(wrap) || existingEmbedUrl(widget));
 
     if (isVimeo) {
-      if (!hasCategoryConsent('functional')) {
+      // Same dual consent as covers / network gate (Marketing + Embeds).
+      if (!(hasCategoryConsent('marketing') && hasCategoryConsent('functional'))) {
         return false;
       }
     } else if (!(hasCategoryConsent('marketing') && hasCategoryConsent('functional'))) {
@@ -2887,13 +3831,14 @@
       if (!box) {
         return;
       }
-      // Native Elementor success — leave alone.
+      // Native Elementor success — clear stuck loading/invisible, then leave alone.
       if (
         owner.getAttribute('data-ucpf-bg-native') === '1' ||
         box.getAttribute('data-ucpf-bg-native') === '1'
       ) {
         var native = box.querySelector('iframe.elementor-background-video-embed:not(.elementor-video-iframe)');
         if (native && native.getAttribute('src')) {
+          healElementorBackgroundVideo(box, native);
           return;
         }
       }
@@ -2902,6 +3847,12 @@
         box.querySelector('iframe.elementor-background-video-embed:not(.elementor-video-iframe)') &&
         owner.getAttribute('data-ucpf-video-hydrated') !== '1'
       ) {
+        healElementorBackgroundVideo(box);
+        return;
+      }
+
+      // Live iframe already present (Elementor or restored) — heal, do not strip/reinject.
+      if (healElementorBackgroundVideo(box)) {
         return;
       }
 
@@ -2913,7 +3864,9 @@
       // Elementor often will not re-bind background video after a failed first pass.
       // Fall back to markup that matches plugin-disabled Elementor output.
       window.setTimeout(function () {
-        if (box.querySelector('iframe.elementor-background-video-embed:not(.elementor-video-iframe)')) {
+        var existing = box.querySelector('iframe.elementor-background-video-embed:not(.elementor-video-iframe)');
+        if (existing && existing.getAttribute('src')) {
+          healElementorBackgroundVideo(box, existing);
           return;
         }
         whenPlayerApiReady(/vimeo/i.test(String((parseDataSettings(owner) || {}).background_video_link || '')), function () {
@@ -2938,15 +3891,20 @@
 
       if (hasLiveVideoPlayer(widget)) {
         dedupeElementorOpenInlineVideos(widget);
+        // Live player can still sit under a stuck entrance parent.
+        revealElementorVideoEntrances();
         return;
       }
 
       run(widget);
+      // runReadyTrigger often re-adds .elementor-invisible; clear video ancestors again.
+      revealElementorVideoEntrances();
       // Restore-only passes while Elementor remounts.
       window.setTimeout(function () {
         restoreParkedVideoIframes(widget);
         injectElementorOpenInlineVideo(widget, { allowCreate: false });
         dedupeElementorOpenInlineVideos(widget);
+        revealElementorVideoEntrances();
       }, 200);
       // Late create only if Elementor left the open-inline shell empty.
       window.setTimeout(function () {
@@ -2954,6 +3912,7 @@
           injectElementorOpenInlineVideo(widget, { allowCreate: true });
         }
         dedupeElementorOpenInlineVideos(widget);
+        revealElementorVideoEntrances();
       }, 1200);
     });
 
@@ -3104,23 +4063,31 @@
     if (!hasCategoryConsent('marketing') || !hasCategoryConsent('functional')) {
       return;
     }
+    watchElementorBackgroundVideos();
     var runRestore = function () {
       restoreAllParkedVideoIframes();
       dedupeElementorOpenInlineVideos(document);
     };
     var runHydrate = function (allowCreate) {
       restoreAllParkedVideoIframes();
+      // Live BG iframes often exist before YT/Vimeo APIs — clear stuck loading immediately.
+      healAllElementorBackgroundVideos();
       reinitElementorVideos();
+      healAllElementorBackgroundVideos();
       hydrateBuilderVideos();
       queryAll(['.elementor-widget-video', '[data-widget_type="video.default"]']).forEach(function (widget) {
         injectElementorOpenInlineVideo(widget, { allowCreate: !!allowCreate });
         dedupeElementorOpenInlineVideos(widget);
       });
       dedupeElementorOpenInlineVideos(document);
+      revealElementorVideoEntrances();
     };
-    // Immediate: put Elementor's parked URL back. Do not invent a second iframe yet.
+    // Immediate: put Elementor's parked URL back + heal stuck BG shells (no API wait).
     runRestore();
-    whenPlayerApiReady(true, function () {
+    healAllElementorBackgroundVideos();
+    runHydrate(false);
+    // Do not wait for Vimeo on YouTube-only pages (was whenPlayerApiReady(true) → 5s delay).
+    whenPlayerApiReady(false, function () {
       runHydrate(false);
     });
     window.setTimeout(function () {
@@ -3135,7 +4102,9 @@
     }, 1400);
     window.setTimeout(function () {
       runHydrate(true);
+      healAllElementorBackgroundVideos();
     }, 2500);
+    window.setTimeout(healAllElementorBackgroundVideos, 4000);
   }
 
   /**
@@ -3500,6 +4469,197 @@
     return false;
   }
 
+  /**
+   * Opt-in packs (GDPR / US baseline): no free pass for Security before choice.
+   * Opt-out: allow forms until declined unless captcha / sitewide signal is present.
+   *
+   * @return {boolean}
+   */
+  function isOptInConsentModel() {
+    var t = '';
+    try {
+      t = String(
+        window.__ucpfConsentType ||
+          (window.ucpfConfig && window.ucpfConfig.consentType) ||
+          'optin'
+      ).toLowerCase();
+    } catch (eT) {
+      t = 'optin';
+    }
+    return t === 'optin' || t === 'opt-in';
+  }
+
+  /**
+   * Invisible / sitewide captcha (e.g. reCAPTCHA Woo `rcfwc.js`, GF v3) often has
+   * no .g-recaptcha / data-sitekey inside the form. Detect page-level signals so
+   * Security overlays still cover Gravity Forms, Woo, Elementor, etc.
+   *
+   * @return {boolean}
+   */
+  function pageHasSitewideCaptchaSignal() {
+    try {
+      if (typeof window.grecaptcha !== 'undefined') {
+        return true;
+      }
+      if (typeof window.hcaptcha !== 'undefined' || typeof window.turnstile !== 'undefined') {
+        return true;
+      }
+    } catch (eG) { /* ignore */ }
+    try {
+      if (
+        document.querySelector(
+          [
+            'script[src*="google.com/recaptcha"]',
+            'script[data-src*="google.com/recaptcha"]',
+            'script[src*="gstatic.com/recaptcha"]',
+            'script[data-src*="gstatic.com/recaptcha"]',
+            'script[src*="recaptcha/api"]',
+            'script[data-src*="recaptcha/api"]',
+            'script[src*="recaptcha-woo"]',
+            'script[data-src*="recaptcha-woo"]',
+            'script[src*="rcfwc.js"]',
+            'script[data-src*="rcfwc.js"]',
+            'script[src*="recaptcha-for-woocommerce"]',
+            'script[data-src*="recaptcha-for-woocommerce"]',
+            'script[src*="hcaptcha.com"]',
+            'script[data-src*="hcaptcha.com"]',
+            'script[src*="challenges.cloudflare.com"]',
+            'script[data-src*="challenges.cloudflare.com"]',
+            'script[src*="friendlycaptcha"]',
+            'script[data-src*="friendlycaptcha"]',
+            'script[data-ucpf-service="recaptcha"]',
+            'script[data-ucpf-service="hcaptcha"]',
+            'script[data-ucpf-service="turnstile"]',
+            'script[data-ucpf-category="security"][data-src*="recaptcha"]',
+            'script[data-ucpf-category="security"][src*="recaptcha"]',
+            'script[data-ucpf-category="security"][data-src*="hcaptcha"]',
+            'script[data-ucpf-category="security"][data-src*="turnstile"]',
+            'script[data-ucpf-category="security"][data-src*="challenges.cloudflare"]',
+            'script[type="text/plain"][data-ucpf-category="security"]',
+            '.grecaptcha-badge',
+            '.grecaptcha-logo',
+          ].join(',')
+        )
+      ) {
+        return true;
+      }
+    } catch (eQ) { /* ignore */ }
+    return false;
+  }
+
+  /**
+   * Skip search / newsletter-lite / login chrome that is not a lead/contact form.
+   * (Add to Cart is already omitted from SITEWIDE selectors.)
+   *
+   * @param {Element} node
+   * @return {boolean}
+   */
+  function isExemptFormHost(node) {
+    if (!node || node.nodeType !== 1) {
+      return true;
+    }
+    try {
+      if (node.closest && (node.closest('#wpadminbar') || node.closest('#ucpf-root'))) {
+        return true;
+      }
+      if (node.getAttribute && node.getAttribute('role') === 'search') {
+        return true;
+      }
+      if (node.matches) {
+        if (
+          node.matches(
+            'form[role="search"], form.search-form, form.wp-block-search__form, .search-form form, form.woocommerce-product-search, form.cart, form.woocommerce-cart-form, .elementor-search-form'
+          )
+        ) {
+          return true;
+        }
+      }
+      if (node.classList && (node.classList.contains('search-form') || node.classList.contains('woocommerce-product-search'))) {
+        return true;
+      }
+    } catch (eEx) { /* ignore */ }
+    return false;
+  }
+
+  /** Form hosts that must show a Security cover until consent (opt-in / captcha). */
+  var SITEWIDE_CAPTCHA_FORM_SELECTORS = [
+    '.gform_wrapper',
+    'form[id^="gform_"]',
+    // The Plus / Elementor Gravity Forms widgets.
+    '.pt_plus_gravity_form',
+    '.elementor-widget-tp-gravityt-form',
+    '[data-widget_type="tp-gravityt-form.default"]',
+    'form.checkout',
+    'form.woocommerce-checkout',
+    'form.woocommerce-form-login',
+    'form.woocommerce-form-register',
+    'form.woocommerce-ResetPassword',
+    'form.woocommerce-EditAccountForm',
+    '.woocommerce-form-login',
+    '.woocommerce-form-register',
+    '.wpcf7-form',
+    'form.wpcf7-form',
+    'form.wpforms-form',
+    '.wpforms-container form',
+    'form.fluentform',
+    '.fluentform form',
+    'form.frm-fluent-form',
+    '.elementor-form',
+    'form.elementor-form',
+    '.nf-form-cont form',
+    'form.nf-form-content',
+    'form.frm-show-form',
+    '.frm_forms form',
+    // Elementor popups / lightboxes (forms injected after first scan).
+    '.elementor-popup-modal .gform_wrapper',
+    '.elementor-popup-modal form[id^="gform_"]',
+    '.elementor-popup-modal .elementor-form',
+    '.elementor-popup-modal form.elementor-form',
+    '.dialog-lightbox-message .gform_wrapper',
+    '.dialog-lightbox-message form',
+  ];
+
+  /**
+   * Prefer the visible Gravity Forms card (.gform_wrapper) over the inner <form>
+   * so the Security cover fills the quiz / popup surface.
+   *
+   * @param {Element} node Form or wrapper.
+   * @return {Element}
+   */
+  function resolveCaptchaFormHost(node) {
+    if (!node || node.nodeType !== 1) {
+      return node;
+    }
+    try {
+      if (node.classList && node.classList.contains('gform_wrapper')) {
+        return node;
+      }
+      var wrap = node.closest ? node.closest('.gform_wrapper') : null;
+      if (wrap) {
+        return wrap;
+      }
+    } catch (eW) { /* ignore */ }
+    if (node.tagName === 'FORM') {
+      return node;
+    }
+    try {
+      return (
+        (node.querySelector &&
+          (node.querySelector('.gform_wrapper') ||
+            node.querySelector('form[id^="gform_"]') ||
+            node.querySelector('form.elementor-form') ||
+            node.querySelector('form.wpcf7-form') ||
+            node.querySelector('form.wpforms-form') ||
+            node.querySelector('form.woocommerce-checkout') ||
+            node.querySelector('form.checkout') ||
+            node.querySelector('form'))) ||
+        node
+      );
+    } catch (eQ) {
+      return node;
+    }
+  }
+
   function collectTargets() {
     /** @type {{ target: Element, kind: string, category: string, categories: string[], mode: string }[]} */
     var items = [];
@@ -3515,9 +4675,83 @@
       if (mode === 'embed' && isEffectivelyHidden(target) && !isSmashBalloonFeedHost(target)) {
         return;
       }
+      // Woo product: collapse duplicate PayPal panels (messages + buttons) to one host.
+      if (kind === 'paypal') {
+        try {
+          var wooScope =
+            (target.closest &&
+              (target.closest('.elementor-widget-woocommerce-product-add-to-cart') ||
+                target.closest('.elementor-add-to-cart') ||
+                target.parentElement)) ||
+            null;
+          for (var pi = items.length - 1; pi >= 0; pi--) {
+            if (items[pi].kind !== 'paypal') {
+              continue;
+            }
+            var other = items[pi].target;
+            if (!other || other === target) {
+              continue;
+            }
+            var otherScope =
+              (other.closest &&
+                (other.closest('.elementor-widget-woocommerce-product-add-to-cart') ||
+                  other.closest('.elementor-add-to-cart') ||
+                  other.parentElement)) ||
+              null;
+            var sameParent = other.parentElement && target.parentElement && other.parentElement === target.parentElement;
+            if (!(sameParent || (wooScope && wooScope === otherScope))) {
+              continue;
+            }
+            var score = function (el) {
+              if (!el || !el.classList) {
+                return 0;
+              }
+              if (el.classList.contains('ppc-button-wrapper') || el.classList.contains('ppcp-button-wrapper')) {
+                return 3;
+              }
+              if (el.classList.contains('paypal-buttons')) {
+                return 2;
+              }
+              if (el.classList.contains('ppcp-messages')) {
+                return 0;
+              }
+              return 1;
+            };
+            if (score(target) <= score(other)) {
+              return;
+            }
+            // Prefer this target — drop the weaker sibling.
+            for (var si = seen.length - 1; si >= 0; si--) {
+              if (seen[si] === other) {
+                seen.splice(si, 1);
+              }
+            }
+            items.splice(pi, 1);
+          }
+        } catch (ePayDup) { /* ignore */ }
+      }
       for (var i = 0; i < seen.length; i++) {
         if (seen[i] === target) {
           return;
+        }
+        // Maps: one cover on the outermost host — skip nested markers already covered,
+        // or replace an inner host when a better outer host is collected later.
+        if (kind === 'map' && seen[i] && seen[i].nodeType === 1 && target.nodeType === 1) {
+          try {
+            if (seen[i].contains && seen[i].contains(target)) {
+              return;
+            }
+            if (target.contains && target.contains(seen[i])) {
+              var inner = seen[i];
+              seen.splice(i, 1);
+              for (var j = items.length - 1; j >= 0; j--) {
+                if (items[j].target === inner) {
+                  items.splice(j, 1);
+                }
+              }
+              i--;
+            }
+          } catch (eNest) { /* ignore */ }
         }
       }
       seen.push(target);
@@ -3531,6 +4765,12 @@
       });
     }
 
+    var sitewideCaptcha = pageHasSitewideCaptchaSignal();
+    // Opt-in: cover every known form plugin host until Security consent — quizzes /
+    // contact forms often have no in-DOM captcha while gated security scripts block submit.
+    // Opt-out: only when sitewide invisible captcha or in-form captcha is detected.
+    var coverAllKnownForms = sitewideCaptcha || isOptInConsentModel();
+
     // WooCommerce checkout first — one combined Security + Embeds panel (no stacked overlays).
     queryAll(CHECKOUT_SELECTORS).forEach(function (node) {
       var host = node;
@@ -3540,12 +4780,50 @@
       push(host, 'checkout', 'functional', 'form', ['security', 'functional']);
     });
 
+    // Gravity Forms / Woo PayPal — Embeds for SDK. Security only on checkout or GF+captcha.
+    // Never host on form.cart (that stacked a tiny unclickable “checkout CAPTCHA” bar on products).
+    queryAll(PAYPAL_PAYMENT_SELECTORS).forEach(function (node) {
+      if (isCheckoutSurface(node)) {
+        return;
+      }
+      var host = resolvePayPalPaymentHost(node);
+      if (!host || isEffectivelyHidden(host)) {
+        return;
+      }
+      // Never cover the whole Add to Cart form.
+      if (host.matches && host.matches('form.cart, form.woocommerce-cart-form')) {
+        return;
+      }
+      if (host.classList && host.classList.contains('cart') && host.tagName === 'FORM') {
+        return;
+      }
+      var cats = payPalConsentCategories(host, node, sitewideCaptcha || coverAllKnownForms);
+      var kind = isCheckoutSurface(host) ? 'checkout' : 'paypal';
+      push(host, kind, 'functional', 'form', cats);
+    });
+    // GF wrappers that enqueue PayPal SDK (parked or live) even without PPCP class markers.
+    queryAll(['.gform_wrapper', 'form[id^="gform_"]']).forEach(function (node) {
+      if (isCheckoutSurface(node) || isEffectivelyHidden(node)) {
+        return;
+      }
+      if (!gformHasPayPalPayment(node)) {
+        return;
+      }
+      var host = resolvePayPalPaymentHost(node);
+      if (!host) {
+        return;
+      }
+      var cats = payPalConsentCategories(host, node, sitewideCaptcha || coverAllKnownForms);
+      var kind = cats.indexOf('security') !== -1 ? 'checkout' : 'paypal';
+      push(host, kind, 'functional', 'form', cats);
+    });
+
     // CAPTCHA-backed forms → Security (skip checkout hosts — already covered above).
     // Always cover builder-hosted forms (Elementor etc.) — leaveBuildersAlone must
     // never suppress GDPR surface overlays.
     queryAll(CAPTCHA_MARKERS).forEach(function (node) {
-      var form = findFormForNode(node);
-      if (isCheckoutSurface(form) || isCheckoutSurface(node)) {
+      var form = resolveCaptchaFormHost(findFormForNode(node));
+      if (isCheckoutSurface(form) || isCheckoutSurface(node) || isExemptFormHost(form)) {
         return;
       }
       push(form, 'captcha', 'security', 'form', ['security']);
@@ -3553,24 +4831,31 @@
 
     // Any <form> with captcha-ish descendants (custom themes / unknown plugins).
     Array.prototype.forEach.call(document.querySelectorAll('form'), function (form) {
-      if (isCheckoutSurface(form)) {
+      if (isCheckoutSurface(form) || isExemptFormHost(form)) {
         return;
       }
       if (formHasCaptchaSignal(form)) {
-        push(form, 'captcha', 'security', 'form', ['security']);
+        push(resolveCaptchaFormHost(form), 'captcha', 'security', 'form', ['security']);
       }
     });
 
-    // Gravity Forms wrappers (AJAX / Elementor shortcode) — cover even if markers sit oddly.
-    queryAll(['.gform_wrapper', 'form[id^="gform_"]']).forEach(function (node) {
-      if (isCheckoutSurface(node)) {
+    // Gravity Forms wrappers (AJAX / Elementor / The Plus) — cover even if markers sit oddly.
+    queryAll([
+      '.gform_wrapper',
+      'form[id^="gform_"]',
+      '.pt_plus_gravity_form',
+      '.elementor-widget-tp-gravityt-form',
+    ]).forEach(function (node) {
+      if (isCheckoutSurface(node) || isExemptFormHost(node)) {
         return;
       }
-      var form =
-        node.tagName === 'FORM'
-          ? node
-          : (node.querySelector && (node.querySelector('form[id^="gform_"]') || node.querySelector('form'))) || node;
+      // PayPal+captcha forms already get Security+Embeds via the PayPal payment panel.
+      if (gformHasPayPalPayment(node)) {
+        return;
+      }
+      var form = resolveCaptchaFormHost(node);
       if (
+        coverAllKnownForms ||
         formHasCaptchaSignal(form) ||
         (form.querySelector &&
           form.querySelector(
@@ -3580,6 +4865,24 @@
         push(form, 'captcha', 'security', 'form', ['security']);
       }
     });
+
+    // Known form-plugin hosts: Security cover when opt-in (no consent yet) or sitewide captcha.
+    // Invisible rcfwc / GF v3 often leave zero in-form markers — still block submit until Enable.
+    if (coverAllKnownForms) {
+      queryAll(SITEWIDE_CAPTCHA_FORM_SELECTORS).forEach(function (node) {
+        if (isCheckoutSurface(node) || isExemptFormHost(node)) {
+          return;
+        }
+        if (gformHasPayPalPayment(node)) {
+          return;
+        }
+        var form = resolveCaptchaFormHost(node);
+        if (isExemptFormHost(form)) {
+          return;
+        }
+        push(form, 'captcha', 'security', 'form', ['security']);
+      });
+    }
 
     // Catalog / blocker placeholders + network-gate parked iframes.
     queryAll([
@@ -3606,11 +4909,9 @@
 
     // Live map widgets / iframes not yet replaced.
     queryAll(MAP_MARKERS).forEach(function (node) {
-      var host = node;
-      if (node.tagName === 'IFRAME' && node.parentElement) {
-        host = node.parentElement.classList.contains('ucpf-consent-guard')
-          ? node
-          : node.parentElement;
+      var host = resolveMapHost(node);
+      if (!host) {
+        return;
       }
       push(host, 'map', 'functional', 'embed', ensureEmbedConsentCategories(['functional']));
     });
@@ -3827,13 +5128,16 @@
           applyGuard(item.target, item.kind, item.category, item.mode, cats);
         }
       });
+      // Covers/players under Elementor fadeIn parents need the entrance class cleared
+      // or visitors never see the Quick Tips grid (blank section).
+      revealElementorVideoEntrances();
     } finally {
       refreshBusy = false;
     }
   }
 
   function ensureCalendlyIfNeeded() {
-    if (!hasCategoryConsent('functional')) {
+    if (!hasCategoryConsent('marketing') || !hasCategoryConsent('functional')) {
       return;
     }
     var nodes = document.querySelectorAll('.calendly-inline-widget[data-url], .calendly-badge-widget[data-url]');
@@ -3848,6 +5152,243 @@
     });
     if (needs) {
       reinitCalendlyWidgets();
+    }
+  }
+
+  /**
+   * After Embeds consent: PayPal SDK may load after GF PPCP already tried once.
+   * Re-fire gform_post_render once window.paypal is available (Calendly/captcha pattern).
+   */
+  function paypalPaymentUiLooksEmpty(root) {
+    if (!root) {
+      return true;
+    }
+    // Shell markup (.paypal-buttons) can exist after a failed GFPPCP init without window.paypal.
+    // Only treat as live when an iframe (or funding-source child) is present.
+    try {
+      if (
+        root.querySelector &&
+        root.querySelector(
+          'iframe[src*="paypal.com"], iframe[src*="braintreegateway.com"], .paypal-buttons iframe, div[id^="paypal-button"] iframe, [data-funding-source] iframe'
+        )
+      ) {
+        return false;
+      }
+    } catch (eQ) { /* ignore */ }
+    try {
+      if (
+        root.querySelector &&
+        root.querySelector('[data-funding-source] iframe, .paypal-buttons-context-iframe')
+      ) {
+        return false;
+      }
+    } catch (eBtn) { /* ignore */ }
+    return true;
+  }
+
+  function pageHasPayPalPaymentSurface() {
+    if (document.getElementById('gform_paypal_sdk-js')) {
+      return true;
+    }
+    if (
+      document.querySelector(
+        'script[data-src*="paypal.com/sdk"], script[src*="paypal.com/sdk"], script[type="text/plain"][data-src*="paypal.com/sdk"]'
+      )
+    ) {
+      return true;
+    }
+    var wraps = document.querySelectorAll('.gform_wrapper, form[id^="gform_"]');
+    for (var i = 0; i < wraps.length; i++) {
+      if (gformHasPayPalPayment(wraps[i])) {
+        return true;
+      }
+    }
+    if (document.querySelector('[data-paypal-button], .paypal-buttons, div[id^="paypal-button"]')) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Intentionally a no-op. Removing `.paypal-buttons` from the DOM while the SDK
+   * is mounted causes "Detected container element removed from DOM" and breaks
+   * createOrder ("Expected an order id to be passed"). Duplicate prevention is
+   * handled only by the GFPPCP constructor gate in network-gate.js.
+   */
+  function pruneExtraPayPalStacks() {
+  }
+
+  function watchPayPalHostsForDupes() {
+    /* no-op — observers that pruned DOM broke live PayPal buttons */
+  }
+
+  function paypalButtonsLive() {
+    try {
+      return !!document.querySelector(
+        '.gform_ppcp_smart_payment_buttons .paypal-buttons iframe, [id^="gform_ppcp_smart_payment_buttons"] .paypal-buttons iframe'
+      );
+    } catch (eL) {
+      return false;
+    }
+  }
+
+  var paypalSingleInitDone = false;
+
+  function nudgeGravityFormsPayPalOnce() {
+    if (paypalSingleInitDone || paypalButtonsLive()) {
+      paypalSingleInitDone = true;
+      return;
+    }
+    if (!(window.paypal && (window.paypal.Buttons || window.paypal.HostedFields || window.paypal.version))) {
+      return;
+    }
+    // Only flush deferred GFPPCP constructors. Do NOT fire gform_post_render —
+    // that re-inits PayPal and stacks extra .paypal-buttons (live: 3→4 stacks).
+    if (typeof window.__ucpfFlushGfppcpAfterPaypal === 'function') {
+      try {
+        var flushed = window.__ucpfFlushGfppcpAfterPaypal();
+        if (flushed || paypalButtonsLive()) {
+          paypalSingleInitDone = true;
+        }
+      } catch (eFlush) { /* ignore */ }
+    }
+  }
+
+  function reinitPayPalWidgets() {
+    if (!hasCategoryConsent('functional')) {
+      return;
+    }
+    if (!pageHasPayPalPaymentSurface()) {
+      return;
+    }
+    if (paypalButtonsLive()) {
+      return;
+    }
+    activateParkedPayPalSdk();
+    if (window.UCPFLoader && typeof window.UCPFLoader.applyConsent === 'function') {
+      try {
+        window.UCPFLoader.applyConsent();
+      } catch (eLoad) { /* ignore */ }
+    }
+    var tries = 0;
+    function waitReady() {
+      tries += 1;
+      if (paypalButtonsLive()) {
+        return;
+      }
+      if (
+        window.paypal &&
+        (window.paypal.Buttons || window.paypal.HostedFields || window.paypal.version) &&
+        typeof window.GFPPCP === 'function'
+      ) {
+        nudgeGravityFormsPayPalOnce();
+        return;
+      }
+      if (tries < 20) {
+        window.setTimeout(waitReady, 250);
+      }
+    }
+    waitReady();
+  }
+
+  /**
+   * Activate parked PayPal SDK (consent already granted). No jQuery.trigger patching.
+   */
+  function activateParkedPayPalSdk() {
+    if (!hasCategoryConsent('functional')) {
+      return false;
+    }
+    var node =
+      document.getElementById('gform_paypal_sdk-js') ||
+      document.getElementById('gform_paypal_sdk') ||
+      document.querySelector(
+        'script[type="text/plain"][data-src*="paypal.com/sdk"], script[data-ucpf-gated="1"][data-src*="paypal.com/sdk"]'
+      );
+    if (!node) {
+      return false;
+    }
+    var src = node.getAttribute('data-src') || '';
+    var type = (node.getAttribute('type') || '').toLowerCase();
+    var gated = node.getAttribute('data-ucpf-gated') === '1';
+    if (!src || (type !== 'text/plain' && !gated)) {
+      return false;
+    }
+    try {
+      var script = document.createElement('script');
+      Array.prototype.slice.call(node.attributes || []).forEach(function (attr) {
+        if (!attr || !attr.name) return;
+        if (
+          attr.name === 'type' ||
+          attr.name === 'data-src' ||
+          attr.name === 'src' ||
+          attr.name === 'data-ucpf-category' ||
+          attr.name === 'data-ucpf-service' ||
+          attr.name === 'data-ucpf-gated' ||
+          attr.name === 'data-ucpf-original-type'
+        ) {
+          return;
+        }
+        try {
+          script.setAttribute(attr.name, attr.value);
+        } catch (eA) { /* ignore */ }
+      });
+      script.src = src;
+      script.type = 'text/javascript';
+      script.addEventListener('load', function () {
+        if (typeof window.__ucpfFlushGfppcpAfterPaypal === 'function') {
+          try {
+            window.__ucpfFlushGfppcpAfterPaypal();
+          } catch (eF) { /* ignore */ }
+        }
+        nudgeGravityFormsPayPalOnce();
+      });
+      if (node.parentNode) {
+        node.parentNode.replaceChild(script, node);
+        return true;
+      }
+    } catch (eAct) { /* ignore */ }
+    return false;
+  }
+
+  function ensurePayPalIfNeeded() {
+    if (!hasCategoryConsent('functional')) {
+      return;
+    }
+    if (!pageHasPayPalPaymentSurface()) {
+      return;
+    }
+    var needs = false;
+    try {
+      var wraps = document.querySelectorAll('.gform_wrapper, form[id^="gform_"]');
+      for (var i = 0; i < wraps.length; i++) {
+        if (gformHasPayPalPayment(wraps[i]) && paypalPaymentUiLooksEmpty(wraps[i])) {
+          needs = true;
+          break;
+        }
+      }
+      if (
+        !needs &&
+        document.querySelector(
+          'script[type="text/plain"][data-src*="paypal.com/sdk"], script[data-ucpf-gated="1"][data-src*="paypal.com/sdk"], script[type="text/plain"][data-src*="gravityformsppcp"]'
+        )
+      ) {
+        needs = true;
+      }
+      if (!needs && document.querySelector('[data-paypal-button], .paypal-buttons, div[id^="paypal-button"]')) {
+        var nodes = document.querySelectorAll('[data-paypal-button], .paypal-buttons, div[id^="paypal-button"]');
+        for (var j = 0; j < nodes.length; j++) {
+          if (paypalPaymentUiLooksEmpty(nodes[j])) {
+            needs = true;
+            break;
+          }
+        }
+      }
+    } catch (eNeed) {
+      needs = true;
+    }
+    if (needs) {
+      activateParkedPayPalSdk();
+      reinitPayPalWidgets();
     }
   }
 
@@ -4078,6 +5619,55 @@
   var mapsHydrateStarted = false;
   var mapsHydrated = false;
   var mapsHydrateRetryScheduled = false;
+  var animationsHydrateStarted = false;
+
+  function ensureAnimationsIfNeeded() {
+    // GSAP CDN is never gated — only heal leftover parked tags from older builds.
+    if (animationsHydrateStarted) {
+      return;
+    }
+    var hasParkedAnim = !!document.querySelector(
+      'script[type="text/plain"][data-src*="gsap"], script[data-ucpf-gated="1"][data-src*="gsap"], script[type="text/plain"][data-src*="lottie"], script[type="text/plain"][data-src*="dotlottie"], script[type="text/plain"][data-ucpf-inline-animation="1"]'
+    );
+    if (!hasParkedAnim) {
+      return;
+    }
+    animationsHydrateStarted = true;
+    if (window.UCPFLoader && typeof window.UCPFLoader.refireAnimationDependents === 'function') {
+      try {
+        window.UCPFLoader.refireAnimationDependents();
+      } catch (eAnim) { /* ignore */ }
+    }
+  }
+
+  function isPlaceholderEmbedSrc(url) {
+    var u = String(url || '').trim();
+    if (!u || u === 'about:blank') {
+      return true;
+    }
+    var lower = u.toLowerCase();
+    return lower.indexOf('data:') === 0 || lower.indexOf('blob:') === 0 || lower.indexOf('javascript:') === 0;
+  }
+
+  function resolveDeferredIframeUrl(iframe) {
+    if (!iframe || iframe.tagName !== 'IFRAME') {
+      return '';
+    }
+    if (typeof window.__ucpfResolveDeferredEmbedUrl === 'function') {
+      return window.__ucpfResolveDeferredEmbedUrl(iframe);
+    }
+    var parked = iframe.getAttribute('data-src') || iframe.getAttribute('data-lazy-src') || '';
+    var live = iframe.getAttribute('src') || '';
+    if (parked && !isPlaceholderEmbedSrc(parked)) {
+      if (isPlaceholderEmbedSrc(live)) {
+        return parked;
+      }
+    }
+    if (live && !isPlaceholderEmbedSrc(live)) {
+      return live;
+    }
+    return parked || live || '';
+  }
 
   function restoreParkedMapIframe(iframe) {
     if (!iframe || iframe.tagName !== 'IFRAME') {
@@ -4089,7 +5679,7 @@
     var parked = iframe.getAttribute('data-src') || '';
     var live = iframe.getAttribute('src') || '';
     var gated = iframe.getAttribute('data-ucpf-gated') === '1';
-    var blank = !live || live === 'about:blank';
+    var blank = !live || live === 'about:blank' || isPlaceholderEmbedSrc(live);
     // Only restore when gated/blank — do not touch a healthy live maps iframe.
     if (!gated && !blank) {
       if (isMapEmbedSrc(live)) {
@@ -4097,7 +5687,7 @@
       }
       return false;
     }
-    var src = parked || live;
+    var src = resolveDeferredIframeUrl(iframe);
     if (!isMapEmbedSrc(src)) {
       return false;
     }
@@ -4121,7 +5711,10 @@
     return !!(
       u &&
       u !== 'about:blank' &&
-      (/maps\.google|google\.com\/maps|mapbox\.com|openstreetmap\.org|maplibre|bing\.com\/maps|virtualearth/i.test(u))
+      !isPlaceholderEmbedSrc(u) &&
+      (/maps\.google|google\.com\/maps|mapbox\.com|openstreetmap\.org|maplibre|bing\.com\/maps|virtualearth|mapme\.com|maphub\.net|batchgeo\.com|zeemaps\.com|umap\.openstreetmap\.fr|arcgis\.com/i.test(
+        u
+      ))
     );
   }
 
@@ -4132,7 +5725,7 @@
     if (iframe.getAttribute('data-ucpf-gated') === '1') {
       return false;
     }
-    var live = iframe.getAttribute('src') || '';
+    var live = resolveDeferredIframeUrl(iframe);
     return isMapEmbedSrc(live);
   }
 
@@ -4159,7 +5752,7 @@
     });
     document
       .querySelectorAll(
-        'iframe[data-ucpf-gated="1"][data-src*="maps.google"], iframe[data-ucpf-gated="1"][data-src*="google.com/maps"], iframe[data-ucpf-gated="1"][data-src*="google.com/maps"]'
+        'iframe[data-ucpf-gated="1"][data-src*="maps.google"], iframe[data-ucpf-gated="1"][data-src*="google.com/maps"], iframe[data-ucpf-gated="1"][data-src*="mapme.com"], iframe[data-ucpf-gated="1"][data-src*="maphub.net"], iframe[data-ucpf-gated="1"][data-src*="batchgeo.com"], iframe[data-ucpf-gated="1"][data-src*="zeemaps.com"], iframe[data-ucpf-gated="1"][data-src*="umap.openstreetmap.fr"], iframe[data-ucpf-gated="1"][data-src*="arcgis.com"], iframe[data-ucpf-gated="1"][data-src*="bing.com/maps"]'
       )
       .forEach(restoreParkedMapIframe);
 
@@ -4207,13 +5800,17 @@
     } catch (eWpg) { /* ignore */ }
     try {
       // Mapster / MapLibre / Mapbox: force-refire plugin bootstrap at most once per page.
+      // Skip when a live canvas already exists (avoid nested MapLibre after soft+force clone).
       if (
         !window.__ucpfMapsterForceDone &&
+        !mapsterMapIsLive() &&
         window.UCPFLoader &&
         typeof window.UCPFLoader.refireMapDependents === 'function'
       ) {
         window.__ucpfMapsterForceDone = true;
         window.UCPFLoader.refireMapDependents({ forceMapster: true });
+      } else if (mapsterMapIsLive()) {
+        window.__ucpfMapsterForceDone = true;
       }
     } catch (eMapster) { /* ignore */ }
     try {
@@ -4226,11 +5823,21 @@
       window.dispatchEvent(new CustomEvent('ucpf:maps:ready'));
     } catch (eEv) { /* ignore */ }
 
-    var anyLive = !!document.querySelector(
-      'iframe[src*="google.com/maps"]:not([data-ucpf-gated="1"]), iframe[src*="maps.google"]:not([data-ucpf-gated="1"])'
-    );
     var mapsterLive = mapsterMapIsLive();
-    if (anyLive || mapsterLive) {
+    var canvasLive = !!document.querySelector(
+      '.leaflet-container canvas, .mapboxgl-canvas, .maplibregl-canvas, .gm-style canvas, .wpgmza_map canvas'
+    );
+    var iframeWithMapContent = false;
+    try {
+      document
+        .querySelectorAll('iframe[src*="google.com/maps"]:not([data-ucpf-gated="1"]), iframe[src*="maps.google"]:not([data-ucpf-gated="1"])')
+        .forEach(function (iframe) {
+          if (mapIframeIsLive(iframe) && iframe.offsetHeight > 0) {
+            iframeWithMapContent = true;
+          }
+        });
+    } catch (eIfLive) { /* ignore */ }
+    if (mapsterLive || canvasLive || iframeWithMapContent) {
       mapsHydrated = true;
     }
   }
@@ -4282,6 +5889,7 @@
         (window.google && window.google.maps) ||
         typeof window.mapboxgl !== 'undefined' ||
         typeof window.maplibregl !== 'undefined' ||
+        (window.L && typeof window.L.map === 'function') ||
         document.querySelector(
           'iframe[src*="google.com/maps"]:not([data-ucpf-gated="1"]), iframe[src*="maps.google"]:not([data-ucpf-gated="1"]), iframe[data-ucpf-gated="1"][data-src*="maps.google"], iframe[data-ucpf-gated="1"][data-src*="google.com/maps"]'
         );
@@ -4585,10 +6193,15 @@
       if (!preferReduce) {
         return 0;
       }
+      var cleared = 0;
       Array.prototype.forEach.call(nodes, function (el) {
+        if (isElementorStickySpacer(el)) {
+          return;
+        }
         el.classList.remove('elementor-invisible');
+        cleared += 1;
       });
-      return n;
+      return cleared;
     } catch (eUnhide) {
       return 0;
     }
@@ -4607,13 +6220,159 @@
       if (elReady && document.readyState !== 'complete') {
         return 0;
       }
+      var cleared = 0;
       Array.prototype.forEach.call(nodes, function (el) {
+        // Sticky creates an invisible spacer clone — revealing it doubles the header
+        // and collapses Resources (huge headings, content through footer).
+        if (isElementorStickySpacer(el)) {
+          return;
+        }
         el.classList.remove('elementor-invisible');
+        cleared += 1;
       });
-      return nodes.length;
+      return cleared;
     } catch (eStuck) {
       return 0;
     }
+  }
+
+  /**
+   * Elementor sticky header/footer injects a layout spacer that must stay invisible.
+   * @param {Element} el
+   * @return {boolean}
+   */
+  function isElementorStickySpacer(el) {
+    if (!el || !el.classList) {
+      return false;
+    }
+    if (el.classList.contains('elementor-sticky__spacer')) {
+      return true;
+    }
+    try {
+      if (el.closest && el.closest('.elementor-sticky__spacer')) {
+        return true;
+      }
+    } catch (eC) { /* ignore */ }
+    return false;
+  }
+
+  /**
+   * Resources Quick Tips (and similar): Elementor fadeIn parents stay
+   * .elementor-invisible after consent restores iframe src — videos have a live
+   * player but remain visibility:hidden. Reveal only ancestors of video widgets
+   * / video consent covers (do not nuke every entrance animation on the page).
+   *
+   * @return {number}
+   */
+  function revealElementorVideoEntrances() {
+    var n = 0;
+    try {
+      var widgets = document.querySelectorAll(
+        '.elementor-widget-video, [data-widget_type="video.default"],' +
+          '.ucpf-consent-guard[data-ucpf-guard-kind="vimeo"],' +
+          '.ucpf-consent-guard[data-ucpf-guard-kind="youtube"],' +
+          'iframe.elementor-video-iframe[data-ucpf-gated="1"],' +
+          'iframe.elementor-video-iframe[src*="vimeo"],' +
+          'iframe.elementor-video-iframe[src*="youtube"]'
+      );
+      Array.prototype.forEach.call(widgets, function (widget) {
+        var el = widget;
+        var depth = 0;
+        while (el && el !== document.body && depth < 10) {
+          if (isElementorStickySpacer(el)) {
+            break;
+          }
+          if (el.classList && el.classList.contains('elementor-invisible')) {
+            el.classList.remove('elementor-invisible');
+            try {
+              var settings = parseDataSettings(el);
+              var anim = settings && String(settings.animation || '').trim();
+              if (anim) {
+                el.classList.add('animated');
+                if (!el.classList.contains(anim)) {
+                  el.classList.add(anim);
+                }
+              }
+            } catch (eAnim) { /* ignore */ }
+            n += 1;
+          }
+          el = el.parentElement;
+          depth += 1;
+        }
+      });
+    } catch (eRev) {
+      return n;
+    }
+    return n;
+  }
+
+  /**
+   * Elementor pause-on-hover binds mouseenter/leave to this.swiper.autoplay.
+   * Custom scripts (e.g. Element.How justified carousel) destroy()+new Swiper()
+   * leave stale handlers → "Cannot read properties of undefined (reading 'start'|'stop')".
+   * Rebind to the live el.swiper instance.
+   */
+  function healElementorSwiperPauseOnHover() {
+    if (!window.jQuery || typeof window.jQuery !== 'function') {
+      return 0;
+    }
+    var $ = window.jQuery;
+    var healed = 0;
+    try {
+      document
+        .querySelectorAll(
+          '.justifiedImageCarousel .swiper, .elementor-image-carousel-wrapper.swiper'
+        )
+        .forEach(function (el) {
+          if (!el || !el.classList || !el.classList.contains('swiper-initialized')) {
+            return;
+          }
+          var ev = null;
+          try {
+            ev = $._data(el, 'events');
+          } catch (eData) {
+            ev = null;
+          }
+          if (!ev) {
+            return;
+          }
+          var hasHover =
+            (ev.mouseenter && ev.mouseenter.length) ||
+            (ev.mouseleave && ev.mouseleave.length) ||
+            (ev.mouseover && ev.mouseover.length) ||
+            (ev.mouseout && ev.mouseout.length);
+          if (!hasHover) {
+            return;
+          }
+          try {
+            $(el).off('mouseenter mouseleave mouseover mouseout');
+          } catch (eOff) { /* ignore */ }
+          if (el.swiper && el.swiper.autoplay && typeof el.swiper.autoplay.stop === 'function') {
+            try {
+              $(el).on({
+                mouseenter: function () {
+                  try {
+                    if (el.swiper && el.swiper.autoplay && el.swiper.autoplay.stop) {
+                      el.swiper.autoplay.stop();
+                    }
+                  } catch (eStop) { /* ignore */ }
+                },
+                mouseleave: function () {
+                  try {
+                    if (el.swiper && el.swiper.autoplay && el.swiper.autoplay.start) {
+                      el.swiper.autoplay.start();
+                    }
+                  } catch (eStart) { /* ignore */ }
+                },
+              });
+            } catch (eOn) { /* ignore */ }
+          }
+          healed += 1;
+        });
+    } catch (eHeal) {
+      return healed;
+    }
+    return healed;
   }
 
   var consentChangeTimer = null;
@@ -4652,16 +6411,20 @@
       }
       ensureCalendlyIfNeeded();
       ensureCaptchasIfNeeded();
+      ensurePayPalIfNeeded();
       // Always hydrate videos after consent — builders must not block GDPR unlock.
       ensureVideosIfNeeded();
       ensureSmashBalloonIfNeeded();
       // Maps: same class of failure as Vimeo (API parked, widget already ran).
       ensureMapsIfNeeded();
-      // Layout-only Elementor Motion FX recovery stays behind leaveBuildersAlone.
-      if (!leaveBuildersAlone()) {
-        unhideReducedMotionElementor();
-        window.setTimeout(unhideStuckElementorInvisible, 400);
-      }
+      ensureAnimationsIfNeeded();
+      healElementorSwiperPauseOnHover();
+      // Park/restore races leave Elementor fade-ins stuck — always heal entrances.
+      // leaveBuildersAlone only skips Motion FX / sticky thrash, not this safety net.
+      revealElementorVideoEntrances();
+      unhideReducedMotionElementor();
+      window.setTimeout(unhideStuckElementorInvisible, 400);
+      window.setTimeout(unhideStuckElementorInvisible, 2000);
       // Ensure GTM4WP Vimeo/YouTube helpers re-run after player APIs activate.
       // Skip when loader already ran from the cancelled-navigation fallback.
       if (window.UCPFLoader && typeof window.UCPFLoader.applyConsent === 'function') {
@@ -4682,6 +6445,35 @@
           }
         });
         queryAll(['.ucpf-consent-guard--active[data-ucpf-guard-kind="checkout"]']).forEach(function (wrap) {
+          // Woo checkout panels require security+functional; GF PayPal Embeds-only
+          // panels are cleared in the functional-only block below.
+          if (isPayPalPaymentSurface(wrap) && !hasCategoryConsent('security')) {
+            return;
+          }
+          wrap.classList.remove('ucpf-consent-guard--active');
+          var panel = wrap.querySelector('.ucpf-consent-guard__panel');
+          if (panel) {
+            panel.remove();
+          }
+          if (wrap.tagName === 'FORM') {
+            unlockFields(wrap);
+          }
+        });
+      }
+      // GF / generic PayPal: Embeds-only panels clear when functional is granted.
+      if (hasCategoryConsent('functional')) {
+        queryAll(['.gform_wrapper', 'form[id^="gform_"]']).forEach(function (node) {
+          if (!gformHasPayPalPayment(node)) {
+            return;
+          }
+          removeGuard(resolvePayPalPaymentHost(node) || node);
+        });
+        queryAll([
+          '.ucpf-consent-guard--active[data-ucpf-guard-kind="checkout"]',
+        ]).forEach(function (wrap) {
+          if (!isPayPalPaymentSurface(wrap)) {
+            return;
+          }
           wrap.classList.remove('ucpf-consent-guard--active');
           var panel = wrap.querySelector('.ucpf-consent-guard__panel');
           if (panel) {
@@ -4703,10 +6495,10 @@
     ensureVideosIfNeeded();
     ensureSmashBalloonIfNeeded();
     ensureMapsIfNeeded();
+    ensureAnimationsIfNeeded();
     ensureCaptchasIfNeeded();
-    if (!leaveBuildersAlone()) {
-      unhideReducedMotionElementor();
-    }
+    ensurePayPalIfNeeded();
+    unhideReducedMotionElementor();
     // Banner root + late builder/lazy iframes — re-scan and re-copy tokens.
     [50, 250, 800, 2000, 4000].forEach(function (ms) {
       window.setTimeout(function () {
@@ -4714,29 +6506,42 @@
         resyncAllGuards();
         ensureVideosIfNeeded();
         ensureMapsIfNeeded();
+        ensureAnimationsIfNeeded();
         ensureCaptchasIfNeeded();
-        if (!leaveBuildersAlone()) {
-          unhideReducedMotionElementor();
-          if (ms >= 2000) {
-            unhideStuckElementorInvisible();
-          }
+        ensurePayPalIfNeeded();
+        if (ms >= 2000) {
+          healElementorSwiperPauseOnHover();
+        }
+        unhideReducedMotionElementor();
+        if (ms >= 2000) {
+          unhideStuckElementorInvisible();
+          revealElementorVideoEntrances();
         }
       }, ms);
     });
     window.addEventListener('load', function () {
       ensureVideosIfNeeded();
       ensureMapsIfNeeded();
+      ensureAnimationsIfNeeded();
       ensureCaptchasIfNeeded();
       window.setTimeout(ensureVideosIfNeeded, 1200);
       window.setTimeout(ensureMapsIfNeeded, 1200);
+      window.setTimeout(ensureAnimationsIfNeeded, 1200);
       window.setTimeout(ensureCaptchasIfNeeded, 1200);
-      if (leaveBuildersAlone()) {
-        return;
-      }
+      // After Element.How justified carousel destroy()+new Swiper (≤3s poll).
+      window.setTimeout(healElementorSwiperPauseOnHover, 3500);
+      window.setTimeout(healElementorSwiperPauseOnHover, 5500);
+      // Always clear stuck Elementor entrances (UCPF video park can miss IO).
       unhideReducedMotionElementor();
       window.setTimeout(unhideReducedMotionElementor, 1200);
-      window.setTimeout(unhideStuckElementorInvisible, 2500);
-      window.setTimeout(unhideStuckElementorInvisible, 5000);
+      window.setTimeout(function () {
+        unhideStuckElementorInvisible();
+        revealElementorVideoEntrances();
+      }, 2500);
+      window.setTimeout(function () {
+        unhideStuckElementorInvisible();
+        revealElementorVideoEntrances();
+      }, 5000);
     });
     // Elementor may finish Motion FX after our early passes.
     try {
@@ -4745,18 +6550,26 @@
           refresh();
           ensureVideosIfNeeded();
           ensureMapsIfNeeded();
+          ensureAnimationsIfNeeded();
           ensureCaptchasIfNeeded();
+          healElementorSwiperPauseOnHover();
+          revealElementorVideoEntrances();
         }, 150);
         window.setTimeout(ensureVideosIfNeeded, 900);
         window.setTimeout(ensureMapsIfNeeded, 900);
+        window.setTimeout(ensureAnimationsIfNeeded, 900);
         window.setTimeout(ensureCaptchasIfNeeded, 900);
-        if (!leaveBuildersAlone()) {
-          window.setTimeout(unhideReducedMotionElementor, 100);
-          window.setTimeout(unhideReducedMotionElementor, 800);
-          window.setTimeout(unhideStuckElementorInvisible, 2000);
-        }
+        window.setTimeout(healElementorSwiperPauseOnHover, 900);
+        window.setTimeout(healElementorSwiperPauseOnHover, 3200);
+        window.setTimeout(unhideReducedMotionElementor, 100);
+        window.setTimeout(unhideReducedMotionElementor, 800);
+        window.setTimeout(function () {
+          unhideStuckElementorInvisible();
+          revealElementorVideoEntrances();
+        }, 2000);
       });
     } catch (eEl) { /* ignore */ }
+    bindElementorPopupRemeasure();
     document.addEventListener('ucpf:consent:changed', onConsentChanged);
     document.addEventListener('ucpf:consent:accepted_all', onConsentChanged);
     document.addEventListener('ucpf:consent:rejected_all', onConsentChanged);
@@ -4790,9 +6603,9 @@
       ensureVideosIfNeeded();
       ensureMapsIfNeeded();
       ensureCaptchasIfNeeded();
-      if (!leaveBuildersAlone()) {
-        unhideReducedMotionElementor();
-      }
+      unhideReducedMotionElementor();
+      revealElementorVideoEntrances();
+      window.setTimeout(unhideStuckElementorInvisible, 400);
     });
 
     if (typeof MutationObserver === 'function') {
@@ -4838,6 +6651,7 @@
           refresh();
           resyncAllGuards();
           ensureCalendlyIfNeeded();
+          remeasureVisiblePopupEmbeds();
           unhideReducedMotionElementor();
         }, 400);
       });

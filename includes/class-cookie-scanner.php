@@ -1239,11 +1239,19 @@ class Cookie_Scanner {
 					return $this->coerce_scan_path_list( $decoded );
 				}
 				$raw = preg_split( '/[\r\n]+/', $t );
-			} elseif ( false !== strpos( $t, "\n" ) ) {
+			} elseif ( false !== strpos( $t, "\n" ) || false !== strpos( $t, "\r" ) ) {
 				$raw = preg_split( '/\r?\n/', $t );
+			} elseif ( false !== strpos( $t, ',' ) ) {
+				// CSV of paths or absolute URLs (WAF-safe).
+				$raw = array_map( 'trim', explode( ',', $t ) );
 			} else {
 				$raw = array( $t );
 			}
+		}
+		if ( is_object( $raw ) ) {
+			$raw = (array) $raw;
+			ksort( $raw, SORT_NUMERIC );
+			$raw = array_values( $raw );
 		}
 		if ( ! is_array( $raw ) ) {
 			return array();
@@ -1279,7 +1287,7 @@ class Cookie_Scanner {
 		if ( '' === $path ) {
 			return null;
 		}
-		// Absolute URL → path + query (admin / proxies sometimes forward full URLs).
+		// Absolute URL â†’ path + query (admin / proxies sometimes forward full URLs).
 		if ( preg_match( '#^https?://#i', $path ) ) {
 			$parsed = wp_parse_url( $path );
 			if ( ! is_array( $parsed ) ) {
@@ -2030,7 +2038,7 @@ class Cookie_Scanner {
 	}
 
 	/**
-	 * Official Gravity SMTP integration slug → UCPF catalog key.
+	 * Official Gravity SMTP integration slug â†’ UCPF catalog key.
 	 *
 	 * @see https://docs.gravitysmtp.com/gravity-smtp-integration-slugs/
 	 * @return array<string,string>
@@ -2099,6 +2107,7 @@ class Cookie_Scanner {
 		);
 
 		// Host / API needles only — bare brand names match Gravity's full connector catalog.
+		// phpcs:disable PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- SMTP/API host needles for service detection; UCPF does not enqueue these URLs.
 		$needles = array(
 			'mandrillapp.com'         => 'mailchimp_transactional',
 			'smtp.mandrillapp.com'    => 'mailchimp_transactional',
@@ -2134,6 +2143,7 @@ class Cookie_Scanner {
 			'send.api.mailtrap.io'    => 'mailtrap',
 			'email.cloudflare'        => 'cloudflare_email',
 		);
+		// phpcs:enable PluginCheck.CodeAnalysis.Offloading.OffloadedContent
 
 		// Active mailer assignment patterns (WP Mail SMTP, FluentSMTP, etc.).
 		$mailer_assignments = array(
@@ -2640,7 +2650,7 @@ class Cookie_Scanner {
 	}
 
 	/**
-	 * Public wrapper: active plugin → catalog service findings.
+	 * Public wrapper: active plugin â†’ catalog service findings.
 	 *
 	 * @return array
 	 */
@@ -2959,6 +2969,7 @@ class Cookie_Scanner {
 
 		set_transient( 'ucpf_last_scan', $payload, WEEK_IN_SECONDS );
 		update_option( 'ucpf_last_scan', $payload, false );
+		self::bust_policy_inventory_cache();
 
 		if ( ! empty( $payload['cookies'] ) && is_array( $payload['cookies'] ) ) {
 			$this->remember_known_cookie_baseline( $payload['cookies'] );
@@ -3001,6 +3012,14 @@ class Cookie_Scanner {
 		 * @param array $payload Scan payload.
 		 */
 		do_action( 'ucpf_scan_completed', $payload );
+
+		if ( class_exists( __NAMESPACE__ . '\\Tracking_Templates' ) ) {
+			$gtm_ids = Tracking_Templates::extract_gtm_ids_from_scan_payload( $payload );
+			if ( $gtm_ids ) {
+				$stamp = isset( $payload['completed_at'] ) ? (string) $payload['completed_at'] : ( isset( $payload['date'] ) ? (string) $payload['date'] : '' );
+				Tracking_Templates::store_gtm_scan_suggestions( $gtm_ids, $stamp );
+			}
+		}
 
 		$refreshed = false;
 		if ( Settings::get( 'auto_refresh_cookie_policy_after_scan', true ) ) {
@@ -3327,6 +3346,7 @@ class Cookie_Scanner {
 				'cookie_overrides'         => $all, // keep legacy key in sync
 			)
 		);
+		self::bust_policy_inventory_cache();
 		return true;
 	}
 
@@ -3371,6 +3391,7 @@ class Cookie_Scanner {
 				'cookie_overrides'         => $all,
 			)
 		);
+		self::bust_policy_inventory_cache();
 		return $n;
 	}
 
@@ -3380,6 +3401,7 @@ class Cookie_Scanner {
 	 * @return void
 	 */
 	public static function refresh_policy_pages_after_review() {
+		self::bust_policy_inventory_cache();
 		if ( ! Settings::get( 'auto_refresh_cookie_policy_after_scan', true ) ) {
 			return;
 		}
@@ -3417,7 +3439,223 @@ class Cookie_Scanner {
 	 * @return array{date:string,cookies:array,storage:array,technologies:array,categories:array}
 	 */
 	public function get_policy_inventory() {
-		$scan       = $this->get_last_scan();
+		$scan = $this->get_last_scan();
+		$stamp = '';
+		if ( is_array( $scan ) ) {
+			foreach ( array( 'date', 'completed_at', 'saved_at', 'scanned_at' ) as $k ) {
+				if ( ! empty( $scan[ $k ] ) ) {
+					$stamp = (string) $scan[ $k ];
+					break;
+				}
+			}
+			if ( '' === $stamp && ! empty( $scan['cookies'] ) && is_array( $scan['cookies'] ) ) {
+				$stamp = 'c' . (string) count( $scan['cookies'] );
+			}
+		}
+		$ov_hash   = md5( (string) wp_json_encode( self::get_display_overrides() ) );
+		$svc_hash  = md5( (string) wp_json_encode( Settings::get( 'service_overrides', array() ) ) );
+		$ids_hash  = md5( (string) wp_json_encode( Settings::get( 'service_ids', array() ) ) );
+		$cache_key = 'ucpf_pol_inv_' . md5( $stamp . '|' . $ov_hash . '|' . $svc_hash . '|' . $ids_hash . '|' . (string) Settings::get( 'consent_version' ) );
+
+		$cached = get_transient( $cache_key );
+		if ( is_array( $cached ) && isset( $cached['cookies'] ) && is_array( $cached['cookies'] ) ) {
+			return $cached;
+		}
+
+		$inventory = $this->build_policy_inventory_uncached( $scan );
+		set_transient( $cache_key, $inventory, HOUR_IN_SECONDS );
+		// Remember key so persist / override changes can wipe without scanning all transients.
+		update_option( 'ucpf_policy_inventory_cache_key', $cache_key, false );
+		return $inventory;
+	}
+
+	/**
+	 * Drop cached policy inventory (scan persist, override edits, asset bust).
+	 *
+	 * @return void
+	 */
+	public static function bust_policy_inventory_cache() {
+		$key = get_option( 'ucpf_policy_inventory_cache_key', '' );
+		if ( is_string( $key ) && '' !== $key ) {
+			delete_transient( $key );
+		}
+		delete_option( 'ucpf_policy_inventory_cache_key' );
+	}
+
+	/**
+	 * Upsert catalog cookies for enabled Integrations Google tags into policy inventory.
+	 *
+	 * Does not publish Measurement / GTM container IDs as cookie names.
+	 *
+	 * @param array           $by_name    Cookie rows keyed by lowercase display name (by ref).
+	 * @param Script_Registry $registry   Registry.
+	 * @param array           $categories Consent categories.
+	 * @param array           $overrides  Display overrides.
+	 * @return void
+	 */
+	private function merge_managed_google_cookies( array &$by_name, $registry, array $categories, array $overrides ) {
+		$service_ids = Settings::get( 'service_ids', array() );
+		if ( ! is_array( $service_ids ) ) {
+			$service_ids = array();
+		}
+
+		$keys = array();
+		foreach ( array( 'google_analytics_4', 'google_tag_manager' ) as $key ) {
+			if ( empty( $service_ids[ $key ] ) || ! is_array( $service_ids[ $key ] ) ) {
+				continue;
+			}
+			$row = $service_ids[ $key ];
+			if ( empty( $row['enabled'] ) || ! Tracking_Templates::row_has_ids( $key, $row ) ) {
+				continue;
+			}
+			$keys[ $key ] = true;
+		}
+
+		// GT- / G- IDs under the GTM multi-list load via gtag.js — also seed GA4 cookie families.
+		if ( isset( $keys['google_tag_manager'] )
+			&& ! empty( $service_ids['google_tag_manager'] )
+			&& is_array( $service_ids['google_tag_manager'] )
+			&& Tracking_Templates::gtm_row_has_gtag_ids( $service_ids['google_tag_manager'] ) ) {
+			$keys['google_analytics_4'] = true;
+		}
+
+		// Include Google Ads catalog cookies when already observed/matched or GTM is managed (Ads often fire via GTM).
+		$ads_observed = false;
+		foreach ( $by_name as $row ) {
+			if ( ! empty( $row['service_key'] ) && 'google_ads' === $row['service_key'] ) {
+				$ads_observed = true;
+				break;
+			}
+			$n = isset( $row['name'] ) ? strtolower( (string) $row['name'] ) : '';
+			if ( 0 === strpos( $n, '_gcl' ) || 'ide' === $n || 'test_cookie' === $n ) {
+				$ads_observed = true;
+				break;
+			}
+		}
+		if ( $ads_observed || isset( $keys['google_tag_manager'] ) ) {
+			$keys['google_ads'] = true;
+		}
+
+		foreach ( array_keys( $keys ) as $svc_key ) {
+			$service = $registry->get_service( $svc_key );
+			if ( ! is_array( $service ) || empty( $service['cookies'] ) || ! is_array( $service['cookies'] ) ) {
+				continue;
+			}
+			foreach ( $service['cookies'] as $cookie ) {
+				if ( ! is_array( $cookie ) || empty( $cookie['name'] ) ) {
+					continue;
+				}
+				$name = (string) $cookie['name'];
+				if ( '' === $name || Scan_Noise_Filter::should_omit_cookie( $name ) ) {
+					continue;
+				}
+				// Never list measurement / container IDs as cookie names.
+				if ( preg_match( '/^(G-|GT-|GTM-|UA-)/i', $name ) ) {
+					continue;
+				}
+
+				$key = strtolower( $name );
+				$ov  = isset( $overrides[ $key ] ) ? $overrides[ $key ] : array();
+				if ( ! empty( $ov['visibility'] ) && 'hide' === $ov['visibility'] ) {
+					continue;
+				}
+
+				$category = ! empty( $cookie['category'] ) ? sanitize_key( (string) $cookie['category'] ) : '';
+				if ( ! $category && ! empty( $service['category'] ) ) {
+					$category = sanitize_key( (string) $service['category'] );
+				}
+				if ( ! empty( $ov['category'] ) ) {
+					$category = sanitize_key( (string) $ov['category'] );
+				}
+				if ( ! $category ) {
+					$category = 'analytics';
+				}
+
+				$treatment = ! empty( $cookie['treatment'] ) ? sanitize_key( (string) $cookie['treatment'] ) : '';
+				if ( ! $treatment && ! empty( $service['treatment'] ) ) {
+					$treatment = sanitize_key( (string) $service['treatment'] );
+				}
+				if ( ! empty( $ov['treatment'] ) ) {
+					$treatment = sanitize_key( (string) $ov['treatment'] );
+				}
+				if ( ! $treatment ) {
+					$treatment = ( 'necessary' === $category ) ? 'necessary' : 'consent';
+				}
+
+				$purpose = ! empty( $cookie['purpose'] ) ? (string) $cookie['purpose'] : '';
+				if ( '' === $purpose && ! empty( $service['description'] ) ) {
+					$purpose = (string) $service['description'];
+				}
+				if ( ! empty( $ov['purpose'] ) ) {
+					$purpose = (string) $ov['purpose'];
+				}
+
+				$retention = ! empty( $cookie['retention'] ) ? (string) $cookie['retention'] : '';
+				if ( '' === $retention ) {
+					$retention = __( 'See provider documentation / session or persistent', 'universal-consent-privacy-framework' );
+				}
+
+				$service_name  = ! empty( $service['name'] ) ? (string) $service['name'] : $svc_key;
+				$display_label = ! empty( $ov['label'] ) ? (string) $ov['label'] : $service_name;
+				$provider      = ! empty( $service['provider'] ) ? (string) $service['provider'] : 'Google';
+				$visibility    = ! empty( $ov['visibility'] ) ? (string) $ov['visibility'] : 'show';
+				$document_only = ( 'document_only' === $visibility || 'ignore' === $treatment );
+				$consent_required = ! $document_only && ( 'necessary' !== $category && 'necessary' !== $treatment );
+				$cat_label     = isset( $categories[ $category ]['label'] ) ? $categories[ $category ]['label'] : $category;
+
+				if ( isset( $by_name[ $key ] ) ) {
+					$prev = $by_name[ $key ];
+					if ( ( empty( $prev['retention'] ) || false !== stripos( (string) $prev['retention'], 'see provider' ) ) && $retention ) {
+						$by_name[ $key ]['retention'] = $retention;
+					}
+					if ( empty( $prev['purpose'] ) && $purpose ) {
+						$by_name[ $key ]['purpose'] = $purpose;
+					}
+					if ( empty( $prev['service_key'] ) ) {
+						$by_name[ $key ]['service_key'] = $svc_key;
+					}
+					if ( empty( $prev['source'] ) ) {
+						$by_name[ $key ]['source'] = 'from_managed_service';
+					}
+					continue;
+				}
+
+				$by_name[ $key ] = array(
+					'name'               => $name,
+					'display_label'      => $display_label,
+					'service_name'       => $service_name,
+					'provider'           => $provider,
+					'category'           => $category,
+					'category_label'     => $cat_label,
+					'purpose'            => $purpose,
+					'retention'          => $retention,
+					'treatment'          => $treatment,
+					'visibility'         => $visibility,
+					'consent_required'   => $consent_required,
+					'consent_label'      => self::consent_column_label( $treatment, $category, $visibility ),
+					'document_only'      => $document_only,
+					'contexts'           => '',
+					'description_source' => 'catalog',
+					'domain'             => '',
+					'path'               => '',
+					'httpOnly'           => false,
+					'service_key'        => $svc_key,
+					'source'             => 'from_managed_service',
+				);
+			}
+		}
+	}
+
+	/**
+	 * Uncached inventory builder (was get_policy_inventory body).
+	 *
+	 * @param array $scan Last scan payload.
+	 * @return array{date:string,cookies:array,storage:array,technologies:array,categories:array}
+	 */
+	private function build_policy_inventory_uncached( $scan ) {
+		if ( ! is_array( $scan ) ) {
+			$scan = array();
+		}
 		$categories = Consent_Manager::instance()->get_categories();
 		$registry   = Script_Registry::instance();
 		$overrides  = self::get_display_overrides();
@@ -3584,6 +3822,8 @@ class Cookie_Scanner {
 				'service_key'        => ( $match && ! empty( $match['service'] ) ) ? (string) $match['service'] : '',
 			);
 		}
+
+		$this->merge_managed_google_cookies( $by_name, $registry, $categories, $overrides );
 
 		$cookies = array_values( $by_name );
 		usort(
@@ -4053,7 +4293,7 @@ class Cookie_Scanner {
 			$is_ucpf = $match && ( empty( $match['source'] ) || 'ucpf' === $match['source'] || ! empty( $match['service'] ) );
 			$from_ocd_only = $match && ! empty( $match['source'] ) && 'open_cookie_database' === $match['source'] && empty( $match['service'] );
 			if ( ! $match || $from_ocd_only || ! $is_ucpf ) {
-				// Strip stale/ambiguous OCD suggestions (e.g. bare "c" → Magnite).
+				// Strip stale/ambiguous OCD suggestions (e.g. bare "c" â†’ Magnite).
 				if ( strlen( $name ) < 3 && ! empty( $row['description_source'] ) && 'open_cookie_database' === $row['description_source'] ) {
 					$row['description_source'] = '';
 					$row['purpose']            = '';

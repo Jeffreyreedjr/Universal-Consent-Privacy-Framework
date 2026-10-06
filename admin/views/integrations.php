@@ -13,16 +13,25 @@ $templates   = \UCPF\Tracking_Templates::all();
 $service_ids = isset( $settings['service_ids'] ) && is_array( $settings['service_ids'] ) ? $settings['service_ids'] : array();
 $option_key  = \UCPF\Settings::OPTION_KEY;
 $gcm         = isset( $settings['google_consent_mode'] ) ? $settings['google_consent_mode'] : 'basic';
+$gtm_pending = \UCPF\Tracking_Templates::get_pending_gtm_scan_suggestions( $service_ids );
 ?>
 <div class="wrap ucpf-admin">
 	<h1><?php esc_html_e( 'Integrations & tracking tags', 'universal-consent-privacy-framework' ); ?></h1>
 	<p class="description"><?php esc_html_e( 'Enable each service you use on this site and enter its ID/tag. UCPF loads the official script only after the visitor consents to that category.', 'universal-consent-privacy-framework' ); ?></p>
+	<p class="description"><?php esc_html_e( 'Saving Google Analytics or Tag Manager settings refreshes this site’s Cookie and Privacy Policy pages (when those pages were generated). For GTM, open “What’s inside this container” and enter whatever the ad team or digital partner lists for this site — platforms, cookie duration, purposes, and recipients. Every site is different; leave blank until you have answers. A Deep privacy scan is still recommended to catch tags that were not disclosed.', 'universal-consent-privacy-framework' ); ?></p>
+	<p class="description"><code><?php echo esc_html( 'UCPF ' . ( defined( 'UCPF_VERSION' ) ? UCPF_VERSION : '' ) ); ?></code></p>
 	<?php if ( is_multisite() ) : ?>
 		<p class="notice notice-info inline"><strong><?php esc_html_e( 'Multisite:', 'universal-consent-privacy-framework' ); ?></strong> <?php esc_html_e( 'Settings and tracking tags on this screen apply to this site only. Configure each site’s dashboard separately for different GA4/GTM IDs.', 'universal-consent-privacy-framework' ); ?></p>
 	<?php endif; ?>
 
-	<form method="post" action="options.php">
-		<?php settings_fields( 'ucpf_settings_group' ); ?>
+	<p>
+		<a class="button button-secondary" href="<?php echo esc_url( wp_nonce_url( add_query_arg( 'ucpf_refresh_policies_tags', '1' ), 'ucpf_refresh_policies_tags' ) ); ?>">
+			<?php esc_html_e( 'Refresh policies for current tags', 'universal-consent-privacy-framework' ); ?>
+		</a>
+	</p>
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="ucpf-integrations-form">
+		<input type="hidden" name="action" value="ucpf_save_integrations" />
+		<?php wp_nonce_field( 'ucpf_save_integrations' ); ?>
 		<input type="hidden" name="<?php echo esc_attr( $option_key ); ?>[_ucpf_tracking_form]" value="1" />
 
 		<section class="ucpf-panel">
@@ -43,7 +52,7 @@ $gcm         = isset( $settings['google_consent_mode'] ) ? $settings['google_con
 						<div class="ucpf-integration-card__enable">
 							<label>
 								<input type="checkbox" name="<?php echo esc_attr( $option_key ); ?>[service_ids][<?php echo esc_attr( $key ); ?>][enabled]" value="1" <?php checked( $enabled ); ?> />
-								<span class="screen-reader-text"><?php echo esc_html( sprintf( /* translators: %s: service label */ __( 'Enable %s', 'universal-consent-privacy-framework' ), $meta['label'] ) ); ?></span>
+								<span class="ucpf-integration-card__enable-label"><?php esc_html_e( 'Enable', 'universal-consent-privacy-framework' ); ?></span>
 							</label>
 						</div>
 						<div class="ucpf-integration-card__body">
@@ -55,6 +64,15 @@ $gcm         = isset( $settings['google_consent_mode'] ) ? $settings['google_con
 								<?php endif; ?>
 							</div>
 							<div class="ucpf-integration-card__fields">
+								<?php if ( ! empty( $meta['multi_containers'] ) && 'google_tag_manager' === $key ) : ?>
+									<?php
+									$name_prefix     = $option_key . '[service_ids][' . $key . ']';
+									$gtm_row         = $row;
+									$containers      = isset( $row['containers'] ) ? $row['containers'] : array();
+									$gtm_suggestions = isset( $gtm_pending['ids'] ) ? $gtm_pending['ids'] : array();
+									include UCPF_PLUGIN_DIR . 'admin/views/partials/gtm-containers.php';
+									?>
+								<?php else : ?>
 								<div class="ucpf-integration-card__field">
 									<label for="ucpf-id-<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $meta['id_label'] ); ?></label>
 									<input
@@ -68,6 +86,7 @@ $gcm         = isset( $settings['google_consent_mode'] ) ? $settings['google_con
 									/>
 									<p class="description"><?php echo esc_html( $meta['help'] ); ?></p>
 								</div>
+								<?php endif; ?>
 								<?php if ( ! empty( $meta['tag_id_label'] ) ) : ?>
 									<div class="ucpf-integration-card__field">
 										<label for="ucpf-tag-id-<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $meta['tag_id_label'] ); ?></label>

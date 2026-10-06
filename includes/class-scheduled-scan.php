@@ -37,18 +37,21 @@ class Scheduled_Scan {
 	}
 
 	/**
-	 * Wire hooks.
+	 * Wire hooks. Recurring Deep scans are retired — clear leftover cron once; manual admin scans only.
 	 */
 	public function init() {
 		add_filter( 'cron_schedules', array( $this, 'register_schedules' ) );
+		// Keep handlers registered so in-flight poll jobs can finish after upgrade.
 		add_action( self::HOOK_START, array( $this, 'run_start' ) );
 		add_action( self::HOOK_POLL, array( $this, 'run_poll' ) );
-		add_action( 'updated_option', array( $this, 'maybe_resync_on_settings' ), 20, 3 );
-		$this->ensure_schedule();
+		// Clear recurring schedule when enabled flag or cron events still linger.
+		if ( (bool) Settings::get( 'scheduled_scan_enabled', false ) || wp_next_scheduled( self::HOOK_START ) || wp_next_scheduled( self::HOOK_POLL ) ) {
+			$this->ensure_schedule();
+		}
 	}
 
 	/**
-	 * Custom WP-Cron intervals.
+	 * Custom WP-Cron intervals (kept for legacy in-flight jobs only).
 	 *
 	 * @param array $schedules Schedules.
 	 * @return array
@@ -78,17 +81,13 @@ class Scheduled_Scan {
 	}
 
 	/**
-	 * Ensure recurring start event matches settings.
+	 * Clear recurring Deep-scan events (automated scans retired — manual only).
 	 */
 	public function ensure_schedule() {
-		$enabled = (bool) Settings::get( 'scheduled_scan_enabled', false );
-		if ( ! $enabled ) {
-			$this->clear_schedule();
-			return;
+		if ( (bool) Settings::get( 'scheduled_scan_enabled', false ) ) {
+			Settings::update( array( 'scheduled_scan_enabled' => false ) );
 		}
-		if ( ! wp_next_scheduled( self::HOOK_START ) ) {
-			wp_schedule_event( time() + $this->stagger_offset_seconds(), $this->cron_recurrence(), self::HOOK_START );
-		}
+		$this->clear_schedule();
 	}
 
 	/**

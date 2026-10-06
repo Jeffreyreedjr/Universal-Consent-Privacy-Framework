@@ -945,30 +945,93 @@ class Rest_Api {
 			$url        = ! empty( $normalized[0]['url'] ) ? $normalized[0]['url'] : home_url( '/' );
 		}
 
+		// Collect paths from every channel. Prefer pathList (newline string) — some
+		// hosts flatten JSON arrays in REST while leaving strings intact.
 		$raw = array_merge(
-			$scanner->coerce_scan_path_list( isset( $body['paths'] ) ? $body['paths'] : null ),
 			$scanner->coerce_scan_path_list( isset( $body['pathList'] ) ? $body['pathList'] : null ),
-			$scanner->coerce_scan_path_list( isset( $body['urls'] ) ? $body['urls'] : null )
+			$scanner->coerce_scan_path_list( isset( $body['paths'] ) ? $body['paths'] : null ),
+			$scanner->coerce_scan_path_list( isset( $body['pathsCsv'] ) ? $body['pathsCsv'] : null )
 		);
-		$claimed = count( $raw );
-		if ( ! empty( $body['options'] ) && is_array( $body['options'] ) && ! empty( $body['options']['maxPages'] ) ) {
-			$claimed = max( $claimed, (int) $body['options']['maxPages'] );
-		}
-
-		$paths = $scanner->sanitize_scan_paths( $raw, Cookie_Scanner::MAX_PICKER_URLS );
-		// Last resort: derive paths from normalized URL defs.
-		if ( ! $paths && ! empty( $body['urls'] ) && is_array( $body['urls'] ) ) {
+		if ( ! empty( $body['urls'] ) && is_array( $body['urls'] ) ) {
+			$raw = array_merge( $raw, $scanner->coerce_scan_path_list( $body['urls'] ) );
 			foreach ( $scanner->normalize_scan_urls( $body['urls'], Cookie_Scanner::MAX_PICKER_URLS ) as $def ) {
 				if ( empty( $def['url'] ) ) {
 					continue;
 				}
-				$p = wp_parse_url( (string) $def['url'], PHP_URL_PATH );
-				$paths[] = ( null === $p || '' === $p ) ? '/' : $p;
+				$parsed = wp_parse_url( (string) $def['url'] );
+				if ( ! is_array( $parsed ) ) {
+					continue;
+				}
+				$p = ( isset( $parsed['path'] ) && '' !== $parsed['path'] ) ? $parsed['path'] : '/';
+				if ( ! empty( $parsed['query'] ) ) {
+					$p .= '?' . $parsed['query'];
+				}
+				$raw[] = $p;
 			}
-			$paths = $scanner->sanitize_scan_paths( $paths, Cookie_Scanner::MAX_PICKER_URLS );
 		}
+
+		$paths = $scanner->sanitize_scan_paths( $raw, Cookie_Scanner::MAX_PICKER_URLS );
+
+		// If arrays were stripped, rebuild only from absolute same-site urls.
+		if ( count( $paths ) < 2 && ! empty( $body['urls'] ) && is_array( $body['urls'] ) ) {
+			$from_urls = array();
+			foreach ( $scanner->normalize_scan_urls( $body['urls'], Cookie_Scanner::MAX_PICKER_URLS ) as $def ) {
+				if ( empty( $def['url'] ) ) {
+					continue;
+				}
+				$parsed = wp_parse_url( (string) $def['url'] );
+				if ( ! is_array( $parsed ) ) {
+					continue;
+				}
+				$p = ( isset( $parsed['path'] ) && '' !== $parsed['path'] ) ? $parsed['path'] : '/';
+				if ( ! empty( $parsed['query'] ) ) {
+					$p .= '?' . $parsed['query'];
+				}
+				$from_urls[] = $p;
+			}
+			$recovered = $scanner->sanitize_scan_paths( $from_urls, Cookie_Scanner::MAX_PICKER_URLS );
+			if ( count( $recovered ) > count( $paths ) ) {
+				$paths = $recovered;
+			}
+		}
+
 		if ( ! $paths ) {
 			$paths = array( '/' );
+		}
+
+		// Do NOT inflate "claimed" from options.maxPages — that made a 1-path body
+		// look like "3 pages selected" and blamed same-site filtering incorrectly.
+		$claimed = count( $scanner->sanitize_scan_paths( $raw, Cookie_Scanner::MAX_PICKER_URLS ) );
+		if ( $claimed < 1 ) {
+			$claimed = count( $paths );
+		}
+		$js_pages = 0;
+		if ( ! empty( $body['options'] ) && is_array( $body['options'] ) && ! empty( $body['options']['maxPages'] ) ) {
+			$js_pages = (int) $body['options']['maxPages'];
+		}
+
+		if ( $js_pages > 1 && count( $paths ) < 2 ) {
+			$sample = array();
+			foreach ( array_slice( $raw, 0, 5 ) as $r ) {
+				$sample[] = is_scalar( $r ) ? (string) $r : wp_json_encode( $r );
+			}
+			return new \WP_Error(
+				'ucpf_scan_paths_collapsed',
+				sprintf(
+					/* translators: 1: pages the admin UI reported, 2: paths kept, 3: sample raw values */
+					__( 'The admin UI selected %1$d page(s) but WordPress only recovered %2$d unique path(s) from the request (sample: %3$s). Re-select pages and try again. If this persists, the REST body may be altering arrays — pathList should still carry the list.', 'universal-consent-privacy-framework' ),
+					$js_pages,
+					count( $paths ),
+					$sample ? implode( ', ', $sample ) : __( '(empty)', 'universal-consent-privacy-framework' )
+				),
+				array(
+					'status'     => 409,
+					'claimed'    => $js_pages,
+					'paths_kept' => count( $paths ),
+					'raw_count'  => count( $raw ),
+					'sample'     => $sample,
+				)
+			);
 		}
 
 		if ( $claimed > 1 && count( $paths ) < 2 ) {
@@ -1887,8 +1950,17 @@ class Rest_Api {
 		$n = 0;
 		if ( ! empty( $body['paths'] ) && is_array( $body['paths'] ) ) {
 			$n = max( $n, count( $body['paths'] ) );
+		} elseif ( ! empty( $body['paths'] ) && is_object( $body['paths'] ) ) {
+			$n = max( $n, count( (array) $body['paths'] ) );
 		} elseif ( ! empty( $body['paths'] ) && is_string( $body['paths'] ) ) {
-			$n = max( $n, substr_count( (string) $body['paths'], "\n" ) + 1 );
+			$p = (string) $body['paths'];
+			$n = max( $n, substr_count( $p, "\n" ) + 1 );
+			if ( false !== strpos( $p, ',' ) ) {
+				$n = max( $n, substr_count( $p, ',' ) + 1 );
+			}
+		}
+		if ( ! empty( $body['pathsCsv'] ) && is_string( $body['pathsCsv'] ) ) {
+			$n = max( $n, substr_count( (string) $body['pathsCsv'], ',' ) + 1 );
 		}
 		if ( ! empty( $body['urls'] ) && is_array( $body['urls'] ) ) {
 			$n = max( $n, count( $body['urls'] ) );

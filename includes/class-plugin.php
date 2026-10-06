@@ -45,6 +45,7 @@ class Plugin {
 	 */
 	public function init() {
 		try {
+			Settings::register_cache_hooks();
 			Migration::maybe_upgrade();
 
 			Integrations\Wp_Consent_Api_Shim::instance()->init();
@@ -63,14 +64,16 @@ class Plugin {
 			Audit_Log::instance()->init();
 			Login_Notice::instance()->init();
 			Page_Generator::instance()->init();
-			Cookie_Scanner::instance()->init();
-			Scheduled_Scan::instance()->init();
-			Active_Scan::instance()->init();
-			Agency_Scanner::instance()->init();
 			Cloudflare_Cache::instance()->init();
 			Integrations::instance()->init();
 
+			// Scanner / agency: register cron hooks lightly; defer heal + ensure_schedule off hot path.
+			Active_Scan::instance()->init();
+			Scheduled_Scan::instance()->init();
+			Agency_Scanner::instance()->init();
+
 			if ( is_admin() ) {
+				Cookie_Scanner::instance()->init();
 				Admin::instance()->init();
 			} else {
 				$this->init_frontend();
@@ -118,8 +121,9 @@ class Plugin {
 
 		if ( $ucpf ) {
 			ucpf_bust_asset_cache();
+			Cloudflare_Cache::mark_deploy_revalidate( 300 );
 			if ( Settings::get( 'cloudflare_purge_on_ucpf_update', true ) ) {
-				Cloudflare_Cache::instance()->schedule_purge( 'ucpf_update' );
+				Cloudflare_Cache::instance()->schedule_purge( 'ucpf_update', Migration::ucpf_public_asset_urls() );
 			}
 		}
 
@@ -172,11 +176,14 @@ class Plugin {
 	}
 
 	/**
-	 * Elementor regenerated its CSS — schedule CF edge purge (no origin optimizer nuke).
+	 * Elementor regenerated its CSS — purge origin HTML page caches + schedule CF edge purge.
 	 *
 	 * @return void
 	 */
 	public function on_elementor_clear_cache() {
+		if ( function_exists( 'ucpf_purge_page_html_caches' ) ) {
+			ucpf_purge_page_html_caches( 'elementor_css' );
+		}
 		if ( Settings::get( 'cloudflare_purge_on_updates', true ) ) {
 			Cloudflare_Cache::instance()->schedule_purge( 'elementor_css' );
 		}
@@ -250,6 +257,11 @@ class Plugin {
 
 		if ( in_array( $reason, array( 'ucpf_update', 'plugin_update', 'theme_update', 'theme_switch', 'activate', 'deferred' ), true ) ) {
 			update_option( 'ucpf_elementor_css_notice', 1, false );
+		}
+
+		// Drop stale clean-URL HTML that may omit post-{id}.css after a mass clear.
+		if ( function_exists( 'ucpf_purge_page_html_caches' ) ) {
+			ucpf_purge_page_html_caches( $reason ? $reason : 'elementor_css' );
 		}
 
 		if ( Settings::get( 'cloudflare_purge_on_updates', true ) || Settings::get( 'cloudflare_purge_on_ucpf_update', true ) ) {
@@ -450,7 +462,9 @@ class Plugin {
 	 * If Elementor CSS is missing on disk at enqueue time, rebuild before link is printed.
 	 *
 	 * Stops the first visitor after a clear from receiving WordPress HTML at the CSS URL
-	 * (which Cloudflare can year-cache as text/html).
+	 * (which Cloudflare can year-cache as text/html). The current document's CSS is always
+	 * healed (does not consume the per-request cap) so page layouts are not left unstyled
+	 * when many post-*.css files are missing and HTML page cache stores a partial head.
 	 *
 	 * @param object $css_file Elementor CSS file object.
 	 * @return void
@@ -463,19 +477,60 @@ class Plugin {
 			return;
 		}
 		static $healed = 0;
-		if ( $healed >= 8 ) {
-			return;
-		}
 		try {
 			$path = (string) $css_file->get_path();
 			if ( '' === $path || file_exists( $path ) ) {
 				return;
 			}
-			++$healed;
+
+			$is_current = self::elementor_css_file_is_current_document( $css_file );
+			if ( ! $is_current && $healed >= 8 ) {
+				return;
+			}
+
 			$css_file->update();
+			if ( ! $is_current ) {
+				++$healed;
+			}
 		} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
 			// Never break front-end enqueue.
 		}
+	}
+
+	/**
+	 * Whether an Elementor CSS file belongs to the current front-end document.
+	 *
+	 * @param object $css_file Elementor CSS file object.
+	 * @return bool
+	 */
+	private static function elementor_css_file_is_current_document( $css_file ) {
+		$post_id = 0;
+		if ( method_exists( $css_file, 'get_post_id' ) ) {
+			$post_id = (int) $css_file->get_post_id();
+		} elseif ( method_exists( $css_file, 'get_file_handle_id' ) ) {
+			$handle = (string) $css_file->get_file_handle_id();
+			if ( preg_match( '/post-(\d+)/', $handle, $m ) ) {
+				$post_id = (int) $m[1];
+			}
+		}
+		if ( $post_id < 1 ) {
+			return false;
+		}
+
+		$current = (int) get_queried_object_id();
+		if ( $current > 0 && $current === $post_id ) {
+			return true;
+		}
+
+		// Singular fallback before queried object is fully set.
+		if ( function_exists( 'is_singular' ) && is_singular() ) {
+			$sid = (int) get_the_ID();
+			if ( $sid > 0 && $sid === $post_id ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -561,6 +616,30 @@ class Plugin {
 		echo 'window.__ucpfConsentType=' . wp_json_encode( Jurisdiction::instance()->get_consent_type() ) . ";\n";
 		echo 'window.__ucpfCategoryDefaults=' . wp_json_encode( $defaults ) . ";\n";
 		echo 'window.__ucpfGateExtra=' . wp_json_encode( $extras ) . ";\n";
+		// Cloudflare injects Web Analytics as type=module at </body> after origin HTML.
+		// Install a sync MO in this inline boot (before gate.js) so the beacon is parked
+		// before the module fetch starts. Proxy/CDN/challenge hosts stay untouched.
+		echo '(function(){try{var N=["static.cloudflareinsights.com","cloudflareinsights.com","/cdn-cgi/rum"];'
+			. 'function hit(u){u=String(u||"").toLowerCase();for(var i=0;i<N.length;i++){if(u.indexOf(N[i])!==-1)return!0}return!1}'
+			// Mirror network-gate categoryAllowed("analytics") so Accept reload does not re-park the beacon.
+			. 'function analyticsAllowed(){try{if(window.__ucpfDiscover)return!0;'
+			. 'if(window.__ucpfPrivacy&&window.__ucpfPrivacy.analytics===!1)return!1;'
+			. 'if(window.UCPF&&typeof window.UCPF.hasConsent==="function")return!!window.UCPF.hasConsent("analytics");'
+			. 'var h=window.__ucpfConsentHandoff;if(h&&h.categories&&Object.prototype.hasOwnProperty.call(h.categories,"analytics"))return!!h.categories.analytics;'
+			. 'try{var m=document.cookie.match(/(?:^|; )ucpf_consent=([^;]*)/);if(m){var c=JSON.parse(decodeURIComponent(m[1]));if(c&&c.categories)return!!c.categories.analytics}}catch(eC){}'
+			. 'var t=String(window.__ucpfConsentType||"optin").toLowerCase();if(t==="optin"||t==="opt-in")return!1;'
+			. 'var d=window.__ucpfCategoryDefaults||null;if(d&&Object.prototype.hasOwnProperty.call(d,"analytics"))return!!d.analytics;'
+			. 'if(t==="optout"||t==="opt-out")return!(window.__ucpfPrivacy&&window.__ucpfPrivacy.analytics===!1)}catch(eA){}return!1}'
+			. 'function park(n){if(!n||n.tagName!=="SCRIPT")return;var s=n.getAttribute("src")||n.src||"";if(!hit(s))return;'
+			. 'if(analyticsAllowed())return;'
+			. 'var t=String(n.getAttribute("type")||"").toLowerCase();if(t==="module"||t==="importmap")n.setAttribute("data-ucpf-original-type",t);'
+			. 'var ig=n.getAttribute("integrity");if(ig){n.setAttribute("data-ucpf-integrity",ig);n.removeAttribute("integrity")}'
+			. 'n.setAttribute("data-src",s);n.setAttribute("data-ucpf-category","analytics");n.setAttribute("data-ucpf-service","cloudflare_web_analytics");'
+			. 'n.setAttribute("data-ucpf-gated","1");try{n.type="text/plain"}catch(e){}try{n.removeAttribute("src")}catch(e2){}try{n.src=""}catch(e3){}}'
+			. 'if(window.MutationObserver){new MutationObserver(function(ms){for(var i=0;i<ms.length;i++){var ns=ms[i].addedNodes||[];'
+			. 'for(var j=0;j<ns.length;j++){var n=ns[j];park(n);if(n&&n.querySelectorAll){var qs=n.querySelectorAll("script[src]");'
+			. 'for(var k=0;k<qs.length;k++)park(qs[k])}}}}).observe(document.documentElement,{childList:!0,subtree:!0})}'
+			. '}catch(eBoot){}})();' . "\n";
 		echo "</script>\n";
 
 		// Enqueue + print early so the gate runs before third-party tags (Plugin Check compliant).
@@ -573,6 +652,118 @@ class Plugin {
 		);
 		wp_enqueue_script( 'ucpf-network-gate' );
 		wp_print_scripts( 'ucpf-network-gate' );
+	}
+
+	/**
+	 * Whether to eagerly enqueue the heavy form/embed/checkout guard (~167KB).
+	 *
+	 * @return bool
+	 */
+	private function should_enqueue_form_captcha_guard() {
+		/**
+		 * Filter eager load of form-captcha-guard.js.
+		 *
+		 * Return true to always load, false to never (lazy loader still runs),
+		 * null for content heuristics.
+		 *
+		 * @param bool|null $enqueue Null = detect from queried object / Woo.
+		 */
+		$forced = apply_filters( 'ucpf_enqueue_form_captcha_guard', null );
+		if ( null !== $forced ) {
+			return (bool) $forced;
+		}
+		if ( function_exists( 'is_checkout' ) && is_checkout() ) {
+			return true;
+		}
+		if ( function_exists( 'is_cart' ) && is_cart() ) {
+			return true;
+		}
+		if ( ! is_singular() ) {
+			return false;
+		}
+		$post = get_post();
+		if ( ! $post ) {
+			return false;
+		}
+		// Elementor document on this singular page — theme builder + widgets likely.
+		$el_mode = get_post_meta( (int) $post->ID, '_elementor_edit_mode', true );
+		$el_data = get_post_meta( (int) $post->ID, '_elementor_data', true );
+		if ( ( 'builder' === $el_mode || ( is_string( $el_data ) && '' !== $el_data ) ) && defined( 'ELEMENTOR_VERSION' ) ) {
+			return true;
+		}
+		$haystacks = array( (string) $post->post_content );
+		if ( is_string( $el_data ) && '' !== $el_data ) {
+			$haystacks[] = $el_data;
+		}
+		$needles = array(
+			'<form',
+			'[gravityform',
+			'gform_',
+			'wpforms',
+			'wpcf7',
+			'nf-form',
+			'ameliabooking',
+			'youtube',
+			'vimeo',
+			'google.com/maps',
+			'maps.google',
+			'mapster',
+			'wpgmza',
+			'calendly',
+			'recaptcha',
+			'turnstile',
+			'hcaptcha',
+			'elementor-widget-video',
+			'elementor-widget-google_maps',
+			'"widgetType":"form"',
+			'"widgetType":"video"',
+			'"widgetType":"google_maps"',
+			'sb_youtube',
+			'sb-wall',
+			'woocommerce',
+		);
+		foreach ( $haystacks as $content ) {
+			if ( '' === $content ) {
+				continue;
+			}
+			$lower = strtolower( $content );
+			foreach ( $needles as $n ) {
+				if ( false !== strpos( $lower, strtolower( $n ) ) ) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Tiny inline loader: fetch form-captcha-guard.js when DOM markers appear (sync, not async).
+	 *
+	 * @return void
+	 */
+	private function print_form_captcha_guard_lazy_loader() {
+		$src = esc_url(
+			add_query_arg(
+				'ver',
+				rawurlencode( (string) ucpf_asset_version( 'public/js/form-captcha-guard.js' ) ),
+				UCPF_PLUGIN_URL . 'public/js/form-captcha-guard.js'
+			)
+		);
+		$js  = '(function(){var loaded=false,src=' . wp_json_encode( $src ) . ';'
+			. 'function load(){if(loaded)return;loaded=true;var s=document.createElement("script");'
+			. 's.src=src;s.async=false;s.setAttribute("data-cfasync","false");s.setAttribute("data-no-optimize","1");'
+			. 's.setAttribute("data-no-defer","1");(document.head||document.documentElement).appendChild(s);}'
+			. 'var sel="form,.gform_wrapper,.wpforms-form,.wpcf7-form,.nf-form-cont,[data-amelia],'
+			. '.g-recaptcha,.grecaptcha-badge,.ginput_recaptcha,.cf-turnstile,.h-captcha,'
+			. 'iframe[src*=\'youtube\'],iframe[src*=\'vimeo\'],iframe[src*=\'google.com/maps\'],'
+			. '.elementor-widget-video,.elementor-widget-google_maps,.wpgmza_map,.mapster-wp-maps,'
+			. '.calendly-inline-widget,form.checkout,form.woocommerce-checkout,.sb_youtube,.sb-wall";'
+			. 'function check(root){try{if((root||document).querySelector(sel))load();}catch(e){}}'
+			. 'if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",function(){check();});}'
+			. 'else{check();}'
+			. 'try{new MutationObserver(function(m){for(var i=0;i<m.length;i++){if(m[i].addedNodes&&m[i].addedNodes.length){check(document);return;}}}).observe(document.documentElement,{childList:true,subtree:true});}catch(e2){}'
+			. '})();';
+		wp_add_inline_script( 'ucpf-consent', $js, 'after' );
 	}
 
 	/**
@@ -605,13 +796,19 @@ class Plugin {
 			false
 		);
 
-		wp_enqueue_script(
+		// ~167KB guard: register only; load when forms/embeds/checkout markers appear (or filter forces).
+		wp_register_script(
 			'ucpf-form-captcha-guard',
 			UCPF_PLUGIN_URL . 'public/js/form-captcha-guard.js',
 			array( 'ucpf-consent' ),
 			ucpf_asset_version( 'public/js/form-captcha-guard.js' ),
 			false
 		);
+		if ( $this->should_enqueue_form_captcha_guard() ) {
+			wp_enqueue_script( 'ucpf-form-captcha-guard' );
+		} else {
+			$this->print_form_captcha_guard_lazy_loader();
+		}
 
 		$jurisdiction = Jurisdiction::instance();
 		$pack_cfg     = $jurisdiction->get_config_for_js();
@@ -708,14 +905,23 @@ class Plugin {
 	 */
 	public function protect_consent_scripts( $tag, $handle, $src ) {
 		$protected = array(
-			'ucpf-consent',
-			'ucpf-consent-motion',
-			'ucpf-loader',
-			'ucpf-network-gate',
-			'ucpf-form-captcha-guard',
+			'ucpf-consent'             => 'public/js/consent.js',
+			'ucpf-consent-motion'      => 'public/js/consent-motion.js',
+			'ucpf-loader'              => 'public/js/loader.js',
+			'ucpf-network-gate'        => 'public/js/network-gate.js',
+			'ucpf-form-captcha-guard'  => 'public/js/form-captcha-guard.js',
 		);
-		if ( ! in_array( $handle, $protected, true ) ) {
+		if ( ! isset( $protected[ $handle ] ) ) {
 			return $tag;
+		}
+		// Optimizers sometimes strip ?ver=; without it Cloudflare/browsers keep stale gate JS.
+		if ( is_string( $src ) && '' !== $src && false === strpos( $src, '?' ) ) {
+			$ver     = ucpf_asset_version( $protected[ $handle ] );
+			$new_src = $src . '?ver=' . rawurlencode( (string) $ver );
+			$tag     = str_replace( esc_url( $src ), esc_url( $new_src ), $tag );
+			if ( false === strpos( $tag, (string) $ver ) ) {
+				$tag = str_replace( $src, $new_src, $tag );
+			}
 		}
 		if ( false === strpos( $tag, 'data-cfasync' ) ) {
 			$tag = str_replace( '<script ', '<script data-cfasync="false" ', $tag );
@@ -737,7 +943,11 @@ class Plugin {
 	 */
 	public function protect_consent_styles( $tag, $handle, $href, $media ) {
 		unset( $href, $media );
-		if ( ! in_array( $handle, array( 'ucpf-banner', 'ucpf-legal' ), true ) ) {
+		$protected = array( 'ucpf-banner', 'ucpf-legal', 'ucpf-tokens' );
+		if ( 0 === strpos( (string) $handle, 'ucpf-theme-' ) ) {
+			$protected[] = $handle;
+		}
+		if ( ! in_array( $handle, $protected, true ) ) {
 			return $tag;
 		}
 		if ( false === strpos( $tag, 'data-no-optimize' ) ) {

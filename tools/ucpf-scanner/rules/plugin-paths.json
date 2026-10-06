@@ -791,6 +791,14 @@
       "importance": "required",
       "service_key": "paypal"
     },
+    "gravityformsppcp": {
+      "provider": "Gravity Forms PayPal Checkout (PPCP)",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "note": "Third-party PayPal JS SDK / Braintree frames remain Embeds (functional) at runtime.",
+      "service_key": "paypal"
+    },
     "gravityformssquare": {
       "provider": "Gravity Forms Square",
       "category": "necessary",

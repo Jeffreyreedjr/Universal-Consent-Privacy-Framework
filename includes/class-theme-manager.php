@@ -103,39 +103,39 @@ class Theme_Manager {
 			ucpf_asset_version( 'public/css/tokens.css' )
 		);
 
-		// Load every preset so admin preview + cached markup can switch class without a missing stylesheet.
-		$theme_deps = array( 'ucpf-tokens' );
-		$last_handle = 'ucpf-tokens';
-		foreach ( $this->presets as $key => $file ) {
-			$handle = 'ucpf-theme-' . $key;
-			wp_enqueue_style(
-				$handle,
-				UCPF_PLUGIN_URL . 'public/css/themes/' . $file,
-				array( $last_handle ),
-				ucpf_asset_version( 'public/css/themes/' . $file )
-			);
-			$last_handle = $handle;
-			$theme_deps[] = $handle;
-		}
+		$active = $this->resolve_preset( Settings::get( 'banner_theme' ) );
+		$file   = isset( $this->presets[ $active ] ) ? $this->presets[ $active ] : 'classic.css';
+		$handle = 'ucpf-theme-' . $active;
+		wp_enqueue_style(
+			$handle,
+			UCPF_PLUGIN_URL . 'public/css/themes/' . $file,
+			array( 'ucpf-tokens' ),
+			ucpf_asset_version( 'public/css/themes/' . $file )
+		);
 
 		wp_enqueue_style(
 			'ucpf-banner',
 			UCPF_PLUGIN_URL . 'public/css/banner.css',
-			$theme_deps,
+			array( $handle ),
 			ucpf_asset_version( 'public/css/banner.css' )
 		);
 
-		wp_enqueue_style(
-			'ucpf-legal',
-			UCPF_PLUGIN_URL . 'public/css/legal.css',
-			array( 'ucpf-tokens' ),
-			ucpf_asset_version( 'public/css/legal.css' )
-		);
+		// Legal stylesheet only on UCPF-generated policy pages (or when forced).
+		if ( $this->should_enqueue_legal_css() ) {
+			wp_enqueue_style(
+				'ucpf-legal',
+				UCPF_PLUGIN_URL . 'public/css/legal.css',
+				array( 'ucpf-tokens' ),
+				ucpf_asset_version( 'public/css/legal.css' )
+			);
+		}
 
 		$inline = $this->get_inline_overrides();
 		if ( $inline ) {
 			wp_add_inline_style( 'ucpf-banner', $inline );
-			wp_add_inline_style( 'ucpf-legal', $inline );
+			if ( wp_style_is( 'ucpf-legal', 'enqueued' ) ) {
+				wp_add_inline_style( 'ucpf-legal', $inline );
+			}
 		}
 
 		$custom = Settings::get( 'custom_css' );
@@ -148,10 +148,72 @@ class Theme_Manager {
 	}
 
 	/**
+	 * Whether to load legal.css on this request.
+	 *
+	 * @return bool
+	 */
+	private function should_enqueue_legal_css() {
+		/**
+		 * Filter whether legal.css is enqueued on the current front request.
+		 *
+		 * @param bool|null $enqueue Null = use default detection.
+		 */
+		$forced = apply_filters( 'ucpf_enqueue_legal_css', null );
+		if ( null !== $forced ) {
+			return (bool) $forced;
+		}
+		if ( is_admin() ) {
+			return true;
+		}
+		return Page_Generator::instance()->is_ucpf_legal_page();
+	}
+
+	/**
 	 * Admin preview styles only.
 	 */
 	public function enqueue_admin_preview_styles() {
-		$this->enqueue_styles();
+		wp_enqueue_style(
+			'ucpf-tokens',
+			UCPF_PLUGIN_URL . 'public/css/tokens.css',
+			array(),
+			ucpf_asset_version( 'public/css/tokens.css' )
+		);
+		// Admin preview needs every preset so the theme switcher can swap classes.
+		$last_handle = 'ucpf-tokens';
+		foreach ( $this->presets as $key => $file ) {
+			$handle = 'ucpf-theme-' . $key;
+			wp_enqueue_style(
+				$handle,
+				UCPF_PLUGIN_URL . 'public/css/themes/' . $file,
+				array( $last_handle ),
+				ucpf_asset_version( 'public/css/themes/' . $file )
+			);
+			$last_handle = $handle;
+		}
+		wp_enqueue_style(
+			'ucpf-banner',
+			UCPF_PLUGIN_URL . 'public/css/banner.css',
+			array( $last_handle ),
+			ucpf_asset_version( 'public/css/banner.css' )
+		);
+		wp_enqueue_style(
+			'ucpf-legal',
+			UCPF_PLUGIN_URL . 'public/css/legal.css',
+			array( 'ucpf-tokens' ),
+			ucpf_asset_version( 'public/css/legal.css' )
+		);
+		$inline = $this->get_inline_overrides();
+		if ( $inline ) {
+			wp_add_inline_style( 'ucpf-banner', $inline );
+			wp_add_inline_style( 'ucpf-legal', $inline );
+		}
+		$custom = Settings::get( 'custom_css' );
+		if ( $custom ) {
+			$safe = $this->sanitize_custom_css( $custom );
+			if ( $safe ) {
+				wp_add_inline_style( 'ucpf-banner', '.ucpf-custom { ' . $safe . ' }' );
+			}
+		}
 	}
 
 	/**

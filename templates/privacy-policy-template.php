@@ -68,6 +68,20 @@ $phone             = isset( $contact_phone ) ? $contact_phone : '';
 	<p><?php esc_html_e( 'We may use collected information to operate this website, respond to inquiries, and provide customer service. We may also use it to process orders or requests, send confirmations or transactional messages, and manage appointments or bookings.', 'universal-consent-privacy-framework' ); ?></p>
 	<p><?php esc_html_e( 'We may use it to improve website performance, analyze visitor behavior, prevent fraud, protect against spam or abuse, and secure the website. Where allowed, we may measure advertising performance and improve marketing. We may also use information to comply with legal obligations and enforce applicable terms or policies.', 'universal-consent-privacy-framework' ); ?></p>
 
+	<?php
+	$ai_disclosure_mode = isset( $ai_image_disclosure ) ? sanitize_key( (string) $ai_image_disclosure ) : 'off';
+	if ( 'website' === $ai_disclosure_mode ) :
+		$ai_disclosure_html = apply_filters( 'ucpf_privacy_ai_disclosure_html', '' );
+		?>
+	<h2><?php esc_html_e( 'AI-generated and enhanced images', 'universal-consent-privacy-framework' ); ?></h2>
+		<?php if ( is_string( $ai_disclosure_html ) && '' !== trim( $ai_disclosure_html ) ) : ?>
+			<?php echo wp_kses_post( $ai_disclosure_html ); ?>
+		<?php else : ?>
+	<p><?php esc_html_e( 'Some photos or graphics on this website may be created or modified using artificial intelligence tools. Examples include menu images, promotional visuals, weekly updates, or stock-style illustrations when original photography is unavailable.', 'universal-consent-privacy-framework' ); ?></p>
+	<p><?php esc_html_e( 'AI may be used to enhance quality, adjust presentation, or generate visuals for informational and promotional purposes on this site. This disclosure describes on-site content only. It does not replace separate advertising or synthetic-performer disclosure requirements that may apply to paid ads in some jurisdictions.', 'universal-consent-privacy-framework' ); ?></p>
+		<?php endif; ?>
+	<?php endif; ?>
+
 	<h2><?php esc_html_e( 'Legal bases for EEA, UK, and similar laws', 'universal-consent-privacy-framework' ); ?></h2>
 	<p><?php esc_html_e( 'Where GDPR or similar laws apply, we process personal data under one or more of these bases. Consent covers optional cookies, analytics, marketing, and similar tools. Contract covers providing requested services. Legal obligation covers required processing. Legitimate interests cover securing the site, preventing fraud, and improving essential operations, balanced against your rights and interests.', 'universal-consent-privacy-framework' ); ?></p>
 	<p><?php esc_html_e( 'Where required, non-essential cookies, analytics, advertising, session replay, heatmaps, and similar technologies run only after you provide consent through our cookie banner or privacy controls. You may withdraw consent at any time.', 'universal-consent-privacy-framework' ); ?></p>

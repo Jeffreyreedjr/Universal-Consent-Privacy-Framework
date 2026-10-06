@@ -172,6 +172,9 @@ export async function runPrivacyScan(input) {
 
   const browser = await chromium.launch({
     headless: config.headless,
+    ...(process.env.UCPF_SCANNER_CHANNEL
+      ? { channel: String(process.env.UCPF_SCANNER_CHANNEL) }
+      : {}),
   });
   try {
     onBrowser(browser);
@@ -499,6 +502,9 @@ async function runSession(browser, opts) {
   };
   if (opts.storageState) {
     contextOpts.storageState = opts.storageState;
+  } else if (process.env.UCPF_SCANNER_STORAGE_STATE) {
+    // CF bypass: export storageState after solving challenge once (cf_clearance).
+    contextOpts.storageState = process.env.UCPF_SCANNER_STORAGE_STATE;
   }
 
   const context = await browser.newContext(contextOpts);
@@ -678,6 +684,34 @@ async function runSession(browser, opts) {
         break;
       }
       await page.waitForTimeout(Math.min(1500, config.settleMs));
+
+      // Cloudflare / WAF challenge — do not treat rate-limit HTML as a consent session.
+      try {
+        const title = String((await page.title()) || '');
+        const bodyText = await page.evaluate(() =>
+          String((document.body && document.body.innerText) || '').slice(0, 500)
+        );
+        const cfBlocked =
+          /rate limit exceeded|attention required|just a moment|checking your browser|cloudflare/i.test(
+            `${title}\n${bodyText}`
+          ) &&
+          !/ucpf|cookie|consent/i.test(bodyText);
+        if (cfBlocked) {
+          if (typeof opts.onLog === 'function') {
+            try {
+              opts.onLog(
+                `Cloudflare/WAF gate on ${safe.url} — abort session (set UCPF_SCANNER_STORAGE_STATE or UCPF_SCANNER_CHANNEL=chrome)`
+              );
+            } catch {
+              /* ignore */
+            }
+          }
+          truncatedByBudget = true;
+          break;
+        }
+      } catch {
+        /* ignore CF probe errors */
+      }
 
       const before = await snapshotCookies(context, cookieEvents);
       cookiePhases.push({ page: safe.url, phase: 'before_banner', cookies: before });
@@ -1403,6 +1437,7 @@ function buildReport(data) {
       ucpf_category: category === 'unclassified' ? 'unclassified' : toUcpfCategory(category),
       status: category === 'unclassified' ? 'needs_review' : 'classified',
       note: cls.note || '',
+      service_key: cls.service_key || '',
     };
   });
 
@@ -1467,6 +1502,8 @@ function buildReport(data) {
         suspicion: cls.suspicion || '',
         suggested_category: cls.suggested_category || (needsReview && category !== 'necessary' ? category : ''),
         rule: cls.rule || '',
+        service_key: cls.service_key || '',
+        slug: cls.slug || '',
       };
     });
 
@@ -1487,6 +1524,7 @@ function buildReport(data) {
       iframes: classifiedIframes,
       beacons: classifiedBeacons,
       pixels: classifiedPixels,
+      site_host: data.site_host,
     })
   );
 
@@ -1697,16 +1735,56 @@ function buildRequestDiffs(sessions) {
 
 /**
  * Flag consent-required inventory appearing in both no_consent and reject_all.
+ * First-party scripts emit path needles (e.g. /wp-content/plugins/mailchimp-…) so
+ * WordPress auto_gate can register gate patterns instead of skipping bare site hosts.
  * @param {object} lists
  */
 function buildConsentLeaks(lists) {
   /** @type {Array<object>} */
   const leaks = [];
+  const siteHost = String(lists.site_host || '')
+    .replace(/^www\./i, '')
+    .toLowerCase();
+
   const pushLeak = (row) => {
     leaks.push(row);
   };
 
-  const consider = (item, type, label) => {
+  /**
+   * Prefer actionable gate labels: plugin path for first-party, host for third-party.
+   * @param {object} item
+   * @param {string} type
+   */
+  const leakLabel = (item, type) => {
+    if (type === 'cookie') return item.name || '';
+    const raw = String(item.url || item.host || item.name || '').trim();
+    if (!raw) return '';
+    try {
+      const u = new URL(raw.includes('://') ? raw : `https://${raw}`);
+      const host = collapseSignalHost(u.hostname) || u.hostname.toLowerCase();
+      const hostBare = String(host).replace(/^www\./i, '').toLowerCase();
+      const isFp =
+        siteHost &&
+        (hostBare === siteHost || hostBare.endsWith(`.${siteHost}`));
+      if (isFp) {
+        const path = String(u.pathname || '');
+        const plugin = path.match(/\/wp-content\/(?:plugins|themes)\/[^/]+/i);
+        if (plugin) return plugin[0].toLowerCase();
+        if (item.slug) return String(item.slug).toLowerCase();
+        if (path.length > 1 && path !== '/') {
+          // Keep a short path needle (file name or last two segments).
+          const parts = path.split('/').filter(Boolean);
+          if (parts.length >= 2) return `/${parts.slice(-2).join('/')}`.toLowerCase();
+          return path.toLowerCase().slice(0, 120);
+        }
+      }
+      return hostBare || host;
+    } catch {
+      return raw;
+    }
+  };
+
+  const consider = (item, type) => {
     const treatment = item.treatment || '';
     const importance = item.importance || '';
     const category = item.category || '';
@@ -1717,6 +1795,8 @@ function buildConsentLeaks(lists) {
     if (!isConsentRequired) return;
     const ctx = item.contexts || [];
     if (ctx.includes('no_consent') && ctx.includes('reject_all')) {
+      const label = leakLabel(item, type);
+      if (!label) return;
       pushLeak({
         type,
         name: label,
@@ -1727,38 +1807,39 @@ function buildConsentLeaks(lists) {
         contexts: ctx,
         severity: 'high',
         reason: 'Consent-required signal observed in both no_consent and reject_all sessions.',
+        service_key: item.service_key || '',
       });
     }
   };
 
   for (const c of lists.cookies || []) {
     if (shouldIgnoreCookieLeak(c.name)) continue;
-    consider(c, 'cookie', c.name);
+    consider(c, 'cookie');
   }
   for (const r of lists.requests || []) {
-    const label = r.host || r.url;
-    if (shouldIgnoreUrlLeak(label)) continue;
-    consider(r, 'request', label);
+    const probe = r.host || r.url;
+    if (shouldIgnoreUrlLeak(probe)) continue;
+    consider(r, 'request');
   }
   for (const s of lists.scripts || []) {
-    const label = s.url || s.host;
-    if (shouldIgnoreUrlLeak(label)) continue;
-    consider(s, 'script', label);
+    const probe = s.url || s.host;
+    if (shouldIgnoreUrlLeak(probe)) continue;
+    consider(s, 'script');
   }
   for (const f of lists.iframes || []) {
-    const label = f.url || f.host;
-    if (shouldIgnoreUrlLeak(label)) continue;
-    consider(f, 'iframe', label);
+    const probe = f.url || f.host;
+    if (shouldIgnoreUrlLeak(probe)) continue;
+    consider(f, 'iframe');
   }
   for (const b of lists.beacons || []) {
-    const label = b.url || b.host;
-    if (shouldIgnoreUrlLeak(label)) continue;
-    consider(b, 'beacon', label);
+    const probe = b.url || b.host;
+    if (shouldIgnoreUrlLeak(probe)) continue;
+    consider(b, 'beacon');
   }
   for (const p of lists.pixels || []) {
-    const label = p.url || p.host;
-    if (shouldIgnoreUrlLeak(label)) continue;
-    consider(p, 'pixel', label);
+    const probe = p.url || p.host;
+    if (shouldIgnoreUrlLeak(probe)) continue;
+    consider(p, 'pixel');
   }
 
   // Dedupe by type+name+provider

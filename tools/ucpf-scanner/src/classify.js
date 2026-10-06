@@ -346,6 +346,33 @@ export function classifyValue(value, type = 'cookie', extra = {}) {
     };
   }
 
+  const vLower = v.toLowerCase();
+  // Site Kit consent-mode bridge — required for CMP defaults, not a tracker leak.
+  if (type !== 'cookie' && type !== 'storage_key' && vLower.includes('consent-mode') && (vLower.includes('google-site-kit') || vLower.includes('googlesitekit'))) {
+    return {
+      category: 'necessary',
+      provider: 'Google Site Kit',
+      treatment: 'necessary',
+      importance: 'required',
+      matched: true,
+      rule: 'sitekit-consent-mode',
+      note: 'Consent Mode bridge — must load before optional tags.',
+      service_key: null,
+    };
+  }
+  // Smush / WP media CDN — mirrored uploads, not a consent tracker.
+  if (type !== 'cookie' && type !== 'storage_key' && (vLower.includes('assetcdn.net') || /\/\/i\d+\.wp\.com(\/|$)/.test(vLower))) {
+    return {
+      category: 'necessary',
+      provider: 'WordPress media CDN',
+      treatment: 'necessary',
+      importance: 'required',
+      matched: true,
+      rule: 'site-media-cdn',
+      note: 'Optimized / mirrored media CDN.',
+    };
+  }
+
   // 1) Host / URL classification rules (CDN third parties) — before plugin path so
   //    Elementor-hosted / Custom HTML third parties classify as the service.
   if (type !== 'cookie' && type !== 'storage_key') {

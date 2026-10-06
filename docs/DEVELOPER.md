@@ -37,6 +37,8 @@ See `assets/vendor-catalog/README.md` for the schema, category conventions, and 
 
 **Offline descriptions also use** the bundled [Open Cookie Database](https://github.com/jkwakman/Open-Cookie-Database) snapshot (`data/open-cookie-database.min.json`, MIT). Refresh with `tools/build-ocd.ps1`. Admin **Cookie lookup** on Cookie Scanner searches catalog → site knowledge → OCD.
 
+**Consent durability self-test (Node):** `node tests/js/consent-durability.test.js` — validity, lifetime clamp (≥1 day), rehydrate-from-backup / IndexedDB / handoff. Frontend persist lives in `public/js/consent.js` (`persistConsent` / `loadConsent` / `isValidConsent`).
+
 **Fleet knowledge hub** (optional): export/import knowledge packs and point Advanced → remote registry at your GitHub JSON. See [`docs/COOKIE-KNOWLEDGE-HUB.md`](COOKIE-KNOWLEDGE-HUB.md). Does not use cookiedatabase.org.
 
 **Public contribute:** Cookie Scanner → Contribute cookie knowledge downloads a scrubbed pack (`GET /ucpf/v1/knowledge/contribute`) and opens a GitHub issue — no upload from WordPress.
@@ -64,15 +66,16 @@ Consent surface guard (`public/js/form-captcha-guard.js`): CAPTCHA → Security;
 
 ## Front-end asset versions / CDN
 
-Enqueue with `ucpf_asset_version( 'public/js/consent.js' )` (not bare `UCPF_VERSION`). Zip reinstalls that keep the same alpha Version still bump `ucpf_assets_rev` when file mtimes change.
+Enqueue with `ucpf_asset_version( 'public/js/consent.js' )` (not bare `UCPF_VERSION`). Format is `UCPF_VERSION[.size.crc32b][.ucpf_assets_rev]` (mtime fallback if hash unavailable). Zip reinstalls that keep the same alpha Version still change `?ver=` when file contents change.
 
-UCPF HTML depends on the `ucpf_consent` cookie; Accept / Decline / Save navigate with `?_ucpf=` so PHP re-renders. On Cloudflare Free, add Cache Rules (Bypass should win over Cache Everything / Cache Files):
+UCPF HTML depends on the `ucpf_consent` cookie; Accept / Decline / Save navigate with `?_ucpf=` so PHP re-renders. **Origin page caches (Plesk nginx, LiteSpeed, etc.) must skip `ucpf_consent` / `ucpf_dns` / `_ucpf`** — Cloudflare alone is not enough. **Redis Object Cache** is not a page cache (no cookie skip); zip/update invalidates the `ucpf` object group + OPcache for UCPF PHP. Full operator guide (CF Approach A/B, quiet vs busy TTLs, nginx snippet, Redis/OPcache, consent-state matrix): [CLOUDFLARE-CACHE.md](CLOUDFLARE-CACHE.md).
 
-1. Bypass when `Cookie` contains `ucpf_consent` / `ucpf_dns`, query contains `_ucpf`, or path contains the UCPF plugin dir.
-2. Bypass `/wp-content/uploads/elementor/css/` with an **explicit Bypass** rule (excluding the path from Cache Everything is not enough — default `.css` caching still applies). See [CLOUDFLARE-CACHE.md](CLOUDFLARE-CACHE.md).
-3. On Cache Files: 4xx/5xx → no cache; do not Ignore Query String for CSS.
+1. Prefer caching UCPF plugin `.css`/`.js`/`woff2` with `?ver=` respected (do not Ignore Query String); Bypass only `?_ucpf=`. Legacy full plugin-dir Bypass still works but costs origin on large fleets.
+2. Anon HTML Eligible (no consent cookies) or Bypass consented HTML **and not** static extensions (cookie-only last-match Bypass disables Cache Files after Accept All).
+3. Never cache 4xx/5xx for CSS/JS; optional 60–300s TTL (or Bypass) for `/wp-content/uploads/elementor/css/` only.
+4. Year TTL for images/media is fine.
 
-Keep Rocket Loader off for UCPF tags (`data-cfasync="false"` is already set). Full operator checklist: [CLOUDFLARE-CACHE.md](CLOUDFLARE-CACHE.md).
+Keep Rocket Loader off for UCPF tags (`data-cfasync="false"` is already set).
 
 Scanner fingerprints (`tools/ucpf-scanner/rules/plugin-fingerprints.json`): plugin identity vs service behavior are separate layers — Elementor “necessary” never makes an embed necessary. Classification order: host rules → fingerprint domains/globals/DOM → plugin path → legacy plugin-paths. Fleet coverage: `npm run coverage:fleet` in `tools/ucpf-scanner`.
 

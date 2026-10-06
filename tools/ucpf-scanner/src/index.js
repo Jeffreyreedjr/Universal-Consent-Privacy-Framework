@@ -132,6 +132,9 @@ function collectScanPaths(body) {
   } else {
     chunks.push(coercePathList(body.pathList));
   }
+  if (typeof body.pathsCsv === 'string' && body.pathsCsv.trim()) {
+    chunks.push(coercePathList(body.pathsCsv.split(',')));
+  }
   if (Array.isArray(body.urls)) {
     chunks.push(
       coercePathList(

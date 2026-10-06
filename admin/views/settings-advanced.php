@@ -54,15 +54,7 @@ $geo_routing = ! empty( $settings['geo_jurisdiction_routing'] );
 $ob_safe = ! empty( $settings['output_buffer_safe_iframes'] );
 $compliance_mode = isset( $settings['compliance_mode'] ) ? (string) $settings['compliance_mode'] : 'strict_gdpr';
 $packs = \UCPF\Jurisdiction::instance()->get_packs();
-$sched_on    = ! empty( $settings['scheduled_scan_enabled'] );
-$sched_auto  = ! empty( $settings['scheduled_scan_auto_apply'] );
-$sched_int   = isset( $settings['scheduled_scan_interval'] ) ? (string) $settings['scheduled_scan_interval'] : 'monthly';
-$sched_paths = isset( $settings['scheduled_scan_paths'] ) ? (string) $settings['scheduled_scan_paths'] : '/';
-$sched_email = isset( $settings['scheduled_scan_notify_email'] ) ? (string) $settings['scheduled_scan_notify_email'] : '';
 $sched_last  = isset( $settings['scheduled_scan_last_status'] ) && is_array( $settings['scheduled_scan_last_status'] ) ? $settings['scheduled_scan_last_status'] : array();
-if ( '' === $sched_email ) {
-	$sched_email = (string) get_option( 'admin_email' );
-}
 $cf_purge_on     = ! empty( $settings['cloudflare_purge_enabled'] );
 $cf_domain       = isset( $settings['cloudflare_domain'] ) ? (string) $settings['cloudflare_domain'] : '';
 if ( '' === $cf_domain ) {
@@ -251,7 +243,7 @@ $tab_labels = array(
 						?>
 					</p>
 					<p class="description"><?php esc_html_e( 'Cookie descriptions use the UCPF catalog plus a bundled Open Cookie Database snapshot (offline — no phone-home).', 'universal-consent-privacy-framework' ); ?></p>
-					<p class="description"><?php esc_html_e( 'Agency fleets (many sites): use one API key per site, point cohorts at different scanner nodes if needed, and stagger scheduled scans. Shared scanners queue jobs. Never use cancel-all except the emergency reset below.', 'universal-consent-privacy-framework' ); ?></p>
+					<p class="description"><?php esc_html_e( 'Agency fleets (many sites): use one API key per site and point cohorts at different scanner nodes if needed. Shared scanners queue jobs. Run scans manually from Cookie Scanner — automated WP-Cron Deep scans are retired. Never use cancel-all except the emergency reset below.', 'universal-consent-privacy-framework' ); ?></p>
 					<p>
 						<button type="button" class="button" id="ucpf-scanner-reset-all"><?php esc_html_e( 'Emergency: reset all scanner jobs', 'universal-consent-privacy-framework' ); ?></button>
 						<span id="ucpf-scanner-reset-status" class="description" style="margin-left:8px;" aria-live="polite"></span>
@@ -297,7 +289,7 @@ $tab_labels = array(
 					?>
 					<p>
 						<label for="ucpf-remote-registry-url"><strong><?php esc_html_e( '3. Raw registry.json URL', 'universal-consent-privacy-framework' ); ?></strong></label><br />
-						<input type="url" class="regular-text" id="ucpf-remote-registry-url" name="<?php echo esc_attr( $option_key ); ?>[remote_registry_url]" value="<?php echo esc_attr( $remote_url ); ?>" placeholder="<?php echo is_multisite() ? esc_attr__( 'Leave blank to use network default', 'universal-consent-privacy-framework' ) : 'https://raw.githubusercontent.com/org/repo/main/registry.json'; ?>" />
+						<input type="url" class="regular-text" id="ucpf-remote-registry-url" name="<?php echo esc_attr( $option_key ); ?>[remote_registry_url]" value="<?php echo esc_attr( $remote_url ); ?>" placeholder="<?php echo is_multisite() ? esc_attr__( 'Leave blank to use network default', 'universal-consent-privacy-framework' ) : esc_attr__( 'https://example.com/registry.json', 'universal-consent-privacy-framework' ); ?>" />
 					</p>
 					<?php
 					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
@@ -329,44 +321,16 @@ $tab_labels = array(
 				</td>
 			</tr>
 			<tr>
-				<th scope="row"><?php esc_html_e( 'Scheduled deep scan', 'universal-consent-privacy-framework' ); ?></th>
+				<th scope="row"><?php esc_html_e( 'Deep scan automation', 'universal-consent-privacy-framework' ); ?></th>
 				<td>
-					<label>
-						<input type="checkbox" name="<?php echo esc_attr( $option_key ); ?>[scheduled_scan_enabled]" value="1" <?php checked( $sched_on ); ?> />
-						<?php esc_html_e( 'Run Playwright scan automatically on this site (requires Scanner API URL + key above)', 'universal-consent-privacy-framework' ); ?>
-					</label>
-					<p class="description"><?php esc_html_e( 'Uses WP-Cron. Low-traffic sites should ping wp-cron.php via real server cron so scans are not delayed. Technical inventory only — not a compliance guarantee.', 'universal-consent-privacy-framework' ); ?></p>
-					<p>
-						<label for="ucpf-scheduled-scan-interval"><?php esc_html_e( 'Interval', 'universal-consent-privacy-framework' ); ?></label><br />
-						<select id="ucpf-scheduled-scan-interval" name="<?php echo esc_attr( $option_key ); ?>[scheduled_scan_interval]">
-							<option value="monthly" <?php selected( $sched_int, 'monthly' ); ?>><?php esc_html_e( 'Monthly', 'universal-consent-privacy-framework' ); ?></option>
-							<option value="weekly" <?php selected( $sched_int, 'weekly' ); ?>><?php esc_html_e( 'Weekly', 'universal-consent-privacy-framework' ); ?></option>
-						</select>
-					</p>
-					<p>
-						<label for="ucpf-scheduled-scan-paths"><?php esc_html_e( 'Paths (comma-separated)', 'universal-consent-privacy-framework' ); ?></label><br />
-						<input type="text" class="regular-text" id="ucpf-scheduled-scan-paths" name="<?php echo esc_attr( $option_key ); ?>[scheduled_scan_paths]" value="<?php echo esc_attr( $sched_paths ); ?>" placeholder="/,/contact,/about" />
-					</p>
-					<p>
-						<label for="ucpf-scheduled-scan-email"><?php esc_html_e( 'Notify emails (comma-separated)', 'universal-consent-privacy-framework' ); ?></label><br />
-						<input type="text" class="regular-text" id="ucpf-scheduled-scan-email" name="<?php echo esc_attr( $option_key ); ?>[scheduled_scan_notify_email]" value="<?php echo esc_attr( $sched_email ); ?>" />
-					</p>
-					<label>
-						<input type="checkbox" name="<?php echo esc_attr( $option_key ); ?>[scheduled_scan_auto_apply]" value="1" <?php checked( $sched_auto ); ?> />
-						<?php esc_html_e( 'Safe auto-apply: select known services (with existing IDs) and refresh Cookie Policy', 'universal-consent-privacy-framework' ); ?>
-					</label>
-					<p class="description"><?php esc_html_e( 'Never auto-classifies unknown cookies. Emails only when unknowns, new consent leaks, or a scan failure need review.', 'universal-consent-privacy-framework' ); ?></p>
-					<p>
-						<button type="button" class="button" id="ucpf-run-scheduled-scan"><?php esc_html_e( 'Run scheduled scan now', 'universal-consent-privacy-framework' ); ?></button>
-						<span id="ucpf-scheduled-scan-status" class="ucpf-wizard__status" hidden></span>
-					</p>
+					<p class="description"><?php esc_html_e( 'Scheduled / recurring Deep scans are disabled. Use Cookie Scanner → Run Playwright scan (or Import report) for manual inventory updates only.', 'universal-consent-privacy-framework' ); ?></p>
 					<?php if ( $sched_last ) : ?>
 						<p class="description">
 							<?php
 							echo esc_html(
 								sprintf(
 									/* translators: 1: status, 2: datetime */
-									__( 'Last run: %1$s — %2$s', 'universal-consent-privacy-framework' ),
+									__( 'Last automated run (legacy): %1$s — %2$s', 'universal-consent-privacy-framework' ),
 									isset( $sched_last['state'] ) ? $sched_last['state'] : '—',
 									isset( $sched_last['finished'] ) ? $sched_last['finished'] : ( isset( $sched_last['started'] ) ? $sched_last['started'] : '—' )
 								)
@@ -527,14 +491,19 @@ $tab_labels = array(
 			<tr>
 				<th scope="row"><?php esc_html_e( 'CDN / Cloudflare assets', 'universal-consent-privacy-framework' ); ?></th>
 				<td>
-					<p class="description"><?php esc_html_e( 'UCPF reshapes HTML from the consent cookie and reloads with ?_ucpf= after Accept / Decline / Save. Year-long Cache Files on *.css/*.js will poison any WordPress site (theme, Elementor, Divi, plugins) when a soft-404 HTML body is stored as a stylesheet — upload then looks “broken” until you purge.', 'universal-consent-privacy-framework' ); ?></p>
-					<p class="description"><strong><?php esc_html_e( 'Cloudflare Bypass Cache Rule — use this expression (or OR into your existing Bypass; place Bypass so it wins over Cache Files / Cache Everything):', 'universal-consent-privacy-framework' ); ?></strong></p>
-					<p><code style="display:block;white-space:pre-wrap;word-break:break-word;font-size:12px;line-height:1.45;">(http.request.uri.path contains "/wp-content/plugins/universal-consent-privacy-framework/") or (http.request.uri.path contains "/wp-content/uploads/") or (ends_with(http.request.uri.path, ".css")) or (ends_with(http.request.uri.path, ".js")) or (http.request.uri.query contains "_ucpf") or (http.cookie contains "ucpf_consent") or (http.cookie contains "ucpf_dns")</code></p>
-					<p class="description"><?php esc_html_e( 'Also on Cache Files: 4xx/5xx → no cache; do not Ignore Query String for CSS/JS. Prefer year TTL for images/media only. Rocket Loader off (or never rewrite UCPF tags). Full guide: docs/CLOUDFLARE-CACHE.md.', 'universal-consent-privacy-framework' ); ?></p>
+					<p class="description"><?php esc_html_e( 'Cloudflare Free can do the full stack (Pro not required). Last-match wins. Cache Files: images/media 1 year + 400–599 TTL 0; put CSS/JS on a separate 4 hour–1 day rule with 400–599 TTL 0 (do not Ignore Query String — UCPF ?ver= includes version, file size, crc32, and assets_rev). Add HTML Eligible for cache 60–120s (no static extension). Keep the WordPress admin Bypass.', 'universal-consent-privacy-framework' ); ?></p>
+					<p class="description"><strong><?php esc_html_e( 'Preferred — short-TTL cache for UCPF static assets (cuts origin load on large fleets):', 'universal-consent-privacy-framework' ); ?></strong></p>
+					<p><code style="display:block;white-space:pre-wrap;word-break:break-word;font-size:12px;line-height:1.45;">(http.request.uri.path contains "/wp-content/plugins/universal-consent-privacy-framework/") and http.request.uri.path.extension in {"css" "js" "woff" "woff2"}</code></p>
+					<p class="description"><?php esc_html_e( 'Eligible for cache. Edge TTL 1–4 hours. Status 400–599 → 0.', 'universal-consent-privacy-framework' ); ?></p>
+					<p class="description"><strong><?php esc_html_e( 'Bypass Accept reload query only:', 'universal-consent-privacy-framework' ); ?></strong></p>
+					<p><code style="display:block;white-space:pre-wrap;word-break:break-word;font-size:12px;line-height:1.45;">(http.request.uri.query contains "_ucpf")</code></p>
+					<p class="description"><strong><?php esc_html_e( 'Bypass consented HTML only (Edit expression, place last):', 'universal-consent-privacy-framework' ); ?></strong></p>
+					<p><code style="display:block;white-space:pre-wrap;word-break:break-word;font-size:12px;line-height:1.45;">((http.cookie contains "ucpf_consent") or (http.cookie contains "ucpf_dns")) and not http.request.uri.path.extension in {"7z" "ac3" "apk" "avi" "avif" "bin" "bmp" "bz2" "class" "css" "cue" "csv" "dat" "dmg" "doc" "docx" "dts" "ejs" "eot" "eps" "exe" "flac" "flv" "gif" "gz" "ico" "img" "iso" "jar" "js" "jpeg" "jpg" "mid" "midi" "mkv" "mp3" "mp4" "mpeg" "mpg" "ogg" "otf" "pdf" "pict" "pls" "png" "ppt" "pptx" "ps" "qt" "rar" "rm" "svg" "svgz" "swf" "tar" "tgz" "tif" "tiff" "ttf" "txt" "wav" "webm" "webp" "woff" "woff2" "xls" "xlsx" "zip" "zst"}</code></p>
+					<p class="description"><?php esc_html_e( 'Legacy emergency: Bypass the entire UCPF plugin path (higher origin cost). Prefer short-TTL above. Ordered checklist: docs/CLOUDFLARE-CACHE.md. Rocket Loader off.', 'universal-consent-privacy-framework' ); ?></p>
 
 					<hr style="margin:1.25rem 0;" />
 					<p><strong><?php esc_html_e( 'Automatic Cloudflare purge API', 'universal-consent-privacy-framework' ); ?></strong></p>
-					<p class="description"><?php esc_html_e( 'Optional. After plugin/theme updates (or UCPF itself), schedule one debounced purge_everything via the Cloudflare API so edge HTML/CSS cannot keep a broken deploy. Coalesces bulk updates; max one API call every 10 minutes. Does not clear Autoptimize/LiteSpeed on origin.', 'universal-consent-privacy-framework' ); ?></p>
+					<p class="description"><?php esc_html_e( 'Requires Enable + domain + API token below. After UCPF zip overwrite / activate / version upgrade, purges Cloudflare on this request’s shutdown (no WP-Cron — works with external cron runners). If that request dies early, the next front or admin page load retries until the API succeeds. Same-version zip bypasses the 10-minute debounce. Soft-hooks the official Cloudflare WordPress plugin when present. Does not clear Autoptimize/LiteSpeed on origin.', 'universal-consent-privacy-framework' ); ?></p>
 					<label style="display:block;margin:0.5rem 0;">
 						<input type="checkbox" name="<?php echo esc_attr( $option_key ); ?>[cloudflare_purge_enabled]" value="1" <?php checked( $cf_purge_on ); ?> />
 						<?php esc_html_e( 'Enable Cloudflare cache purge on updates', 'universal-consent-privacy-framework' ); ?>
@@ -545,13 +514,13 @@ $tab_labels = array(
 					</label>
 					<label style="display:block;margin:0.5rem 0;">
 						<input type="checkbox" name="<?php echo esc_attr( $option_key ); ?>[cloudflare_purge_on_ucpf_update]" value="1" <?php checked( $cf_on_ucpf ); ?> />
-						<?php esc_html_e( 'Purge after UCPF activate / version upgrade', 'universal-consent-privacy-framework' ); ?>
+						<?php esc_html_e( 'Purge after UCPF activate / version upgrade / same-version zip overwrite', 'universal-consent-privacy-framework' ); ?>
 					</label>
 					<label style="display:block;margin:0.5rem 0;">
 						<input type="checkbox" name="<?php echo esc_attr( $option_key ); ?>[elementor_clear_css_on_updates]" value="1" <?php checked( $el_clear_css ); ?> />
 						<?php esc_html_e( 'Clear Elementor CSS cache after plugin / theme / UCPF updates (rebuilds on next page view)', 'universal-consent-privacy-framework' ); ?>
 					</label>
-					<p class="description"><?php esc_html_e( 'When Elementor is active, clears its generated CSS so layouts rebuild without opening every template. Does not delete Autoptimize/Rocket files. Still require Cloudflare Bypass for /wp-content/uploads/elementor/css/.', 'universal-consent-privacy-framework' ); ?></p>
+					<p class="description"><?php esc_html_e( 'When Elementor is active, clears its generated CSS so layouts rebuild without opening every template. Also purges origin HTML page caches (Hummingbird Page Cache, Rocket, LiteSpeed, …) so clean URLs are not stuck without post-{id}.css — Accept All’s ?_ucpf= only bypasses that stale HTML. Does not run Autoptimize clearall. Keep a short TTL (or a Bypass of that folder only) for /wp-content/uploads/elementor/css/ — not all uploads.', 'universal-consent-privacy-framework' ); ?></p>
 					<p>
 						<label for="ucpf-cf-domain"><?php esc_html_e( 'Domain', 'universal-consent-privacy-framework' ); ?></label><br />
 						<input type="text" class="regular-text" id="ucpf-cf-domain" name="<?php echo esc_attr( $option_key ); ?>[cloudflare_domain]" value="<?php echo esc_attr( $cf_domain ); ?>" placeholder="example.com" autocomplete="off" />

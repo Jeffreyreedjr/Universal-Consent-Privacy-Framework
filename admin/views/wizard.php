@@ -281,7 +281,7 @@ $wizard_max_step   = 11;
 					<?php else : ?>
 						<p class="description"><?php esc_html_e( 'You can skip this and use the WordPress helper scan on the next step, or import a local Playwright report later from Cookie Scanner. Deep Playwright scans need the API URL.', 'universal-consent-privacy-framework' ); ?></p>
 					<?php endif; ?>
-					<p class="description"><a href="<?php echo esc_url( admin_url( 'admin.php?page=ucpf-advanced' ) ); ?>"><?php esc_html_e( 'Advanced Settings also has these fields (agency hub, scheduled scans, etc.).', 'universal-consent-privacy-framework' ); ?></a></p>
+					<p class="description"><a href="<?php echo esc_url( admin_url( 'admin.php?page=ucpf-advanced' ) ); ?>"><?php esc_html_e( 'Advanced Settings also has these fields (agency hub, Cloudflare, etc.).', 'universal-consent-privacy-framework' ); ?></a></p>
 
 				<?php elseif ( 6 === $step ) : ?>
 					<h2><?php esc_html_e( 'Website Scan', 'universal-consent-privacy-framework' ); ?></h2>
@@ -361,6 +361,23 @@ $wizard_max_step   = 11;
 							$stats_tools[ $key ] = $meta;
 						}
 					}
+					$gtm_pending = \UCPF\Tracking_Templates::get_pending_gtm_scan_suggestions( $service_ids );
+					if ( ! empty( $gtm_pending['ids'] ) ) {
+						echo '<p class="description">';
+						echo esc_html(
+							sprintf(
+								/* translators: %d: number of GTM containers */
+								_n(
+									'Your last privacy scan found %d GTM container ID you can add below.',
+									'Your last privacy scan found %d GTM container IDs you can add below.',
+									count( $gtm_pending['ids'] ),
+									'universal-consent-privacy-framework'
+								),
+								count( $gtm_pending['ids'] )
+							)
+						);
+						echo '</p>';
+					}
 					?>
 					<p class="description"><?php esc_html_e( 'Leave all unchecked if you do not compile statistics. Check a tool to enter its ID.', 'universal-consent-privacy-framework' ); ?></p>
 					<div class="ucpf-wizard__service-list" data-ucpf-toggle-ids>
@@ -375,6 +392,15 @@ $wizard_max_step   = 11;
 									<?php echo esc_html( $meta['label'] ); ?>
 								</label>
 								<div class="ucpf-wizard__id-slot" <?php echo $checked ? '' : 'hidden'; ?>>
+									<?php if ( ! empty( $meta['multi_containers'] ) && 'google_tag_manager' === $key ) : ?>
+										<?php
+										$name_prefix     = 'service_ids[' . $key . ']';
+										$gtm_row         = isset( $service_ids[ $key ] ) && is_array( $service_ids[ $key ] ) ? $service_ids[ $key ] : array();
+										$containers      = isset( $service_ids[ $key ]['containers'] ) ? $service_ids[ $key ]['containers'] : array();
+										$gtm_suggestions = isset( $gtm_pending['ids'] ) ? $gtm_pending['ids'] : array();
+										include UCPF_PLUGIN_DIR . 'admin/views/partials/gtm-containers.php';
+										?>
+									<?php else : ?>
 									<label>
 										<span><?php echo esc_html( $meta['id_label'] ); ?></span>
 										<input
@@ -401,6 +427,7 @@ $wizard_max_step   = 11;
 										</label>
 										<p class="description"><?php echo esc_html( isset( $meta['tag_help'] ) ? $meta['tag_help'] : '' ); ?></p>
 									<?php endif; ?>
+									<?php endif; ?>
 								</div>
 							</div>
 						<?php endforeach; ?>
@@ -413,7 +440,14 @@ $wizard_max_step   = 11;
 								var item = cb.closest('.ucpf-wizard__service-item');
 								var slot = item ? item.querySelector('.ucpf-wizard__id-slot') : null;
 								if (!slot) return;
-								function sync() { slot.hidden = !cb.checked; }
+								function sync() {
+									var on = !!cb.checked;
+									slot.hidden = !on;
+									// Disabled fields are omitted from POST — avoids wiping saved IDs when unchecked.
+									slot.querySelectorAll('input, textarea, select').forEach(function (el) {
+										el.disabled = !on;
+									});
+								}
 								cb.addEventListener('change', sync);
 								sync();
 							});
@@ -478,6 +512,15 @@ $wizard_max_step   = 11;
 						<ul class="ucpf-wizard__summary-list">
 							<?php foreach ( $analytics_enabled as $key => $meta ) :
 								$aid = isset( $service_ids[ $key ]['id'] ) ? $service_ids[ $key ]['id'] : '';
+								if ( 'google_tag_manager' === $key ) {
+									$gtm_ids = array();
+									foreach ( \UCPF\Tracking_Templates::gtm_containers_from_row( isset( $service_ids[ $key ] ) ? $service_ids[ $key ] : array() ) as $c ) {
+										if ( ! empty( $c['id'] ) ) {
+											$gtm_ids[] = $c['id'];
+										}
+									}
+									$aid = $gtm_ids ? implode( ', ', $gtm_ids ) : $aid;
+								}
 								?>
 								<li>
 									<strong><?php echo esc_html( $meta['label'] ); ?></strong>
@@ -556,7 +599,14 @@ $wizard_max_step   = 11;
 								var item = cb.closest('.ucpf-wizard__service-item');
 								var slot = item ? item.querySelector('.ucpf-wizard__id-slot') : null;
 								if (!slot) return;
-								function sync() { slot.hidden = !cb.checked; }
+								function sync() {
+									var on = !!cb.checked;
+									slot.hidden = !on;
+									// Disabled fields are omitted from POST — avoids wiping saved IDs when unchecked.
+									slot.querySelectorAll('input, textarea, select').forEach(function (el) {
+										el.disabled = !on;
+									});
+								}
 								cb.addEventListener('change', sync);
 								sync();
 							});

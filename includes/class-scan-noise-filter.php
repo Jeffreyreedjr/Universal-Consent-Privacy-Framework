@@ -127,14 +127,16 @@ class Scan_Noise_Filter {
 	/**
 	 * Whether a consent-leak row should be ignored.
 	 *
-	 * @param string $type Type (cookie|request|script|…).
-	 * @param string $name Cookie name or URL/host.
+	 * @param string $type     Type (cookie|request|script|…).
+	 * @param string $name     Cookie name or URL/host.
+	 * @param string $provider Optional provider label.
 	 * @return bool
 	 */
-	public static function should_ignore_leak( $type, $name ) {
-		$type = sanitize_key( (string) $type );
-		$name = (string) $name;
-		$rules = self::get_rules();
+	public static function should_ignore_leak( $type, $name, $provider = '' ) {
+		$type     = sanitize_key( (string) $type );
+		$name     = (string) $name;
+		$provider = (string) $provider;
+		$rules    = self::get_rules();
 
 		if ( 'cookie' === $type ) {
 			if ( self::should_omit_cookie( $name ) ) {
@@ -145,10 +147,19 @@ class Scan_Noise_Filter {
 					return true;
 				}
 			}
-			return false;
+			// Fall through so provider-based ignores still apply.
 		}
 
-		$lower = strtolower( $name );
+		$lower = strtolower( $name . ' ' . $provider );
+		foreach ( isset( $rules['leak_ignore_providers'] ) && is_array( $rules['leak_ignore_providers'] ) ? $rules['leak_ignore_providers'] : array() as $row ) {
+			$p = isset( $row['provider'] ) ? strtolower( (string) $row['provider'] ) : '';
+			if ( $p && false !== strpos( $lower, $p ) ) {
+				return true;
+			}
+		}
+		if ( 'cookie' === $type ) {
+			return false;
+		}
 		foreach ( isset( $rules['leak_ignore_hosts'] ) && is_array( $rules['leak_ignore_hosts'] ) ? $rules['leak_ignore_hosts'] : array() as $row ) {
 			$host = isset( $row['host'] ) ? strtolower( (string) $row['host'] ) : '';
 			if ( $host && false !== strpos( $lower, $host ) ) {
@@ -288,10 +299,34 @@ class Scan_Noise_Filter {
 			}
 			$type = isset( $leak['type'] ) ? (string) $leak['type'] : '';
 			$name = isset( $leak['name'] ) ? (string) $leak['name'] : '';
-			if ( self::should_ignore_leak( $type, $name ) ) {
+			$prov = isset( $leak['provider'] ) ? (string) $leak['provider'] : '';
+			if ( self::should_ignore_leak( $type, $name, $prov ) ) {
 				continue;
 			}
 			$out[] = $leak;
+		}
+		return $out;
+	}
+
+	/**
+	 * Filter findings rows with the same leak noise rules.
+	 *
+	 * @param array $findings Finding rows.
+	 * @return array
+	 */
+	public static function filter_findings( array $findings ) {
+		$out = array();
+		foreach ( $findings as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+			$type = isset( $row['type'] ) ? (string) $row['type'] : '';
+			$name = isset( $row['name'] ) ? (string) $row['name'] : '';
+			$prov = isset( $row['provider'] ) ? (string) $row['provider'] : '';
+			if ( self::should_ignore_leak( $type, $name, $prov ) ) {
+				continue;
+			}
+			$out[] = $row;
 		}
 		return $out;
 	}

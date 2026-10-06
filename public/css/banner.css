@@ -1061,13 +1061,22 @@
   /* Size queries so short video boxes can shrink type/buttons instead of clipping. */
   container-type: size;
   container-name: ucpf-embed-guard;
-  /* Do NOT force a taller min-height — JS locks the pre-gate box size when needed. */
+}
+
+/*
+ * Safety net: collapsed embed shells (Calendly, HTML widgets, etc.) often measure
+ * 0px in hidden Elementor popups. Absolute inset panels need a floor until JS locks.
+ * Forms and background-video hosts are excluded by selector.
+ */
+.ucpf-consent-guard--embed.ucpf-consent-guard--active:not([data-ucpf-size-locked="1"]) {
+  min-height: 22rem;
+  width: 100%;
 }
 
 /*
  * Safety net: Elementor YouTube/Vimeo widgets often ship an empty .elementor-video
- * (no iframe yet). Absolute inset panels then paint at 0×0. Only these video shells —
- * not forms, maps, Calendly, or captcha covers.
+ * (no iframe yet). Absolute inset panels then paint at 0×0. More specific than the
+ * generic embed floor above — keep 16:9 for video shells.
  */
 .ucpf-consent-guard--embed.ucpf-consent-guard--active.elementor-widget-video:not([data-ucpf-size-locked="1"]),
 .ucpf-consent-guard--embed.ucpf-consent-guard--active[data-widget_type="video.default"]:not([data-ucpf-size-locked="1"]),
@@ -1140,10 +1149,21 @@
   user-select: none;
 }
 
+/*
+ * Consent/park race: Elementor leaves .elementor-loading + .elementor-invisible on a live
+ * background iframe when YT onReady never fires. Guard heal stamps ucpf-bg-video-ready.
+ */
+.elementor-background-video-container.ucpf-bg-video-ready {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
 .ucpf-consent-guard--form.ucpf-consent-guard--active {
   /* Don't switch display/flex — preserve theme form grid/columns. */
-  overflow: visible !important;
+  /* Clamp tall donate forms so the consent card stays on-screen (not only at scrollY=0). */
+  overflow: hidden !important;
   min-height: 0;
+  max-height: min(36rem, 90vh);
 }
 
 /* Builder video shells keep their own aspect-ratio / padding-bottom sizing. */
@@ -1278,7 +1298,7 @@
   flex: 0 0 auto !important;
 }
 
-/* Tall forms: keep card near top of the form box without reflowing layout */
+/* Tall forms: card near top of the clamped form box (avoid 50%+translate — clips under Elementor). */
 .ucpf-consent-guard--form > .ucpf-consent-guard__panel {
   top: 1.25rem !important;
   bottom: auto !important;

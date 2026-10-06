@@ -319,8 +319,21 @@ class Privacy_Scan_Importer {
 			}
 			$leak_type = isset( $leak['type'] ) ? sanitize_key( $leak['type'] ) : '';
 			$leak_name = isset( $leak['name'] ) ? sanitize_text_field( $leak['name'] ) : '';
-			if ( Scan_Noise_Filter::should_ignore_leak( $leak_type, $leak_name ) ) {
+			$leak_prov = isset( $leak['provider'] ) ? sanitize_text_field( $leak['provider'] ) : '';
+			if ( Scan_Noise_Filter::should_ignore_leak( $leak_type, $leak_name, $leak_prov ) ) {
 				continue;
+			}
+			$remediation = self::remediation_for_signal(
+				$leak_type,
+				$leak_name,
+				isset( $leak['provider'] ) ? (string) $leak['provider'] : ''
+			);
+			if ( ! empty( $leak['service_key'] ) ) {
+				$remediation['service_key'] = sanitize_key( (string) $leak['service_key'] );
+				$svc                       = Script_Registry::instance()->get_service( $remediation['service_key'] );
+				if ( is_array( $svc ) && ! empty( $svc['name'] ) ) {
+					$remediation['service_name'] = (string) $svc['name'];
+				}
 			}
 			$consent_leaks[] = array_merge(
 				array(
@@ -334,11 +347,7 @@ class Privacy_Scan_Importer {
 					'reason'     => isset( $leak['reason'] ) ? sanitize_text_field( $leak['reason'] ) : '',
 					'contexts'   => isset( $leak['contexts'] ) && is_array( $leak['contexts'] ) ? array_map( 'sanitize_key', $leak['contexts'] ) : array(),
 				),
-				self::remediation_for_signal(
-					$leak_type,
-					$leak_name,
-					isset( $leak['provider'] ) ? (string) $leak['provider'] : ''
-				)
+				$remediation
 			);
 		}
 
@@ -607,7 +616,7 @@ class Privacy_Scan_Importer {
 					continue;
 				}
 				$row = isset( $ids[ $key ] ) && is_array( $ids[ $key ] ) ? $ids[ $key ] : array();
-				$has = ! empty( $row['id'] ) || ! empty( $row['tag_id'] ) || ! empty( $row['code'] );
+				$has = Tracking_Templates::row_has_ids( $key, $row );
 				if ( ! $has ) {
 					continue;
 				}
@@ -624,7 +633,224 @@ class Privacy_Scan_Importer {
 		}
 
 		$review['services_enabled'] = $enabled_n;
+
+		// Self-heal: third-party consent-leak hosts → site-local gate patterns.
+		$gated = self::auto_gate_consent_leaks( $imported );
+		$review['hosts_gated'] = $gated;
+
 		return $review;
+	}
+
+	/**
+	 * Self-heal from consent leaks: force catalog services to consent-block,
+	 * register first-party path needles, and gate unknown third-party hosts.
+	 * Cookies map via service_key (e.g. vuid → Vimeo) instead of being skipped.
+	 *
+	 * @param array $imported Imported scan payload.
+	 * @return int Number of heal actions applied.
+	 */
+	private static function auto_gate_consent_leaks( array $imported ) {
+		if ( empty( $imported['consent_leaks'] ) || ! is_array( $imported['consent_leaks'] ) ) {
+			return 0;
+		}
+		if ( ! class_exists( __NAMESPACE__ . '\\Catalog_Suggestions' ) ) {
+			return 0;
+		}
+
+		$site_host = Catalog_Suggestions::normalize_host( home_url() );
+		$count     = 0;
+		$healed    = array();
+
+		foreach ( $imported['consent_leaks'] as $leak ) {
+			if ( ! is_array( $leak ) ) {
+				continue;
+			}
+			$type     = isset( $leak['type'] ) ? sanitize_key( (string) $leak['type'] ) : '';
+			$name     = isset( $leak['name'] ) ? (string) $leak['name'] : '';
+			$provider = isset( $leak['provider'] ) ? (string) $leak['provider'] : '';
+			if ( '' === $name && empty( $leak['service_key'] ) ) {
+				continue;
+			}
+
+			$service_key = isset( $leak['service_key'] ) ? sanitize_key( (string) $leak['service_key'] ) : '';
+			if ( ! $service_key ) {
+				$rem         = self::remediation_for_signal( $type, $name, $provider );
+				$service_key = ! empty( $rem['service_key'] ) ? sanitize_key( (string) $rem['service_key'] ) : '';
+			}
+
+			$cat = self::normalize_gate_category(
+				isset( $leak['category'] ) ? (string) $leak['category'] : ''
+			);
+
+			// Known catalog service: force consent + blocking, seed path needles.
+			if ( $service_key && empty( $healed[ 'svc:' . $service_key ] ) ) {
+				$healed[ 'svc:' . $service_key ] = true;
+				$count += self::heal_service_from_leak( $service_key, $cat );
+			}
+
+			if ( 'cookie' === $type ) {
+				continue;
+			}
+
+			// Path needles (first-party plugins / pixel files).
+			if ( self::is_gate_path_needle( $name ) ) {
+				$dedupe = 'path:' . strtolower( $name );
+				if ( empty( $healed[ $dedupe ] ) ) {
+					$healed[ $dedupe ] = true;
+					$result            = Catalog_Suggestions::apply_path_pattern( $name, $cat ? $cat : 'marketing' );
+					if ( ! is_wp_error( $result ) ) {
+						++$count;
+					}
+				}
+				continue;
+			}
+
+			$host = Catalog_Suggestions::normalize_host( $name );
+			if ( '' === $host || 'about:blank' === $host ) {
+				continue;
+			}
+
+			// Same-origin bare host: path needles already applied via service heal.
+			if ( $site_host && ( $host === $site_host || self::host_is_site_or_subdomain( $host, $site_host ) ) ) {
+				continue;
+			}
+
+			// Smush / WP media CDNs — never gate as trackers.
+			if ( false !== strpos( $host, 'assetcdn.net' ) || preg_match( '/^i\d+\.wp\.com$/', $host ) ) {
+				continue;
+			}
+
+			$dedupe = 'host:' . $host;
+			if ( ! empty( $healed[ $dedupe ] ) ) {
+				continue;
+			}
+			$healed[ $dedupe ] = true;
+
+			$result = Catalog_Suggestions::apply_host( $host, $cat ? $cat : 'marketing' );
+			if ( ! is_wp_error( $result ) ) {
+				++$count;
+			}
+		}
+
+		return $count;
+	}
+
+	/**
+	 * Map leak category → gate bucket category.
+	 *
+	 * @param string $cat Raw category.
+	 * @return string
+	 */
+	private static function normalize_gate_category( $cat ) {
+		$cat = sanitize_key( (string) $cat );
+		if ( in_array( $cat, array( 'functional', 'preferences', 'embeds' ), true ) ) {
+			return 'functional';
+		}
+		if ( 'security' === $cat ) {
+			return 'security';
+		}
+		if ( in_array( $cat, array( 'analytics', 'statistics' ), true ) ) {
+			return 'analytics';
+		}
+		if ( 'marketing' === $cat ) {
+			return 'marketing';
+		}
+		return '';
+	}
+
+	/**
+	 * Whether a leak name is a path/plugin needle (not a bare hostname).
+	 *
+	 * @param string $name Leak name.
+	 * @return bool
+	 */
+	private static function is_gate_path_needle( $name ) {
+		$name = strtolower( trim( (string) $name ) );
+		if ( strlen( $name ) < 4 ) {
+			return false;
+		}
+		if ( false !== strpos( $name, '/' ) || false !== strpos( $name, '.js' ) ) {
+			return true;
+		}
+		// Plugin-slug style needles from catalog (mailchimp-for-woocommerce, vczapi-pro).
+		if ( preg_match( '/^[a-z0-9]+(?:-[a-z0-9]+){1,}$/', $name ) ) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Force a catalog service to consent-block and register its path needles.
+	 *
+	 * @param string $service_key Service key.
+	 * @param string $cat         Preferred category override (optional).
+	 * @return int Heal actions counted.
+	 */
+	private static function heal_service_from_leak( $service_key, $cat = '' ) {
+		$service_key = sanitize_key( (string) $service_key );
+		if ( ! $service_key || ! class_exists( __NAMESPACE__ . '\\Script_Registry' ) ) {
+			return 0;
+		}
+		$registry = Script_Registry::instance();
+		$svc      = $registry->get_service( $service_key );
+		if ( ! is_array( $svc ) ) {
+			return 0;
+		}
+
+		$n         = 0;
+		$svc_cat   = ! empty( $svc['category'] ) ? sanitize_key( (string) $svc['category'] ) : 'marketing';
+		$gate_cat  = $cat ? $cat : self::normalize_gate_category( $svc_cat );
+		if ( ! $gate_cat ) {
+			$gate_cat = in_array( $svc_cat, array( 'functional', 'preferences' ), true )
+				? 'functional'
+				: ( 'security' === $svc_cat ? 'security' : ( in_array( $svc_cat, array( 'analytics', 'statistics' ), true ) ? 'analytics' : 'marketing' ) );
+		}
+
+		$registry->save_override(
+			$service_key,
+			array(
+				'category'         => $svc_cat,
+				'treatment'        => 'consent',
+				'default_blocking' => true,
+			)
+		);
+		self::select_detected_services( array( $service_key ) );
+		++$n;
+
+		$label = ! empty( $svc['name'] ) ? (string) $svc['name'] : $service_key;
+		foreach ( (array) ( $svc['script_patterns'] ?? array() ) as $pat ) {
+			$pat = strtolower( trim( (string) $pat ) );
+			if ( ! self::is_gate_path_needle( $pat ) ) {
+				continue;
+			}
+			$result = Catalog_Suggestions::apply_path_pattern( $pat, $gate_cat, $label );
+			if ( ! is_wp_error( $result ) ) {
+				++$n;
+			}
+		}
+
+		return $n;
+	}
+
+	/**
+	 * Whether $host is the site host or a subdomain of it.
+	 *
+	 * @param string $host      Candidate host.
+	 * @param string $site_host Site host.
+	 * @return bool
+	 */
+	private static function host_is_site_or_subdomain( $host, $site_host ) {
+		$host      = strtolower( (string) $host );
+		$site_host = strtolower( (string) $site_host );
+		if ( '' === $host || '' === $site_host ) {
+			return false;
+		}
+		if ( $host === $site_host ) {
+			return true;
+		}
+		$suffix = '.' . $site_host;
+		$len    = strlen( $suffix );
+		return substr( $host, -$len ) === $suffix;
 	}
 
 	/**
@@ -784,6 +1010,7 @@ class Privacy_Scan_Importer {
 		$url      = (string) $url;
 		$hay      = strtolower( $provider . ' ' . $url );
 
+		// phpcs:disable PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- Provider alias host strings for scan import matching; UCPF does not enqueue these URLs.
 		$aliases = array(
 			'google_analytics_4'       => array( 'google analytics', 'ga4', 'google tag', 'gt-', 'googletagmanager.com/gtag', 'google-analytics.com', 'analytics.google.com', 'g/collect' ),
 			'google_tag_manager'       => array( 'google tag manager', 'gtm-', 'googletagmanager.com/gtm', 'gtm.js', 'googletagmanager.com' ),
@@ -814,7 +1041,8 @@ class Privacy_Scan_Importer {
 			'cloudflare_email'         => array( 'cloudflare email', 'email.cloudflare', 'cloudflare email service' ),
 			'php_mail'                 => array( 'php mail', 'phpmail', 'php mailer', 'server mailer' ),
 			'gravity_smtp'             => array( 'gravity_smtp' ),
-			'paypal'                   => array( 'paypal', 'paypalobjects.com', 'c.paypal.com', 'b.stats.paypal.com' ),
+			'paypal'                   => array( 'paypal', 'paypalobjects.com', 'c.paypal.com', 'b.stats.paypal.com', 'c6.paypal.com', 'slc.stats.paypal.com', 'paypal.com/sdk', 'paypal.com/smart', 'braintreegateway.com', 'gravityformsppcp', 'gform_paypal_sdk' ),
+			'braintree'                => array( 'braintree', 'braintreegateway.com', 'assets.braintreegateway.com', 'js.braintreegateway.com' ),
 			'calendly'                 => array( 'calendly', 'assets.calendly.com' ),
 			'constant_contact'         => array( 'constant contact', 'ctctcdn.com', 'listgrowth.ctctcdn.com' ),
 			'woocommerce_order_attribution' => array( 'sourcebuster', 'sbjs_', 'order attribution', 'order-attribution' ),
@@ -842,6 +1070,7 @@ class Privacy_Scan_Importer {
 			'wp_consent_api'           => array( 'wp consent api', 'wp_consent_' ),
 			'magnite'                  => array( 'magnite', 'rubicon' ),
 		);
+		// phpcs:enable PluginCheck.CodeAnalysis.Offloading.OffloadedContent
 
 		foreach ( Script_Registry::instance()->get_services() as $key => $service ) {
 			$name = isset( $service['name'] ) ? strtolower( $service['name'] ) : '';
@@ -1345,9 +1574,11 @@ class Privacy_Scan_Importer {
 			return $gated;
 		}
 
+		// Existing Scanner API expects `paths` as a JSON array (do not send an object/CSV
+		// as `paths` — older Node builds coerce non-arrays to ["/"] and 409).
 		$body = array(
 			'url'      => esc_url_raw( $url ),
-			'paths'    => $paths,
+			'paths'    => array_values( $paths ),
 			'pathList' => implode( "\n", $paths ),
 			'options'  => $scan_options,
 		);
@@ -1382,7 +1613,11 @@ class Privacy_Scan_Importer {
 			if ( 502 === $code || 504 === $code ) {
 				$msg = self::scanner_unreachable_message();
 			} elseif ( 409 === $code && is_array( $data ) && ! empty( $data['error'] ) && false !== stripos( (string) $data['error'], 'exactPaths job kept' ) ) {
-				$msg = __( 'Selected pages collapsed to a single path before Playwright ran. This is not a scanner restart issue. Update this plugin zip (sends paths + pathList) and deploy Scanner API 1.5.4+.', 'universal-consent-privacy-framework' );
+				$msg = sprintf(
+					/* translators: %d: number of paths WordPress sent */
+					__( 'WordPress sent %d page path(s) but the Scanner API only kept 1. Re-check the page selection and try again. If this keeps happening, the Scanner API host may be altering the POST body.', 'universal-consent-privacy-framework' ),
+					count( $paths )
+				);
 			} elseif ( 503 === $code || ( is_array( $data ) && ! empty( $data['error'] ) && false !== stripos( (string) $data['error'], 'queue is full' ) ) ) {
 				$msg = __( 'Scanner queue is full. Wait and retry — do not cancel other sites’ jobs on a shared scanner.', 'universal-consent-privacy-framework' );
 				if ( is_array( $data ) && ! empty( $data['retry_after'] ) ) {
@@ -1573,7 +1808,8 @@ class Privacy_Scan_Importer {
 				continue;
 			}
 			$type = isset( $row['type'] ) ? sanitize_key( $row['type'] ) : '';
-			if ( Scan_Noise_Filter::should_ignore_leak( $type, $name ) ) {
+			$prov = isset( $row['provider'] ) ? sanitize_text_field( $row['provider'] ) : '';
+			if ( Scan_Noise_Filter::should_ignore_leak( $type, $name, $prov ) ) {
 				continue;
 			}
 			$sessions = isset( $row['sessions'] ) && is_array( $row['sessions'] ) ? array_map( 'sanitize_key', $row['sessions'] ) : array();

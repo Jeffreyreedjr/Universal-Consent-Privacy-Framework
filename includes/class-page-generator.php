@@ -66,7 +66,10 @@ class Page_Generator {
 		// Do NOT dequeue Elementor frontend assets — Theme Builder header/footer/nav depend on them.
 		add_filter( 'the_content', array( $this, 'wrap_legal_content' ), 5 );
 		add_filter( 'the_title', array( $this, 'hide_theme_page_title' ), 10, 2 );
-		add_action( 'init', array( $this, 'ensure_generated_page_meta' ), 20 );
+		// Meta heal only in admin — avoid get_post × N on every anonymous frontend hit.
+		if ( is_admin() ) {
+			add_action( 'admin_init', array( $this, 'ensure_generated_page_meta' ), 20 );
+		}
 	}
 
 	/**
@@ -102,7 +105,23 @@ class Page_Generator {
 		if ( ! is_singular( 'page' ) ) {
 			return false;
 		}
-		return (bool) get_post_meta( get_the_ID(), '_ucpf_generated_page', true );
+		$page_id = (int) get_the_ID();
+		if ( ! $page_id ) {
+			return false;
+		}
+		if ( get_post_meta( $page_id, '_ucpf_generated_page', true ) ) {
+			return true;
+		}
+		$generated = Settings::get( 'generated_pages' );
+		if ( ! is_array( $generated ) ) {
+			return false;
+		}
+		foreach ( $generated as $id ) {
+			if ( (int) $id === $page_id ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -362,7 +381,8 @@ class Page_Generator {
 				'contact_phone'     => Settings::get( 'business_phone' ),
 				'business_address'  => Settings::get( 'business_address' ),
 				'last_updated'      => mysql2date( 'F j, Y', $last, true ),
-				'retention_days'    => (int) Settings::get( 'legal_retention_days', 365 ),
+				'retention_days'      => (int) Settings::get( 'legal_retention_days', 365 ),
+				'ai_image_disclosure' => Settings::get( 'ai_image_disclosure', 'off' ),
 				'cookie_policy_url'   => $this->get_page_url( 'cookie_policy' ),
 				'privacy_policy_url'  => $this->get_page_url( 'privacy_policy' ),
 				'data_request_url'    => $this->get_rights_url( 'data_request' ),

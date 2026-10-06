@@ -205,18 +205,14 @@
         "f.vimeocdn.com",
         "i.vimeocdn.com",
         "arclight.vimeo.com",
-        "www.youtube.com/iframe_api",
-        "www.youtube-nocookie.com",
         "cdn.iframe.ly",
         "cdn.embedly.com",
         "cdn.embedly.com"
       ],
-      "cookie_patterns": ["vuid", "player", "YSC", "VISITOR_*"],
+      "cookie_patterns": ["vuid", "player"],
       "cookies": [],
       "iframe_patterns": [
         "player.vimeo.com",
-        "youtube.com/embed",
-        "youtube-nocookie.com",
         "w.soundcloud.com",
         "open.spotify.com",
         "fast.wistia"

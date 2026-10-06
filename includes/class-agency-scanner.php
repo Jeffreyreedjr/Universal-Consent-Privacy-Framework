@@ -41,7 +41,11 @@ class Agency_Scanner {
 	 * Hook well-known verification + REST helpers.
 	 */
 	public function init() {
-		add_action( 'init', array( $this, 'register_well_known' ) );
+		// Rewrite rules only need registering in admin (or on activate). Frontend
+		// serve_well_known already falls back to REQUEST_URI matching.
+		if ( is_admin() ) {
+			add_action( 'admin_init', array( $this, 'register_well_known' ) );
+		}
 		add_action( 'template_redirect', array( $this, 'serve_well_known' ), 0 );
 	}
 

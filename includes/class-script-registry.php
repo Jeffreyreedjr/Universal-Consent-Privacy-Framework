@@ -22,6 +22,11 @@ class Script_Registry {
 	private static $instance = null;
 
 	/**
+	 * Transient / object-cache key for compiled vendor catalog JSON.
+	 */
+	const CATALOG_CACHE_KEY = 'ucpf_vendor_catalog_v2';
+
+	/**
 	 * In-memory services.
 	 *
 	 * @var array
@@ -49,7 +54,33 @@ class Script_Registry {
 		$this->maybe_load_remote_registry();
 		$this->sync_db_to_memory();
 		$this->apply_site_overrides();
+		$this->heal_canonical_service_categories();
 		add_action( 'ucpf_loaded', array( $this, 'fire_loaded' ), 20 );
+	}
+
+	/**
+	 * Keep high-risk trackers on canonical categories when site-local knowledge
+	 * or Cookie Review overrides mislabel them (e.g. YouTube → functional).
+	 */
+	private function heal_canonical_service_categories() {
+		$canonical = array(
+			'youtube'                        => 'marketing',
+			'google_ads'                     => 'marketing',
+			'google_analytics_4'             => 'analytics',
+			'google_tag_manager'             => 'analytics',
+			'mailchimp'                      => 'marketing',
+			'woocommerce_order_attribution'  => 'analytics',
+			'cloudflare_web_analytics'       => 'analytics',
+		);
+		foreach ( $canonical as $key => $category ) {
+			if ( empty( $this->services[ $key ] ) || ! is_array( $this->services[ $key ] ) ) {
+				continue;
+			}
+			$current = isset( $this->services[ $key ]['category'] ) ? sanitize_key( (string) $this->services[ $key ]['category'] ) : '';
+			if ( $current !== $category ) {
+				$this->services[ $key ]['category'] = $category;
+			}
+		}
 	}
 
 	/**
@@ -145,7 +176,11 @@ class Script_Registry {
 				if ( is_array( $prev ) && ! empty( $prev['ok'] ) && ! empty( $prev['at'] ) ) {
 					$status['at'] = $prev['at'];
 				}
-				update_option( 'ucpf_remote_registry_status', $status, false );
+				// Avoid option write storms on every bootstrap cache hit.
+				$prev_count = is_array( $prev ) && isset( $prev['service_count'] ) ? (int) $prev['service_count'] : -1;
+				if ( ! is_array( $prev ) || empty( $prev['ok'] ) || empty( $prev['cached'] ) || $prev_count !== (int) $status['service_count'] ) {
+					update_option( 'ucpf_remote_registry_status', $status, false );
+				}
 				return array(
 					'ok'      => true,
 					'message' => $status['message'],
@@ -260,7 +295,7 @@ class Script_Registry {
 	}
 
 	/**
-	 * Load JSON vendor catalogs.
+	 * Load JSON vendor catalogs (object-cache / transient when stamp matches).
 	 */
 	private function load_json_catalogs() {
 		$dir = UCPF_PLUGIN_DIR . 'assets/vendor-catalog/';
@@ -268,7 +303,26 @@ class Script_Registry {
 			return;
 		}
 
-		$files = glob( $dir . '*.json' );
+		$stamp   = self::catalog_files_stamp( $dir );
+		$cached  = wp_cache_get( self::CATALOG_CACHE_KEY, 'ucpf' );
+		if ( ! is_array( $cached ) || empty( $cached['stamp'] ) || (string) $cached['stamp'] !== (string) $stamp || empty( $cached['services'] ) || ! is_array( $cached['services'] ) ) {
+			$cached = get_transient( self::CATALOG_CACHE_KEY );
+		}
+
+		if ( is_array( $cached ) && ! empty( $cached['stamp'] ) && (string) $cached['stamp'] === (string) $stamp && ! empty( $cached['services'] ) && is_array( $cached['services'] ) ) {
+			foreach ( $cached['services'] as $service ) {
+				if ( is_array( $service ) ) {
+					$this->register_service( $service, 'core' );
+				}
+			}
+			return;
+		}
+
+		$services = array();
+		$files    = glob( $dir . '*.json' );
+		if ( ! is_array( $files ) ) {
+			$files = array();
+		}
 		foreach ( $files as $file ) {
 			// plugin-map.json is detection metadata, not a service catalog.
 			if ( 'plugin-map.json' === basename( $file ) ) {
@@ -276,12 +330,55 @@ class Script_Registry {
 			}
 			$json = file_get_contents( $file );
 			$data = json_decode( $json, true );
-			if ( ! empty( $data['services'] ) && is_array( $data['services'] ) ) {
-				foreach ( $data['services'] as $service ) {
-					$this->register_service( $service, 'core' );
+			if ( empty( $data['services'] ) || ! is_array( $data['services'] ) ) {
+				continue;
+			}
+			foreach ( $data['services'] as $service ) {
+				if ( ! is_array( $service ) ) {
+					continue;
 				}
+				$services[] = $service;
+				$this->register_service( $service, 'core' );
 			}
 		}
+
+		$payload = array(
+			'stamp'    => $stamp,
+			'services' => $services,
+		);
+		wp_cache_set( self::CATALOG_CACHE_KEY, $payload, 'ucpf', DAY_IN_SECONDS );
+		set_transient( self::CATALOG_CACHE_KEY, $payload, WEEK_IN_SECONDS );
+	}
+
+	/**
+	 * Max mtime of vendor-catalog JSON files (excludes plugin-map).
+	 *
+	 * @param string $dir Catalog directory.
+	 * @return string
+	 */
+	private static function catalog_files_stamp( $dir ) {
+		$max   = 0;
+		$files = glob( trailingslashit( $dir ) . '*.json' );
+		if ( ! is_array( $files ) ) {
+			return '0';
+		}
+		foreach ( $files as $file ) {
+			if ( 'plugin-map.json' === basename( $file ) ) {
+				continue;
+			}
+			$max = max( $max, (int) @filemtime( $file ) ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+		}
+		return (string) $max . '|' . ( defined( 'UCPF_VERSION' ) ? UCPF_VERSION : '0' );
+	}
+
+	/**
+	 * Drop compiled catalog cache (plugin update / zip overwrite).
+	 *
+	 * @return void
+	 */
+	public static function bust_catalog_cache() {
+		wp_cache_delete( self::CATALOG_CACHE_KEY, 'ucpf' );
+		delete_transient( self::CATALOG_CACHE_KEY );
 	}
 
 	/**

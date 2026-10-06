@@ -13,6 +13,14 @@ if ( ! isset( $last_scan ) || ! is_array( $last_scan ) ) {
 	$last_scan = array();
 }
 
+// Drop noise (e.g. Cloudflare Web Analytics) from stored reports so old scans match current rules.
+if ( ! empty( $last_scan['consent_leaks'] ) && is_array( $last_scan['consent_leaks'] ) ) {
+	$last_scan['consent_leaks'] = \UCPF\Scan_Noise_Filter::filter_consent_leaks( $last_scan['consent_leaks'] );
+}
+if ( ! empty( $last_scan['findings'] ) && is_array( $last_scan['findings'] ) ) {
+	$last_scan['findings'] = \UCPF\Scan_Noise_Filter::filter_findings( $last_scan['findings'] );
+}
+
 $has_scan   = ! empty( $last_scan['date'] );
 $cookie_n   = ! empty( $last_scan['cookies'] ) && is_array( $last_scan['cookies'] ) ? count( $last_scan['cookies'] ) : 0;
 $unknown_n  = ! empty( $last_scan['unknown_cookies'] ) && is_array( $last_scan['unknown_cookies'] ) ? count( $last_scan['unknown_cookies'] ) : 0;
@@ -183,9 +191,6 @@ $active_log      = ( ! empty( $active_progress['log'] ) && is_array( $active_pro
 		</div>
 
 		<div class="ucpf-toolbar ucpf-scanner-run__utils" role="group" aria-label="<?php esc_attr_e( 'Scan utilities', 'universal-consent-privacy-framework' ); ?>">
-			<?php if ( $scanner_ready ) : ?>
-				<button type="button" class="button" id="ucpf-run-scheduled-scan"><?php esc_html_e( 'Run scheduled scan now', 'universal-consent-privacy-framework' ); ?></button>
-			<?php endif; ?>
 			<button type="button" class="button" id="ucpf-import-scan-json"><?php esc_html_e( 'Import scan JSON', 'universal-consent-privacy-framework' ); ?></button>
 			<button type="button" class="button" id="ucpf-export-scan"><?php esc_html_e( 'Export scan JSON for catalog', 'universal-consent-privacy-framework' ); ?></button>
 			<button type="button" class="button" id="ucpf-knowledge-export-toolbar"><?php esc_html_e( 'Export knowledge pack', 'universal-consent-privacy-framework' ); ?></button>

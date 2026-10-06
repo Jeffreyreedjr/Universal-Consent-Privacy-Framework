@@ -48,6 +48,7 @@
     { "host": "cdnjs.cloudflare.com", "reason": "Generic library CDN, not a tracker by itself" },
     { "host": "fonts.googleapis.com", "reason": "Google Fonts CSS — treat via fonts policy, not marketing leak" },
     { "host": "fonts.gstatic.com", "reason": "Google Fonts files — treat via fonts policy, not marketing leak" },
+    { "host": "assetcdn.net", "reason": "Smush / WP media CDN — images and mirrored uploads, not a consent tracker" },
     { "host": "example.invalid", "reason": "Scanner host-rewrite artifact" },
     { "host": "about:blank", "reason": "Blank placeholder frame, not a tracker" }
   ],
@@ -57,8 +58,14 @@
     "cdnjs.cloudflare.com",
     "fonts.googleapis.com",
     "fonts.gstatic.com",
+    "assetcdn.net",
+    "googlesitekit-consent-mode",
+    "google-site-kit/dist/assets/js/googlesitekit-consent-mode",
     "example.invalid",
     "about:blank"
+  ],
+  "leak_ignore_providers": [
+    { "provider": "Cloudflare Web Analytics", "reason": "CF edge analytics on proxied sites — traffic already hits Cloudflare before the banner" }
   ],
   "storage_omit": [
     { "key": "wpEmojiSettingsSupports", "reason": "WP emoji capability probe" }

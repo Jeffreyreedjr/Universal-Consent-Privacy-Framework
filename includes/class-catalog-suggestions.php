@@ -24,6 +24,7 @@ class Catalog_Suggestions {
 	public static function noise_hosts() {
 		return apply_filters(
 			'ucpf_catalog_suggestion_noise',
+			// phpcs:disable PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- Hostname denylist for scan classification; UCPF does not enqueue these URLs.
 			array(
 				'fonts.googleapis.com',
 				'fonts.gstatic.com',
@@ -40,6 +41,7 @@ class Catalog_Suggestions {
 				'example.invalid',
 				'about:blank',
 			)
+			// phpcs:enable PluginCheck.CodeAnalysis.Offloading.OffloadedContent
 		);
 	}
 
@@ -51,9 +53,11 @@ class Catalog_Suggestions {
 	public static function known_vendor_parents() {
 		return apply_filters(
 			'ucpf_catalog_known_vendor_parents',
+			// phpcs:disable PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- Vendor parent host map for scan matching; UCPF does not enqueue these URLs.
 			array(
 				'paypal.com'           => 'paypal',
 				'paypalobjects.com'    => 'paypal',
+				'braintreegateway.com' => 'braintree',
 				'youtube.com'          => 'youtube',
 				'youtu.be'             => 'youtube',
 				'ytimg.com'            => 'youtube',
@@ -87,6 +91,7 @@ class Catalog_Suggestions {
 				'facebook.net'         => 'meta_pixel',
 				'tawk.to'              => 'tawkto',
 			)
+			// phpcs:enable PluginCheck.CodeAnalysis.Offloading.OffloadedContent
 		);
 	}
 

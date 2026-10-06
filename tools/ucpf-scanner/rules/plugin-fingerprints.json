@@ -2730,7 +2730,51 @@
       "network_patterns": [
         "paypal"
       ],
-      "notes": ""
+      "notes": "Runtime gates paypal.com/sdk as Embeds (functional); inventory marks payment facility."
+    },
+    {
+      "slug": "gravityformsppcp",
+      "name": "Gravity Forms PayPal Checkout (PPCP)",
+      "category": "forms",
+      "consent_category": "necessary",
+      "treatment": "necessary",
+      "importance": "required",
+      "privacy_impact": "medium",
+      "scan_priority": "high",
+      "service_key": "paypal",
+      "script_paths": [
+        "/wp-content/plugins/gravityformsppcp/"
+      ],
+      "style_paths": [],
+      "ajax_actions": [],
+      "rest_routes": [],
+      "cookies": [],
+      "local_storage": [],
+      "session_storage": [],
+      "known_globals": [
+        "paypal"
+      ],
+      "dom_selectors": [
+        ".gform_ppcp",
+        ".gform_ppcp_custom_card_fields",
+        "#gform_paypal_sdk-js"
+      ],
+      "iframe_patterns": [
+        "braintreegateway.com",
+        "paypal.com"
+      ],
+      "third_party_domains": [
+        "paypal.com",
+        "paypalobjects.com",
+        "braintreegateway.com",
+        "c.paypal.com"
+      ],
+      "network_patterns": [
+        "paypal",
+        "braintree",
+        "paypal.com/sdk"
+      ],
+      "notes": "PPCP loads PayPal JS SDK + Braintree hosted fields. Runtime category functional for third-party hosts; PayPal often uses disableSetCookie."
     },
     {
       "slug": "gravityformspaypalstandard",
@@ -3579,12 +3623,15 @@
       "iframe_patterns": [],
       "third_party_domains": [
         "braintreegateway.com",
+        "assets.braintreegateway.com",
+        "js.braintreegateway.com",
         "paypal.com"
       ],
       "network_patterns": [
-        "braintree"
+        "braintree",
+        "braintreegateway"
       ],
-      "notes": "Checkout payment facility — not marketing."
+      "notes": "Runtime gates Braintree as Embeds (functional) with PayPal Checkout; inventory may mark payment facility. Often paired with paypal.com/sdk."
     },
     {
       "slug": "apple-pay",

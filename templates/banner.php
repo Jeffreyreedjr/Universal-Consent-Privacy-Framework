@@ -171,6 +171,9 @@ $fab_label    = ! empty( $copy['fab_label'] ) ? $copy['fab_label'] : __( 'Cookie
     if (!data || !data.state || data.state === 'unknown') return false;
     var exp = Number(data.expires || 0);
     if (exp && exp < Math.floor(Date.now() / 1000)) return false;
+    var cfg = window.ucpfConfig || {};
+    if (data.policy_version && cfg.policyVersion && String(data.policy_version) !== String(cfg.policyVersion)) return false;
+    if (data.version && cfg.consentVersion && String(data.version) !== String(cfg.consentVersion)) return false;
     return true;
   }
 
@@ -206,7 +209,68 @@ $fab_label    = ! empty( $copy['fab_label'] ) ? $copy['fab_label'] : __( 'Cookie
     }
   }
 
+  function writeConsentCookiePayload(payload) {
+    if (!payload || !payload.categories) return;
+    var maxAge = (window.ucpfConfig && window.ucpfConfig.cookieLifetime) || (180 * 24 * 60 * 60);
+    maxAge = parseInt(maxAge, 10) || (180 * 24 * 60 * 60);
+    if (maxAge < 86400) maxAge = 180 * 24 * 60 * 60;
+    var now = Math.floor(Date.now() / 1000);
+    if (!payload.expires || Number(payload.expires) < now + 86400) {
+      payload.expires = now + maxAge;
+    }
+    if (!payload.version) {
+      payload.version = (window.ucpfConfig && window.ucpfConfig.consentVersion) || '1.0.0';
+    }
+    if (payload.policy_version == null) {
+      payload.policy_version = (window.ucpfConfig && window.ucpfConfig.policyVersion) || '';
+    }
+    var secure = location.protocol === 'https:' ? '; Secure' : '';
+    var encoded = encodeURIComponent(JSON.stringify(payload));
+    var path = cookiePath();
+    var expiresUtc = new Date(Date.now() + maxAge * 1000).toUTCString();
+    document.cookie =
+      'ucpf_consent=' +
+      encoded +
+      '; Path=' +
+      path +
+      cookieDomainAttr() +
+      '; Max-Age=' +
+      maxAge +
+      '; Expires=' +
+      expiresUtc +
+      '; SameSite=Lax' +
+      secure;
+    if (path !== '/') {
+      document.cookie = 'ucpf_consent=; Path=/' + cookieDomainAttr() + '; Max-Age=0; SameSite=Lax';
+    }
+    try {
+      var key = backupStorageKey();
+      localStorage.setItem(key, JSON.stringify(payload));
+      sessionStorage.setItem(key, JSON.stringify(payload));
+    } catch (err) { /* private mode */ }
+  }
+
+  /** If backup/handoff is valid but cookie missing, rewrite cookie before first paint. */
+  function rehydrateRememberedConsent() {
+    var cookie = readConsentCookie();
+    if (isRememberedChoice(cookie)) {
+      return cookie;
+    }
+    var source = null;
+    if (isRememberedChoice(readConsentHandoff())) {
+      source = readConsentHandoff();
+    } else if (isRememberedChoice(readConsentBackup())) {
+      source = readConsentBackup();
+    }
+    if (!source) {
+      return null;
+    }
+    writeConsentCookiePayload(source);
+    return source;
+  }
+
   function hasRememberedConsent() {
+    rehydrateRememberedConsent();
     return (
       isRememberedChoice(readConsentCookie()) ||
       isRememberedChoice(readConsentBackup()) ||
@@ -280,9 +344,7 @@ $fab_label    = ! empty( $copy['fab_label'] ) ? $copy['fab_label'] : __( 'Cookie
       functional: !!all,
       security: !!all
     };
-    var maxAge = (window.ucpfConfig && window.ucpfConfig.cookieLifetime) || (180 * 24 * 60 * 60);
-    if (maxAge < 86400) maxAge = 180 * 24 * 60 * 60;
-    var existing = readConsentCookie() || readConsentBackup();
+    var existing = readConsentCookie() || readConsentBackup() || readConsentHandoff();
     var uuid = (existing && existing.uuid) ? String(existing.uuid) : ((window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()));
     var payload = {
       uuid: uuid,
@@ -291,23 +353,52 @@ $fab_label    = ! empty( $copy['fab_label'] ) ? $copy['fab_label'] : __( 'Cookie
       services: {},
       version: (window.ucpfConfig && window.ucpfConfig.consentVersion) || '1.0.0',
       policy_version: (window.ucpfConfig && window.ucpfConfig.policyVersion) || '',
-      timestamp: Math.floor(Date.now() / 1000),
-      expires: Math.floor(Date.now() / 1000) + maxAge
+      timestamp: Math.floor(Date.now() / 1000)
     };
-    var secure = location.protocol === 'https:' ? '; Secure' : '';
-    var encoded = encodeURIComponent(JSON.stringify(payload));
-    var path = cookiePath();
-    document.cookie = 'ucpf_consent=' + encoded + '; Path=' + path + cookieDomainAttr() + '; Max-Age=' + maxAge + '; SameSite=Lax' + secure;
-    if (path !== '/') {
-      document.cookie = 'ucpf_consent=; Path=/' + cookieDomainAttr() + '; Max-Age=0; SameSite=Lax';
-    }
-    try {
-      var key = backupStorageKey();
-      localStorage.setItem(key, JSON.stringify(payload));
-      sessionStorage.setItem(key, JSON.stringify(payload));
-    } catch (err) { /* private mode */ }
+    writeConsentCookiePayload(payload);
     markDone();
     hideBannerNow();
+    return payload;
+  }
+
+  function packBootHandoff(payload) {
+    try {
+      var raw = JSON.stringify({
+        uuid: payload.uuid || '',
+        state: payload.state || 'custom',
+        categories: payload.categories || {},
+        services: payload.services || {},
+        version: payload.version || '',
+        policy_version: payload.policy_version || '',
+        expires: payload.expires || 0
+      });
+      return btoa(unescape(encodeURIComponent(raw)))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function navigateAfterBootConsent(payload) {
+    var dest = String(window.location.href || '').split('#')[0];
+    try {
+      var u = new URL(dest, window.location.origin);
+      u.searchParams.delete('_ucpf');
+      u.searchParams.delete('_ucpf_c');
+      var q0 = u.searchParams.toString();
+      dest = u.pathname + (q0 ? '?' + q0 : '');
+    } catch (eUrl) { /* keep */ }
+    var packed = packBootHandoff(payload || {});
+    var qs = '_ucpf=' + String(Date.now());
+    var joiner = dest.indexOf('?') === -1 ? '?' : '&';
+    var hash = packed && packed.length < 2500 ? '#ucpf_c=' + encodeURIComponent(packed) : '';
+    try {
+      window.location.assign(dest + joiner + qs + hash);
+      return;
+    } catch (e1) { /* fall through */ }
+    window.location.reload();
   }
 
   var bootInFlight = false;
@@ -343,8 +434,8 @@ $fab_label    = ! empty( $copy['fab_label'] ) ? $copy['fab_label'] : __( 'Cookie
     if (type === 'accept_all' || type === 'reject_all') {
       if (bootInFlight) return;
       bootInFlight = true;
-      writeConsent(type === 'accept_all');
-      window.location.reload();
+      var payload = writeConsent(type === 'accept_all');
+      navigateAfterBootConsent(payload);
     }
   }
 

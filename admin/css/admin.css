@@ -2460,6 +2460,29 @@
   padding-top: 0.15rem;
 }
 
+.ucpf-integration-card__enable label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0;
+  cursor: pointer;
+}
+
+.ucpf-integration-card__enable-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ucpf-admin-muted);
+  line-height: 1.2;
+  text-align: center;
+}
+
+.ucpf-integration-card.is-enabled .ucpf-integration-card__enable-label {
+  color: var(--ucpf-admin-accent);
+}
+
 .ucpf-integration-card__body {
   min-width: 0;
   display: grid;
@@ -2551,7 +2574,180 @@
   padding-bottom: 0.75rem !important;
 }
 
+/* GTM multi-container list (Integrations + wizard) — full card width, no sideways scroll */
+.ucpf-integration-card__fields > .ucpf-gtm-containers,
+.ucpf-wizard__panel .ucpf-gtm-containers {
+  grid-column: 1 / -1;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.ucpf-gtm-containers {
+  margin: 0.25rem 0 0.5rem;
+  min-width: 0;
+}
+
+.ucpf-gtm-containers__lede {
+  margin-top: 0;
+}
+
+.ucpf-gtm-containers__scan-notice {
+  margin: 0 0 0.75rem;
+}
+
+.ucpf-gtm-containers__list {
+  display: grid;
+  gap: 0.85rem;
+  margin: 0.5rem 0 0.75rem;
+  min-width: 0;
+}
+
+.ucpf-gtm-containers__item {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--ucpf-admin-border);
+  border-radius: var(--ucpf-admin-radius);
+  background: var(--ucpf-admin-surface-2, var(--ucpf-admin-surface));
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.ucpf-gtm-containers__item-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.4fr) minmax(6rem, 0.7fr) auto;
+  gap: 0.65rem 0.85rem;
+  align-items: end;
+  min-width: 0;
+}
+
+.ucpf-gtm-containers__field {
+  min-width: 0;
+}
+
+.ucpf-gtm-containers__field label {
+  display: block;
+  margin: 0 0 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ucpf-admin-muted);
+}
+
+.ucpf-gtm-containers__field input.regular-text {
+  width: 100% !important;
+  max-width: none !important;
+  box-sizing: border-box;
+}
+
+.ucpf-gtm-containers__field--actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 0.15rem;
+}
+
+.ucpf-gtm-remove-row {
+  font-size: 1.35rem;
+  line-height: 1;
+  padding: 0 0.35rem;
+}
+
+.ucpf-gtm-disclosure {
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--ucpf-admin-border);
+}
+
+.ucpf-gtm-disclosure > summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--ucpf-admin-ink);
+}
+
+.ucpf-gtm-disclosure > summary:focus-visible {
+  outline: 3px solid var(--ucpf-admin-focus);
+  outline-offset: 2px;
+}
+
+.ucpf-gtm-disclosure > .description {
+  margin: 0.5rem 0 0.75rem;
+}
+
+.ucpf-gtm-disclosure__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 1rem;
+  min-width: 0;
+}
+
+.ucpf-gtm-disclosure__field {
+  min-width: 0;
+}
+
+.ucpf-gtm-disclosure__field--wide {
+  grid-column: 1 / -1;
+}
+
+.ucpf-gtm-disclosure__field label,
+.ucpf-gtm-disclosure__legend {
+  display: block;
+  margin: 0 0 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ucpf-admin-muted);
+}
+
+.ucpf-gtm-disclosure__field input.regular-text,
+.ucpf-gtm-disclosure__field textarea.large-text {
+  width: 100% !important;
+  max-width: none !important;
+  box-sizing: border-box;
+}
+
+.ucpf-gtm-disclosure__checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+}
+
+.ucpf-gtm-disclosure__checks label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--ucpf-admin-ink);
+}
+
+/* Never wrap GTM list in the generic widefat scroll shell */
+.ucpf-gtm-containers .ucpf-table-scroll,
+.ucpf-gtm-containers__list .ucpf-table-scroll {
+  overflow: visible;
+  border: 0;
+  box-shadow: none;
+  margin: 0;
+}
+
 @media (max-width: 960px) {
+  .ucpf-gtm-containers__item-main {
+    grid-template-columns: 1fr;
+  }
+
+  .ucpf-gtm-containers__field--actions {
+    justify-content: flex-start;
+  }
+
+  .ucpf-gtm-disclosure__grid {
+    grid-template-columns: 1fr;
+  }
+
   .ucpf-integration-card {
     grid-template-columns: 1fr;
   }

@@ -89,7 +89,15 @@
       "treatment": "consent",
       "description": "Embedded Vimeo videos.",
       "privacy_url": "https://vimeo.com/privacy",
-      "script_patterns": ["player.vimeo.com", "gtm4wp-vimeo"],
+      "script_patterns": [
+        "player.vimeo.com",
+        "vimeo.com/video",
+        "vimeo.com/api",
+        "f.vimeocdn.com",
+        "i.vimeocdn.com",
+        "arclight.vimeo.com",
+        "gtm4wp-vimeo"
+      ],
       "cookie_patterns": ["vuid"],
       "cookies": [
         {
@@ -102,7 +110,7 @@
           "contexts": ["guest", "logged_in"]
         }
       ],
-      "iframe_patterns": ["player.vimeo.com"],
+      "iframe_patterns": ["player.vimeo.com", "vimeo.com/video"],
       "default_blocking": true
     },
     {
@@ -275,6 +283,79 @@
       "cookie_patterns": [],
       "cookies": [],
       "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "mapme",
+      "name": "MapMe",
+      "provider": "MapMe",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "MapMe interactive map viewer embeds (viewer.mapme.com).",
+      "privacy_url": "https://mapme.com/privacy-policy",
+      "script_patterns": [
+        "viewer.mapme.com",
+        "mapme.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["viewer.mapme.com", "mapme.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "maphub",
+      "name": "MapHub",
+      "provider": "MapHub",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "MapHub embedded map viewers.",
+      "privacy_url": "https://maphub.net/about",
+      "script_patterns": ["maphub.net"],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["maphub.net"],
+      "default_blocking": true
+    },
+    {
+      "key": "batchgeo",
+      "name": "BatchGeo",
+      "provider": "BatchGeo",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "BatchGeo map embeds.",
+      "privacy_url": "https://batchgeo.com/privacy",
+      "script_patterns": ["batchgeo.com"],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["batchgeo.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "zeemaps",
+      "name": "ZeeMaps",
+      "provider": "ZeeMaps",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "ZeeMaps embedded maps.",
+      "privacy_url": "https://www.zeemaps.com/privacy.jsp",
+      "script_patterns": ["zeemaps.com"],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["zeemaps.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "umap",
+      "name": "uMap",
+      "provider": "OpenStreetMap France",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "uMap OpenStreetMap embed viewer.",
+      "privacy_url": "https://wiki.openstreetmap.org/wiki/UMap",
+      "script_patterns": ["umap.openstreetmap.fr"],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["umap.openstreetmap.fr"],
       "default_blocking": true
     }
   ]

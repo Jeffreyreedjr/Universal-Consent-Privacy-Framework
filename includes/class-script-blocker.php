@@ -44,16 +44,21 @@ class Script_Blocker {
 			return;
 		}
 
-		add_filter( 'script_loader_tag', array( $this, 'filter_script_tag' ), 20, 3 );
+		// Run late so Hummingbird / Autoptimize src rewrites still leave the WP handle
+		// for handle-based park (Mailchimp pixel → /hummingbird-assets/{hash}.js).
+		add_filter( 'script_loader_tag', array( $this, 'filter_script_tag' ), 99999, 3 );
 		add_filter( 'style_loader_tag', array( $this, 'filter_style_tag' ), 20, 4 );
 
 		// Output-buffer HTML rewriting is dangerous on Elementor/large pages (CPU → 502).
 		// Full OB only when explicitly opted in; safe iframe mode is a narrower rewrite.
+		// CF Web Analytics (Elementor Custom Code type=module beacon) always gets a
+		// cheap dedicated rewrite — MutationObserver is too late for module fetch+rum.
 		$ob_full = Settings::get( 'output_buffer_blocking' )
 			&& ! ( defined( 'UCPF_DISABLE_OUTPUT_BUFFER' ) && UCPF_DISABLE_OUTPUT_BUFFER );
 		$ob_safe = Settings::get( 'output_buffer_safe_iframes' )
 			&& ! ( defined( 'UCPF_DISABLE_OUTPUT_BUFFER' ) && UCPF_DISABLE_OUTPUT_BUFFER );
-		if ( $ob_full || $ob_safe ) {
+		$ob_cf   = ! ( defined( 'UCPF_DISABLE_OUTPUT_BUFFER' ) && UCPF_DISABLE_OUTPUT_BUFFER );
+		if ( $ob_full || $ob_safe || $ob_cf ) {
 			add_action( 'template_redirect', array( $this, 'start_output_buffer' ), 1 );
 		}
 	}
@@ -75,10 +80,7 @@ class Script_Blocker {
 				continue;
 			}
 
-			$has_id     = ! empty( $config['id'] );
-			$has_tag_id = ! empty( $config['tag_id'] );
-			$has_code   = ! empty( $config['code'] );
-			if ( ! $has_id && ! $has_tag_id && ! $has_code ) {
+			if ( ! Tracking_Templates::row_has_ids( $key, $config ) ) {
 				continue;
 			}
 
@@ -91,6 +93,7 @@ class Script_Blocker {
 					'loader'   => null,
 				);
 			}
+			$has_code = ! empty( $config['code'] );
 			if ( ! $service && $has_code ) {
 				$service = array(
 					'key'      => $key,
@@ -158,10 +161,7 @@ class Script_Blocker {
 			if ( empty( $config['enabled'] ) ) {
 				continue;
 			}
-			$id     = isset( $config['id'] ) ? sanitize_text_field( $config['id'] ) : '';
-			$tag_id = isset( $config['tag_id'] ) ? sanitize_text_field( $config['tag_id'] ) : '';
-			$code   = isset( $config['code'] ) ? Tracking_Templates::sanitize_code( $config['code'] ) : '';
-			if ( '' === $id && '' === $tag_id && '' === $code ) {
+			if ( ! Tracking_Templates::row_has_ids( $key, $config ) ) {
 				continue;
 			}
 
@@ -175,10 +175,11 @@ class Script_Blocker {
 				$category = sanitize_key( $config['category'] );
 			}
 
-			$parts = $this->build_loader_parts( $key, $id, $code, $tag_id );
+			$parts = $this->build_loader_parts( $key, $config );
 			foreach ( $parts as $part ) {
 				$out[] = array(
 					'key'      => $key,
+					'part_id'  => isset( $part['part_id'] ) ? (string) $part['part_id'] : $key,
 					'category' => $category,
 					'src'      => isset( $part['src'] ) ? $part['src'] : '',
 					'code'     => isset( $part['code'] ) ? $part['code'] : '',
@@ -193,13 +194,14 @@ class Script_Blocker {
 	 * Build script src/code parts for a managed service (mirrors output_service_snippet).
 	 *
 	 * @param string $key    Service key.
-	 * @param string $id     Measurement / container ID.
-	 * @param string $code   Custom JS.
-	 * @param string $tag_id Optional Google Tag ID (GT-…).
+	 * @param array  $config Service config row.
 	 * @return array<int, array{src?:string,code?:string}>
 	 */
-	private function build_loader_parts( $key, $id, $code, $tag_id = '' ) {
-		$parts = array();
+	private function build_loader_parts( $key, array $config ) {
+		$id     = isset( $config['id'] ) ? sanitize_text_field( $config['id'] ) : '';
+		$tag_id = isset( $config['tag_id'] ) ? sanitize_text_field( $config['tag_id'] ) : '';
+		$code   = isset( $config['code'] ) ? Tracking_Templates::sanitize_code( $config['code'] ) : '';
+		$parts  = array();
 
 		switch ( $key ) {
 			case 'google_analytics_4':
@@ -208,11 +210,7 @@ class Script_Blocker {
 				break;
 
 			case 'google_tag_manager':
-				if ( $id ) {
-					$parts[] = array(
-						'code' => "(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','" . esc_js( $id ) . "');",
-					);
-				}
+				$parts = $this->build_gtm_loader_parts( Tracking_Templates::gtm_containers_from_row( $config ) );
 				break;
 
 			case 'meta_pixel':
@@ -265,6 +263,74 @@ class Script_Blocker {
 			} else {
 				$parts[] = array( 'code' => $code );
 			}
+		}
+
+		return $parts;
+	}
+
+	/**
+	 * Build GTM bootstrap snippet for one Tag Manager container (GTM- only).
+	 *
+	 * @param string $container_id GTM-….
+	 * @param string $data_layer   dataLayer variable name.
+	 * @return string
+	 */
+	private function build_gtm_snippet_code( $container_id, $data_layer = 'dataLayer' ) {
+		$container_id = Tracking_Templates::normalize_gtm_container_id( $container_id );
+		if ( '' === $container_id || ! Tracking_Templates::is_gtm_container_id( $container_id ) ) {
+			return '';
+		}
+		$data_layer = Tracking_Templates::sanitize_gtm_data_layer( $data_layer );
+		return "(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','" . esc_js( $data_layer ) . "','" . esc_js( $container_id ) . "');";
+	}
+
+	/**
+	 * Loader parts for GTM multi-ID list — GTM- via gtm.js, GT-/G- via gtag.js.
+	 *
+	 * @param array $containers Normalized container rows.
+	 * @return array<int, array{code?:string,src?:string,part_id?:string}>
+	 */
+	private function build_gtm_loader_parts( array $containers ) {
+		$parts    = array();
+		$gtag_ids = array();
+
+		foreach ( $containers as $row ) {
+			if ( ! is_array( $row ) || empty( $row['id'] ) ) {
+				continue;
+			}
+			$cid = Tracking_Templates::normalize_gtm_container_id( $row['id'] );
+			if ( '' === $cid ) {
+				continue;
+			}
+			if ( Tracking_Templates::is_gtm_container_id( $cid ) ) {
+				$snippet = $this->build_gtm_snippet_code(
+					$cid,
+					isset( $row['data_layer'] ) ? $row['data_layer'] : 'dataLayer'
+				);
+				if ( $snippet ) {
+					$parts[] = array(
+						'code'    => $snippet,
+						'part_id' => 'google_tag_manager:' . $cid,
+					);
+				}
+				continue;
+			}
+			if ( Tracking_Templates::is_gtag_id( $cid ) && ! in_array( $cid, $gtag_ids, true ) ) {
+				$gtag_ids[] = $cid;
+			}
+		}
+
+		if ( $gtag_ids ) {
+			$primary   = $gtag_ids[0];
+			$config_js = "window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());";
+			foreach ( $gtag_ids as $cfg_id ) {
+				$config_js .= "gtag('config','" . esc_js( $cfg_id ) . "');";
+			}
+			$parts[] = array(
+				'src'     => 'https://www.googletagmanager.com/gtag/js?id=' . rawurlencode( $primary ),
+				'code'    => $config_js,
+				'part_id' => 'google_tag_manager:gtag:' . implode( ',', $gtag_ids ),
+			);
 		}
 
 		return $parts;
@@ -352,12 +418,13 @@ class Script_Blocker {
 				break;
 
 			case 'google_tag_manager':
-				if ( $id ) {
-					wp_add_inline_script(
-						'ucpf-consent',
-						"(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','" . esc_js( $id ) . "');",
-						'after'
-					);
+				foreach ( $this->build_gtm_loader_parts( Tracking_Templates::gtm_containers_from_row( $config ) ) as $part ) {
+					if ( ! empty( $part['code'] ) ) {
+						wp_add_inline_script( 'ucpf-consent', $part['code'], 'after' );
+					}
+				}
+				if ( $code ) {
+					wp_add_inline_script( 'ucpf-consent', $code, 'after' );
 				}
 				break;
 
@@ -444,21 +511,152 @@ class Script_Blocker {
 		if ( false !== strpos( $src, '/universal-consent-privacy-framework/' ) ) {
 			return $tag;
 		}
+		// Site Kit consent-mode bridge must stay live so CMP defaults apply.
+		$src_l = strtolower( (string) $src );
+		if (
+			false !== strpos( $src_l, 'google-site-kit' ) &&
+			false !== strpos( $src_l, 'consent-mode' )
+		) {
+			return $tag;
+		}
 
 		$match = $this->match_blocked_asset( $src );
+		// Gravity Forms / PayPal Checkout SDK — guarantee park even if catalog match races.
+		if ( ! $match && $this->is_paypal_sdk_handle_or_src( $handle, $src ) ) {
+			$registry = Script_Registry::instance();
+			$service  = $registry->get_service( 'paypal' );
+			if ( $service && $registry->should_block_service( $service ) ) {
+				$match = array(
+					'key'      => 'paypal',
+					'category' => ! empty( $service['category'] ) ? (string) $service['category'] : 'functional',
+				);
+			}
+		}
+		// reCAPTCHA Woo (invisible) — first-party path often misses catalog race.
+		if ( ! $match && $this->is_recaptcha_woo_handle_or_src( $handle, $src ) ) {
+			$registry = Script_Registry::instance();
+			$service  = $registry->get_service( 'recaptcha' );
+			if ( $service && $registry->should_block_service( $service ) ) {
+				$match = array(
+					'key'      => 'recaptcha',
+					'category' => 'security',
+				);
+			}
+		}
+		// Mailchimp Woo pixel/SMS — Hummingbird rewrites src to /hummingbird-assets/{hash}.js
+		// so URL catalog patterns miss; park by WP handle (still mailchimp-woocommerce-*).
+		if ( ! $match && $this->is_mailchimp_tracker_handle_or_src( $handle, $src ) ) {
+			$registry = Script_Registry::instance();
+			$service  = $registry->get_service( 'mailchimp' );
+			if ( $service && $registry->should_block_service( $service ) ) {
+				$match = array(
+					'key'      => 'mailchimp',
+					'category' => ! empty( $service['category'] ) ? (string) $service['category'] : 'marketing',
+				);
+			} elseif ( ! Consent_Manager::instance()->has_consent( 'marketing' ) ) {
+				$match = array(
+					'key'      => 'mailchimp',
+					'category' => 'marketing',
+				);
+			}
+		}
+		// Do NOT park gforms_ppcp_frontend — it defines window.GFPPCP; inline GF init
+		// calls `new GFPPCP()` on gform_post_render. Hold that event in JS until paypal exists.
 		if ( ! $match ) {
 			return $tag;
 		}
 
+		$orig_type = '';
+		if ( preg_match( '/\btype\s*=\s*([\'"])(.*?)\1/i', (string) $tag, $tm ) ) {
+			$ot = strtolower( trim( (string) $tm[2] ) );
+			if ( 'module' === $ot || 'importmap' === $ot ) {
+				$orig_type = $ot;
+			}
+		}
+
 		// Consent-gated placeholder; original third-party script was already enqueued.
 		// Tag name is split so Plugin Check does not flag NonEnqueuedScript on a literal <script>.
-		return sprintf(
-			'<%1$s type="text/plain" data-ucpf-category="%2$s" data-ucpf-service="%3$s" data-src="%4$s" id="%5$s"></%1$s>' . "\n",
+		$out = sprintf(
+			'<%1$s type="text/plain" data-ucpf-category="%2$s" data-ucpf-service="%3$s" data-src="%4$s" id="%5$s"',
 			'script',
 			esc_attr( $match['category'] ),
 			esc_attr( $match['key'] ),
 			esc_url( $src ),
 			esc_attr( $handle )
+		);
+		if ( '' !== $orig_type ) {
+			$out .= ' data-ucpf-original-type="' . esc_attr( $orig_type ) . '"';
+		}
+		$out .= '></' . 'script>' . "\n";
+		return $out;
+	}
+
+	/**
+	 * Whether a script handle or src is the PayPal JS SDK (GF PPCP / PayPal Checkout).
+	 *
+	 * @param string $handle Script handle.
+	 * @param string $src    Script URL.
+	 * @return bool
+	 */
+	private function is_paypal_sdk_handle_or_src( $handle, $src ) {
+		$handle = strtolower( (string) $handle );
+		$src    = strtolower( (string) $src );
+		if (
+			'gform_paypal_sdk' === $handle ||
+			0 === strpos( $handle, 'gform_paypal_sdk' ) ||
+			false !== strpos( $handle, 'paypal_sdk' )
+		) {
+			return true;
+		}
+		return ( false !== strpos( $src, 'paypal.com/sdk' ) || false !== strpos( $src, 'paypalobjects.com' ) );
+	}
+
+	/**
+	 * Mailchimp for WooCommerce tracker handles (pixel / SMS / public), including
+	 * when Asset Optimization rewrites src to a hashed hummingbird-assets URL.
+	 *
+	 * @param string $handle Script handle.
+	 * @param string $src    Script URL.
+	 * @return bool
+	 */
+	private function is_mailchimp_tracker_handle_or_src( $handle, $src ) {
+		$handle = strtolower( (string) $handle );
+		$src    = strtolower( (string) $src );
+		if (
+			false !== strpos( $handle, 'mailchimp-woocommerce' ) ||
+			false !== strpos( $handle, 'mailchimp_woocommerce' )
+		) {
+			return true;
+		}
+		return (
+			false !== strpos( $src, 'mailchimp-for-woocommerce' ) ||
+			false !== strpos( $src, 'mailchimp-woocommerce' ) ||
+			false !== strpos( $src, 'chimpstatic.com' )
+		);
+	}
+
+	/**
+	 * reCAPTCHA for WooCommerce / recaptcha-woo first-party script.
+	 *
+	 * @param string $handle Script handle.
+	 * @param string $src    Script URL.
+	 * @return bool
+	 */
+	private function is_recaptcha_woo_handle_or_src( $handle, $src ) {
+		$handle = strtolower( (string) $handle );
+		$src    = strtolower( (string) $src );
+		if (
+			'rcfwc-js' === $handle ||
+			0 === strpos( $handle, 'rcfwc' ) ||
+			false !== strpos( $handle, 'recaptcha-woo' ) ||
+			false !== strpos( $handle, 'recaptcha_woo' )
+		) {
+			return true;
+		}
+		return (
+			false !== strpos( $src, 'recaptcha-woo' ) ||
+			false !== strpos( $src, '/rcfwc.js' ) ||
+			false !== strpos( $src, 'recaptcha-for-woocommerce' )
 		);
 	}
 
@@ -506,11 +704,26 @@ class Script_Blocker {
 			return null;
 		}
 
+		// GF PayPal Checkout frontend defines window.GFPPCP — never soft-defer (inline init needs it).
+		if ( false !== stripos( $url, 'gravityformsppcp' ) ) {
+			return null;
+		}
+
 		// UserWay accessibility toolbar — never soft-defer (ADA / assistive tech).
 		if (
 			false !== stripos( $url, 'cdn.userway.org' ) ||
 			false !== stripos( $url, 'api.userway.org' ) ||
 			false !== stripos( $url, 'userway.org' )
+		) {
+			return null;
+		}
+
+		// Smart Slider 3 / Nextend — never soft-defer (custom elements cannot re-define).
+		if (
+			false !== stripos( $url, '/smart-slider-3/' ) ||
+			false !== stripos( $url, '/smart-slider-3-pro/' ) ||
+			false !== stripos( $url, 'n2.min.js' ) ||
+			false !== stripos( $url, 'smartslider-frontend' )
 		) {
 			return null;
 		}
@@ -572,13 +785,21 @@ class Script_Blocker {
 			return $html;
 		}
 
-		// Skip huge pages — preg over Elementor HTML routinely times out shared hosts.
+		// Skip full preg on huge Elementor pages — but always park known video/map iframes
+		// (Vimeo vuid / YouTube) so consent cookies cannot fire before the network gate.
 		if ( strlen( $html ) > 750000 ) {
-			return $html;
+			return self::soft_defer_safe_iframes_only( $html );
 		}
 
 		$full_ob = (bool) Settings::get( 'output_buffer_blocking' );
 		$safe_ob = (bool) Settings::get( 'output_buffer_safe_iframes' );
+
+		// No full/safe OB opted in — still park CF Web Analytics + YouTube/Vimeo
+		// (Smush data: placeholders race the JS gate on Elementor video widgets).
+		if ( ! $full_ob && ! $safe_ob ) {
+			return self::soft_defer_safe_iframes_only( $html );
+		}
+
 		$registry = Script_Registry::instance();
 		$start    = microtime( true );
 
@@ -617,8 +838,33 @@ class Script_Blocker {
 							if ( preg_match( '/\bsrc\s*=\s*([\'"])(.*?)\1/i', $attrs, $sm ) ) {
 								$src = $sm[2];
 							}
+							$orig_type = '';
+							if ( preg_match( '/\btype\s*=\s*([\'"])(.*?)\1/i', $attrs, $tm ) ) {
+								$ot = strtolower( trim( (string) $tm[2] ) );
+								if ( 'module' === $ot || 'importmap' === $ot ) {
+									$orig_type = $ot;
+								}
+							}
 							$out  = '<script type="text/plain" data-ucpf-category="' . esc_attr( $category ) . '" data-ucpf-service="' . esc_attr( $key ) . '"';
-							$out .= ' data-src="' . esc_url( $src ) . '">';
+							$out .= ' data-src="' . esc_url( $src ) . '"';
+							if ( '' !== $orig_type ) {
+								$out .= ' data-ucpf-original-type="' . esc_attr( $orig_type ) . '"';
+							}
+							foreach ( array( 'id', 'async', 'defer', 'crossorigin', 'integrity', 'nonce', 'nomodule', 'referrerpolicy' ) as $keep ) {
+								if ( preg_match( '/\b' . preg_quote( $keep, '/' ) . '\s*=\s*([\'"])(.*?)\1/i', $attrs, $km ) ) {
+									$out .= ' ' . $keep . '="' . esc_attr( $km[2] ) . '"';
+								} elseif ( preg_match( '/\b' . preg_quote( $keep, '/' ) . '\b(?!\s*=)/i', $attrs ) ) {
+									// Boolean attributes (async / defer / nomodule).
+									$out .= ' ' . $keep;
+								}
+							}
+							// CF Web Analytics (and similar) need data-cf-beacon after consent restore.
+							if ( preg_match_all( '/\b(data-cf-beacon|data-cf-[a-z0-9_-]+)\s*=\s*([\'"])(.*?)\2/is', $attrs, $dm, PREG_SET_ORDER ) ) {
+								foreach ( $dm as $pair ) {
+									$out .= ' ' . $pair[1] . '="' . esc_attr( $pair[3] ) . '"';
+								}
+							}
+							$out .= '>';
 							$out .= $src ? '' : $body;
 							$out .= '</script>';
 							return $out;
@@ -653,10 +899,7 @@ class Script_Blocker {
 					'#<iframe([^>]*' . preg_quote( $pattern, '#' ) . '[^>]*)>.*?</iframe>#is',
 					static function ( $m ) use ( $key, $category ) {
 						$attrs = $m[1];
-						$src   = '';
-						if ( preg_match( '/\bsrc\s*=\s*([\'"])(.*?)\1/i', $attrs, $sm ) ) {
-							$src = $sm[2];
-						}
+						$src   = self::extract_iframe_embed_src( $attrs );
 						return '<div class="ucpf-iframe-placeholder" data-ucpf-category="' . esc_attr( $category ) . '" data-ucpf-service="' . esc_attr( $key ) . '" data-src="' . esc_url( $src ) . '"></div>';
 					},
 					$html,
@@ -669,27 +912,350 @@ class Script_Blocker {
 		}
 
 		// Safe mode without catalog iframe patterns: still catch allowlisted hosts.
+		// Skip when Marketing+Embeds already granted (Accept reload / returning visitor).
+		// Never convert YouTube/Vimeo to placeholders — soft_defer_video_iframes_inplace parks in place.
 		if ( $safe_ob ) {
-			foreach ( $safe_hosts as $host ) {
-				$replaced = preg_replace_callback(
-					'#<iframe([^>]*' . preg_quote( $host, '#' ) . '[^>]*)>.*?</iframe>#is',
-					static function ( $m ) {
-						$attrs = $m[1];
-						$src   = '';
-						if ( preg_match( '/\bsrc\s*=\s*([\'"])(.*?)\1/i', $attrs, $sm ) ) {
-							$src = $sm[2];
+			$embeds_ok = function_exists( 'ucpf_has_consent' )
+				&& ucpf_has_consent( 'marketing' )
+				&& ucpf_has_consent( 'functional' );
+			if ( ! $embeds_ok ) {
+				$video_hosts = array( 'youtube.com', 'youtube-nocookie.com', 'youtu.be', 'vimeo.com', 'player.vimeo.com' );
+				foreach ( $safe_hosts as $host ) {
+					$is_video = false;
+					foreach ( $video_hosts as $vh ) {
+						if ( false !== stripos( $host, $vh ) || false !== stripos( $vh, $host ) ) {
+							$is_video = true;
+							break;
 						}
-						return '<div class="ucpf-iframe-placeholder" data-ucpf-category="marketing" data-ucpf-service="safe_iframe" data-src="' . esc_url( $src ) . '"></div>';
-					},
-					$html,
-					30
-				);
-				if ( is_string( $replaced ) ) {
-					$html = $replaced;
+					}
+					if ( $is_video ) {
+						continue;
+					}
+					$replaced = preg_replace_callback(
+						'#<iframe([^>]*' . preg_quote( $host, '#' ) . '[^>]*)>.*?</iframe>#is',
+						static function ( $m ) {
+							$attrs = $m[1];
+							$src   = self::extract_iframe_embed_src( $attrs );
+							return '<div class="ucpf-iframe-placeholder" data-ucpf-category="marketing" data-ucpf-service="safe_iframe" data-src="' . esc_url( $src ) . '"></div>';
+						},
+						$html,
+						30
+					);
+					if ( is_string( $replaced ) ) {
+						$html = $replaced;
+					}
 				}
 			}
 		}
 
+		// Elementor HTML / custom-code CF Web Analytics embeds (also when full OB skipped scripts).
+		$html = self::soft_defer_video_iframes_inplace( $html );
+		$html = self::soft_defer_cloudflare_web_analytics( $html );
+		$html = self::soft_defer_optimizer_escaped_trackers( $html );
 		return $html;
+	}
+
+	/**
+	 * Lightweight iframe-only soft-defer for oversized HTML (Elementor etc.).
+	 * Parks YouTube/Vimeo/maps iframes so third-party cookies (e.g. vuid) cannot
+	 * set before consent when full OB rewriting is skipped for performance.
+	 *
+	 * @param string $html HTML.
+	 * @return string
+	 */
+	private static function soft_defer_safe_iframes_only( $html ) {
+		$do_extra = (bool) Settings::get( 'output_buffer_safe_iframes' ) || (bool) Settings::get( 'output_buffer_blocking' );
+
+		// Always soft-defer YouTube/Vimeo in place (keep Elementor open-inline wrappers).
+		// Replacing with <div class="ucpf-iframe-placeholder"> collapses the Resources
+		// Quick Tip grid and breaks post-consent hydrate.
+		$html = self::soft_defer_video_iframes_inplace( $html );
+
+		if ( $do_extra ) {
+			// Maps / CTCT: leave live when Marketing+Embeds already granted.
+			$embeds_ok = function_exists( 'ucpf_has_consent' )
+				&& ucpf_has_consent( 'marketing' )
+				&& ucpf_has_consent( 'functional' );
+			if ( ! $embeds_ok ) {
+				$hosts = array(
+					'google.com/maps',
+					'maps.google.com',
+					'www.google.com/maps',
+					'static.ctctcdn.com',
+				);
+				$start = microtime( true );
+				foreach ( $hosts as $host ) {
+					if ( ( microtime( true ) - $start ) > 0.4 ) {
+						break;
+					}
+					$cat = ( false !== strpos( $host, 'maps' ) ) ? 'functional' : 'marketing';
+					$svc = ( false !== strpos( $host, 'ctct' ) ) ? 'constant_contact' : 'safe_iframe';
+					$replaced = preg_replace_callback(
+						'#<iframe([^>]*' . preg_quote( $host, '#' ) . '[^>]*)>.*?</iframe>#is',
+						static function ( $m ) use ( $cat, $svc ) {
+							$attrs = $m[1];
+							$src   = self::extract_iframe_embed_src( $attrs );
+							return '<div class="ucpf-iframe-placeholder" data-ucpf-category="' . esc_attr( $cat ) . '" data-ucpf-service="' . esc_attr( $svc ) . '" data-src="' . esc_url( $src ) . '"></div>';
+						},
+						$html,
+						40
+					);
+					if ( is_string( $replaced ) ) {
+						$html = $replaced;
+					}
+				}
+			}
+		}
+
+		$html = self::soft_defer_cloudflare_web_analytics( $html );
+		$html = self::soft_defer_optimizer_escaped_trackers( $html );
+		return $html;
+	}
+
+	/**
+	 * Park known tracker script tags that optimizers rewrote to hashed first-party URLs.
+	 * Catalog URL patterns miss /hummingbird-assets/{hash}.js — match WP id/handle instead.
+	 *
+	 * @param string $html HTML.
+	 * @return string
+	 */
+	private static function soft_defer_optimizer_escaped_trackers( $html ) {
+		if ( ! is_string( $html ) || '' === $html ) {
+			return $html;
+		}
+		// Already consented marketing — leave live (Accept reload / remembered choice).
+		if ( function_exists( 'ucpf_has_consent' ) && ucpf_has_consent( 'marketing' ) ) {
+			return $html;
+		}
+		if (
+			false === stripos( $html, 'mailchimp-woocommerce' ) &&
+			false === stripos( $html, 'mailchimp_woocommerce' ) &&
+			false === stripos( $html, 'chimpstatic.com' )
+		) {
+			return $html;
+		}
+		$replaced = preg_replace_callback(
+			'#<script([^>]*(?:id\s*=\s*[\'"][^\'"]*mailchimp[-_]woocommerce[^\'"]*[\'"]|mailchimp-for-woocommerce|chimpstatic\.com)[^>]*)>(.*?)</script>#is',
+			static function ( $m ) {
+				$attrs = $m[1];
+				$body  = $m[2];
+				if ( preg_match( '/\bdata-ucpf-(?:gated|service)\s*=/i', $attrs ) || preg_match( '/\btype\s*=\s*[\'"]text\/plain[\'"]/i', $attrs ) ) {
+					return $m[0];
+				}
+				$src = '';
+				if ( preg_match( '/\bsrc\s*=\s*([\'"])(.*?)\1/i', $attrs, $sm ) ) {
+					$src = $sm[2];
+				}
+				// Inline wp_localize extras (…-js-extra) have no src — leave alone.
+				if ( '' === $src && ( false !== stripos( $attrs, '-js-extra' ) || false !== stripos( $attrs, 'js-extra' ) ) ) {
+					return $m[0];
+				}
+				if ( '' === $src && '' === trim( (string) $body ) ) {
+					return $m[0];
+				}
+				$out  = '<script type="text/plain" data-ucpf-category="marketing" data-ucpf-service="mailchimp" data-ucpf-gated="1"';
+				if ( '' !== $src ) {
+					$out .= ' data-src="' . esc_url( $src ) . '"';
+				}
+				foreach ( array( 'id', 'async', 'defer', 'crossorigin', 'integrity', 'nonce', 'nomodule', 'referrerpolicy' ) as $keep ) {
+					if ( preg_match( '/\b' . preg_quote( $keep, '/' ) . '\s*=\s*([\'"])(.*?)\1/i', $attrs, $km ) ) {
+						$out .= ' ' . $keep . '="' . esc_attr( $km[2] ) . '"';
+					} elseif ( preg_match( '/\b' . preg_quote( $keep, '/' ) . '\b(?!\s*=)/i', $attrs ) ) {
+						$out .= ' ' . $keep;
+					}
+				}
+				$out .= '>';
+				$out .= $src ? '' : $body;
+				$out .= '</script>';
+				return $out;
+			},
+			$html,
+			40
+		);
+		return is_string( $replaced ) ? $replaced : $html;
+	}
+
+	/**
+	 * Soft-defer YouTube/Vimeo iframes without destroying the Elementor widget shell.
+	 * Smush uses src=data:svg + data-src=player.vimeo.com — park the real URL and
+	 * strip lazyload classes so Smush cannot promote the player before consent.
+	 *
+	 * @param string $html HTML.
+	 * @return string
+	 */
+	private static function soft_defer_video_iframes_inplace( $html ) {
+		if ( ! is_string( $html ) || '' === $html ) {
+			return $html;
+		}
+		// Already consented (Accept reload / remembered choice): leave live src alone.
+		// Re-parking empty iframes forces Elementor runReadyTrigger races that re-stick
+		// .elementor-invisible on Resources Quick Tips and other fade-in sections.
+		if (
+			function_exists( 'ucpf_has_consent' ) &&
+			ucpf_has_consent( 'marketing' ) &&
+			ucpf_has_consent( 'functional' )
+		) {
+			return $html;
+		}
+		if (
+			false === stripos( $html, 'player.vimeo.com' ) &&
+			false === stripos( $html, 'youtube.com/embed' ) &&
+			false === stripos( $html, 'youtube-nocookie.com' ) &&
+			false === stripos( $html, 'youtu.be/' )
+		) {
+			return $html;
+		}
+		$replaced = preg_replace_callback(
+			'#<iframe([^>]*(?:player\.vimeo\.com|youtube\.com/embed|youtube-nocookie\.com|youtu\.be/)[^>]*)>.*?</iframe>#is',
+			static function ( $m ) {
+				$attrs = $m[1];
+				if ( preg_match( '/\bdata-ucpf-gated\s*=/i', $attrs ) ) {
+					return $m[0];
+				}
+				$src = self::extract_iframe_embed_src( $attrs );
+				$src = html_entity_decode( (string) $src, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+				if ( '' === $src || self::is_placeholder_embed_src( $src ) ) {
+					return $m[0];
+				}
+				$is_vimeo = ( false !== stripos( $src, 'vimeo' ) );
+				$cat      = $is_vimeo ? 'functional' : 'marketing';
+				$svc      = $is_vimeo ? 'vimeo' : 'youtube';
+
+				$class = '';
+				if ( preg_match( '/\bclass\s*=\s*([\'"])(.*?)\1/i', $attrs, $cm ) ) {
+					$class = preg_replace( '/\b(lazyload|lazyloaded|lazyloading)\b/i', '', $cm[2] );
+				}
+				$class = trim( preg_replace( '/\s+/', ' ', (string) $class ) );
+				if ( ! preg_match( '/\bno-lazyload\b/i', $class ) ) {
+					$class = trim( $class . ' no-lazyload skip-lazy' );
+				}
+
+				$out  = '<iframe';
+				$out .= ' class="' . esc_attr( $class ) . '"';
+				$out .= ' data-src="' . esc_attr( $src ) . '"';
+				$out .= ' data-ucpf-category="' . esc_attr( $cat ) . '"';
+				$out .= ' data-ucpf-service="' . esc_attr( $svc ) . '"';
+				$out .= ' data-ucpf-gated="1"';
+				$out .= ' data-no-lazyload="1" data-skip-lazy-load="1"';
+				foreach ( array( 'id', 'title', 'allow', 'allowfullscreen', 'width', 'height', 'frameborder', 'loading', 'referrerpolicy', 'data-load-mode' ) as $keep ) {
+					if ( preg_match( '/\b' . preg_quote( $keep, '/' ) . '\s*=\s*([\'"])(.*?)\1/i', $attrs, $km ) ) {
+						$out .= ' ' . $keep . '="' . esc_attr( $km[2] ) . '"';
+					} elseif ( preg_match( '/\b' . preg_quote( $keep, '/' ) . '\b(?!\s*=)/i', $attrs ) ) {
+						$out .= ' ' . $keep;
+					}
+				}
+				$out .= '></iframe>';
+				return $out;
+			},
+			$html,
+			40
+		);
+		return is_string( $replaced ) ? $replaced : $html;
+	}
+
+	/**
+	 * Park Cloudflare Web Analytics beacon (Elementor HTML / custom code embeds).
+	 * Always applied in safe-iframe mode and as a belt for full OB — CF Insights
+	 * is optional analytics, not NS/CDN/challenge infrastructure.
+	 *
+	 * @param string $html HTML.
+	 * @return string
+	 */
+	private static function soft_defer_cloudflare_web_analytics( $html ) {
+		if ( ! is_string( $html ) || '' === $html ) {
+			return $html;
+		}
+		if ( false === stripos( $html, 'cloudflareinsights.com' ) && false === stripos( $html, 'cdn-cgi/rum' ) ) {
+			return $html;
+		}
+		// Already consented analytics — leave beacon live (Accept reload / remembered choice).
+		if ( function_exists( 'ucpf_has_consent' ) && ucpf_has_consent( 'analytics' ) ) {
+			return $html;
+		}
+		$replaced = preg_replace_callback(
+			'#<script([^>]*(?:static\.cloudflareinsights\.com|cloudflareinsights\.com|/cdn-cgi/rum)[^>]*)>(.*?)</script>#is',
+			static function ( $m ) {
+				$attrs = $m[1];
+				$body  = $m[2];
+				// Already parked by catalog OB or prior pass.
+				if ( preg_match( '/\bdata-ucpf-gated\s*=/i', $attrs ) || preg_match( '/\btype\s*=\s*[\'"]text\/plain[\'"]/i', $attrs ) ) {
+					return $m[0];
+				}
+				$src = '';
+				if ( preg_match( '/\bsrc\s*=\s*([\'"])(.*?)\1/i', $attrs, $sm ) ) {
+					$src = $sm[2];
+				}
+				$orig_type = '';
+				if ( preg_match( '/\btype\s*=\s*([\'"])(.*?)\1/i', $attrs, $tm ) ) {
+					$ot = strtolower( trim( (string) $tm[2] ) );
+					if ( 'module' === $ot || 'importmap' === $ot ) {
+						$orig_type = $ot;
+					}
+				}
+				$out  = '<script type="text/plain" data-ucpf-category="analytics" data-ucpf-service="cloudflare_web_analytics" data-ucpf-gated="1"';
+				$out .= ' data-src="' . esc_url( $src ) . '"';
+				if ( '' !== $orig_type ) {
+					$out .= ' data-ucpf-original-type="' . esc_attr( $orig_type ) . '"';
+				}
+				foreach ( array( 'id', 'async', 'defer', 'crossorigin', 'integrity', 'nonce', 'nomodule', 'referrerpolicy' ) as $keep ) {
+					if ( preg_match( '/\b' . preg_quote( $keep, '/' ) . '\s*=\s*([\'"])(.*?)\1/i', $attrs, $km ) ) {
+						$out .= ' ' . $keep . '="' . esc_attr( $km[2] ) . '"';
+					} elseif ( preg_match( '/\b' . preg_quote( $keep, '/' ) . '\b(?!\s*=)/i', $attrs ) ) {
+						$out .= ' ' . $keep;
+					}
+				}
+				if ( preg_match_all( '/\b(data-cf-beacon|data-cf-[a-z0-9_-]+)\s*=\s*([\'"])(.*?)\2/is', $attrs, $dm, PREG_SET_ORDER ) ) {
+					foreach ( $dm as $pair ) {
+						$out .= ' ' . $pair[1] . '="' . esc_attr( $pair[3] ) . '"';
+					}
+				}
+				$out .= '>';
+				$out .= $src ? '' : $body;
+				$out .= '</script>';
+				return $out;
+			},
+			$html,
+			20
+		);
+		return is_string( $replaced ) ? $replaced : $html;
+	}
+
+	/**
+	 * True for lazy-load placeholder iframe src values.
+	 *
+	 * @param string $url URL or src value.
+	 * @return bool
+	 */
+	private static function is_placeholder_embed_src( $url ) {
+		$url = trim( (string) $url );
+		if ( '' === $url || 'about:blank' === $url ) {
+			return true;
+		}
+		$lower = strtolower( $url );
+		return 0 === strpos( $lower, 'data:' ) || 0 === strpos( $lower, 'blob:' );
+	}
+
+	/**
+	 * Extract real iframe embed URL from attributes (data-src when src is placeholder).
+	 *
+	 * @param string $attrs Raw iframe attribute string.
+	 * @return string
+	 */
+	private static function extract_iframe_embed_src( $attrs ) {
+		$src = '';
+		if ( preg_match( '/\bsrc\s*=\s*([\'"])(.*?)\1/i', $attrs, $sm ) ) {
+			$src = $sm[2];
+		}
+		if ( ! self::is_placeholder_embed_src( $src ) ) {
+			return $src;
+		}
+		foreach ( array( 'data-src', 'data-lazy-src' ) as $attr ) {
+			if ( preg_match( '/\b' . preg_quote( $attr, '/' ) . '\s*=\s*([\'"])(.*?)\1/i', $attrs, $dm ) ) {
+				if ( ! self::is_placeholder_embed_src( $dm[2] ) ) {
+					return $dm[2];
+				}
+			}
+		}
+		return $src;
 	}
 }

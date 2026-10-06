@@ -26,6 +26,41 @@ class Settings {
 	private static $internal_update = false;
 
 	/**
+	 * Request-level cache of raw option row, keyed by blog ID.
+	 *
+	 * @var array<int, array>
+	 */
+	private static $raw_cache = array();
+
+	/**
+	 * Request-level cache of defaults().
+	 *
+	 * @var array|null
+	 */
+	private static $defaults_cache = null;
+
+	/**
+	 * Request-level cache of revealed merged settings, keyed by blog ID.
+	 *
+	 * @var array<int, array>
+	 */
+	private static $merged_cache = array();
+
+	/**
+	 * Per-key get() memo for this request, keyed by blog ID then setting key.
+	 *
+	 * @var array<int, array<string, mixed>>
+	 */
+	private static $get_cache = array();
+
+	/**
+	 * Whether option-write flush hooks are registered.
+	 *
+	 * @var bool
+	 */
+	private static $hooks_registered = false;
+
+	/**
 	 * Whether an internal Settings::update is in progress.
 	 *
 	 * @return bool
@@ -40,7 +75,10 @@ class Settings {
 	 * @return array
 	 */
 	public static function defaults() {
-		return array(
+		if ( null !== self::$defaults_cache ) {
+			return self::$defaults_cache;
+		}
+		self::$defaults_cache = array(
 			'compliance_mode'           => 'strict_gdpr',
 			'geo_jurisdiction_routing'  => false,
 			'agency_preset_applied'     => false,
@@ -107,6 +145,7 @@ class Settings {
 			'generated_pages'           => array(),
 			'delete_data_on_uninstall'  => false,
 			'legal_retention_days'      => 365,
+			'ai_image_disclosure'       => 'off',
 			'scanner_api_url'           => '',
 			'scanner_api_key'           => '',
 			'registry_mode'             => 'local',
@@ -124,6 +163,7 @@ class Settings {
 			'cloudflare_purge_on_ucpf_update'=> true,
 			'elementor_clear_css_on_updates' => true,
 		);
+		return self::$defaults_cache;
 	}
 
 	/**
@@ -136,13 +176,82 @@ class Settings {
 	}
 
 	/**
+	 * Current blog id for cache keys (1 on single-site).
+	 *
+	 * @return int
+	 */
+	private static function cache_blog_id() {
+		return function_exists( 'get_current_blog_id' ) ? (int) get_current_blog_id() : 1;
+	}
+
+	/**
+	 * Register flush hooks once (switch_blog + direct option writes).
+	 *
+	 * @return void
+	 */
+	public static function register_cache_hooks() {
+		if ( self::$hooks_registered ) {
+			return;
+		}
+		self::$hooks_registered = true;
+		add_action( 'switch_blog', array( __CLASS__, 'flush_runtime_cache' ), 0 );
+		add_action( 'updated_option', array( __CLASS__, 'on_option_changed' ), 0, 1 );
+		add_action( 'added_option', array( __CLASS__, 'on_option_changed' ), 0, 1 );
+		add_action( 'deleted_option', array( __CLASS__, 'on_option_changed' ), 0, 1 );
+	}
+
+	/**
+	 * Flush memo when ucpf_settings is written outside Settings::update().
+	 *
+	 * @param string $option Option name.
+	 * @return void
+	 */
+	public static function on_option_changed( $option ) {
+		if ( self::OPTION_KEY === $option ) {
+			self::flush_runtime_cache();
+		}
+	}
+
+	/**
+	 * Clear request-level settings memo (call after writes / blog switch).
+	 *
+	 * @return void
+	 */
+	public static function flush_runtime_cache() {
+		self::$raw_cache    = array();
+		self::$merged_cache = array();
+		self::$get_cache    = array();
+		// Keep defaults_cache — immutable for the process.
+	}
+
+	/**
 	 * Raw option row as stored (secrets may be sealed). Prefer all() / get().
 	 *
 	 * @return array
 	 */
 	public static function raw() {
-		$stored = get_option( self::OPTION_KEY, array() );
-		return is_array( $stored ) ? $stored : array();
+		self::register_cache_hooks();
+		$blog = self::cache_blog_id();
+		if ( isset( self::$raw_cache[ $blog ] ) ) {
+			return self::$raw_cache[ $blog ];
+		}
+		$stored                      = get_option( self::OPTION_KEY, array() );
+		self::$raw_cache[ $blog ]    = is_array( $stored ) ? $stored : array();
+		return self::$raw_cache[ $blog ];
+	}
+
+	/**
+	 * Revealed settings merged with defaults (blog option only; no network inheritance).
+	 *
+	 * @return array
+	 */
+	private static function merged_revealed() {
+		$blog = self::cache_blog_id();
+		if ( isset( self::$merged_cache[ $blog ] ) ) {
+			return self::$merged_cache[ $blog ];
+		}
+		self::$merged_cache[ $blog ] = Secrets::reveal_in_array( wp_parse_args( self::raw(), self::defaults() ) );
+		return self::$merged_cache[ $blog ];
 	}
 
 	/**
@@ -152,8 +261,7 @@ class Settings {
 	 * @return array
 	 */
 	public static function all() {
-		$merged = wp_parse_args( self::raw(), self::defaults() );
-		$merged = Secrets::reveal_in_array( $merged );
+		$merged = self::merged_revealed();
 		if ( is_multisite() ) {
 			foreach ( Network_Settings::KEYS as $key ) {
 				$merged[ $key ] = self::get( $key, isset( $merged[ $key ] ) ? $merged[ $key ] : null );
@@ -205,9 +313,19 @@ class Settings {
 	 * @return mixed
 	 */
 	public static function get( $key, $default = null ) {
+		self::register_cache_hooks();
+		$blog = self::cache_blog_id();
+		if ( ! isset( self::$get_cache[ $blog ] ) ) {
+			self::$get_cache[ $blog ] = array();
+		}
+		if ( array_key_exists( $key, self::$get_cache[ $blog ] ) ) {
+			return self::$get_cache[ $blog ][ $key ];
+		}
+
 		if ( Secrets::is_secret_key( $key ) ) {
 			$from_const = Secrets::constant_value( $key );
 			if ( null !== $from_const ) {
+				self::$get_cache[ $blog ][ $key ] = $from_const;
 				return $from_const;
 			}
 		}
@@ -219,43 +337,59 @@ class Settings {
 		if ( $network ) {
 			if ( array_key_exists( $key, $raw ) && ! Network_Settings::is_blank_value( $key, $raw[ $key ] ) ) {
 				if ( 'privacy_fail_closed' === $key || 'remote_registry_enabled' === $key ) {
-					return (bool) $raw[ $key ];
+					$value = (bool) $raw[ $key ];
+					self::$get_cache[ $blog ][ $key ] = $value;
+					return $value;
 				}
 				if ( Secrets::is_secret_key( $key ) ) {
-					return Secrets::reveal( (string) $raw[ $key ] );
+					$value = Secrets::reveal( (string) $raw[ $key ] );
+					self::$get_cache[ $blog ][ $key ] = $value;
+					return $value;
 				}
-				return is_string( $raw[ $key ] ) ? $raw[ $key ] : $raw[ $key ];
+				$value = is_string( $raw[ $key ] ) ? $raw[ $key ] : $raw[ $key ];
+				self::$get_cache[ $blog ][ $key ] = $value;
+				return $value;
 			}
 			$from_net = Network_Settings::get( $key );
 			if ( null !== $from_net ) {
+				self::$get_cache[ $blog ][ $key ] = $from_net;
 				return $from_net;
 			}
 			if ( 'scanner_api_url' === $key ) {
 				$brand = Brand::config();
 				if ( ! empty( $brand['scanner_api_url'] ) ) {
-					return esc_url_raw( (string) $brand['scanner_api_url'] );
+					$value = esc_url_raw( (string) $brand['scanner_api_url'] );
+					self::$get_cache[ $blog ][ $key ] = $value;
+					return $value;
 				}
 			}
 			if ( array_key_exists( $key, $defaults ) ) {
+				self::$get_cache[ $blog ][ $key ] = $defaults[ $key ];
 				return $defaults[ $key ];
 			}
+			self::$get_cache[ $blog ][ $key ] = $default;
 			return $default;
 		}
 
-		$merged = Secrets::reveal_in_array( wp_parse_args( $raw, $defaults ) );
+		$merged = self::merged_revealed();
 		if ( array_key_exists( $key, $merged ) ) {
 			$value = $merged[ $key ];
 			if ( 'scanner_api_url' === $key && ( '' === $value || null === $value ) ) {
 				$brand = Brand::config();
 				if ( ! empty( $brand['scanner_api_url'] ) ) {
-					return esc_url_raw( (string) $brand['scanner_api_url'] );
+					$value = esc_url_raw( (string) $brand['scanner_api_url'] );
+					self::$get_cache[ $blog ][ $key ] = $value;
+					return $value;
 				}
 			}
+			self::$get_cache[ $blog ][ $key ] = $value;
 			return $value;
 		}
 		if ( null === $default && array_key_exists( $key, $defaults ) ) {
+			self::$get_cache[ $blog ][ $key ] = $defaults[ $key ];
 			return $defaults[ $key ];
 		}
+		self::$get_cache[ $blog ][ $key ] = $default;
 		return $default;
 	}
 
@@ -286,6 +420,7 @@ class Settings {
 
 			// update_option returns false when WordPress thinks the value is unchanged.
 			// Verify critical keys actually stuck; force-write if not.
+			self::flush_runtime_cache();
 			$raw_after = self::raw();
 			foreach ( $filtered as $key => $want ) {
 				$have = array_key_exists( $key, $raw_after ) ? $raw_after[ $key ] : null;
@@ -297,10 +432,12 @@ class Settings {
 					continue;
 				}
 				update_option( self::OPTION_KEY, $merged );
+				self::flush_runtime_cache();
 				break;
 			}
 		} finally {
 			self::$internal_update = false;
+			self::flush_runtime_cache();
 		}
 
 		return true;

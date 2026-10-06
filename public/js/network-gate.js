@@ -6,10 +6,185 @@
 (function () {
   'use strict';
 
+  /**
+   * ALWAYS run (even if network-gate already booted via SiteGround/Hummingbird duplicate).
+   * GF PayPal Checkout must stay loaded, but PayPal SDK is soft-deferred until Embeds.
+   * Without this gate, `new GFPPCP` throws / re-inits and stacks duplicate button hosts.
+   * Do NOT patch jQuery.fn.trigger (that broke Accept/Reject).
+   */
+  (function installGfppcpPaypalReadyGate() {
+    if (window.__ucpfGfppcpPaypalGateInstalled) {
+      return;
+    }
+    window.__ucpfGfppcpPaypalGateInstalled = true;
+
+    var pending = [];
+    var started = false;
+    var OrigCtor = null;
+
+    function paypalReady() {
+      return !!(
+        window.paypal &&
+        (window.paypal.Buttons || window.paypal.HostedFields || window.paypal.version)
+      );
+    }
+
+    function buttonsLive() {
+      try {
+        return !!document.querySelector(
+          '.gform_ppcp_smart_payment_buttons .paypal-buttons iframe, [id^="gform_ppcp_smart_payment_buttons"] .paypal-buttons iframe'
+        );
+      } catch (eL) {
+        return false;
+      }
+    }
+
+
+    function wrapCtor(Orig) {
+      if (!Orig || typeof Orig !== 'function' || Orig.__ucpfPaypalGated) {
+        return Orig;
+      }
+      function GatedGFPPCP(config) {
+        if (!paypalReady()) {
+          pending.push({ config: config });
+          this.__ucpfWaitingPaypal = true;
+          return;
+        }
+        // One construct only. Do not touch PayPal DOM (pruning broke live buttons).
+        if (started || buttonsLive()) {
+          this.__ucpfSkippedDup = true;
+          return;
+        }
+        started = true;
+        try {
+          return Orig.apply(this, arguments);
+        } catch (eCtor) {
+          started = false;
+          throw eCtor;
+        }
+      }
+      GatedGFPPCP.prototype = Orig.prototype;
+      GatedGFPPCP.__ucpfPaypalGated = true;
+      GatedGFPPCP.__ucpfOrig = Orig;
+      try {
+        Object.keys(Orig).forEach(function (k) {
+          try {
+            GatedGFPPCP[k] = Orig[k];
+          } catch (eCopy) { /* ignore */ }
+        });
+      } catch (eKeys) { /* ignore */ }
+      return GatedGFPPCP;
+    }
+
+    function flushPending() {
+      if (!paypalReady()) {
+        return 0;
+      }
+      if (started || buttonsLive()) {
+        pending.length = 0;
+        return 0;
+      }
+      var batch = pending.splice(0, pending.length);
+      if (!batch.length) {
+        return 0;
+      }
+      var ctor = OrigCtor;
+      if (!ctor && window.GFPPCP && window.GFPPCP.__ucpfOrig) {
+        ctor = window.GFPPCP.__ucpfOrig;
+      }
+      if (!ctor && typeof window.GFPPCP === 'function' && !window.GFPPCP.__ucpfPaypalGated) {
+        ctor = window.GFPPCP;
+      }
+      if (!ctor) {
+        return 0;
+      }
+      try {
+        started = true;
+        var use = ctor.__ucpfOrig || ctor;
+        // eslint-disable-next-line new-cap
+        new use(batch[0].config);
+        return 1;
+      } catch (eFlush) {
+        started = false;
+        return 0;
+      }
+    }
+
+    window.__ucpfFlushGfppcpAfterPaypal = flushPending;
+
+    try {
+      window.addEventListener('ucpf:consent:changed', function () {
+        try {
+          var cats =
+            (window.UCPF && typeof window.UCPF.getConsent === 'function' && window.UCPF.getConsent().categories) ||
+            {};
+          if (!cats.functional) {
+            started = false;
+            pending.length = 0;
+          }
+        } catch (eReset) { /* ignore */ }
+      });
+    } catch (eListen) { /* ignore */ }
+
+    try {
+      var held = typeof window.GFPPCP === 'function' ? wrapCtor(window.GFPPCP) : undefined;
+      if (typeof window.GFPPCP === 'function') {
+        OrigCtor = window.GFPPCP.__ucpfOrig || window.GFPPCP;
+      }
+      Object.defineProperty(window, 'GFPPCP', {
+        configurable: true,
+        enumerable: true,
+        get: function () {
+          return held;
+        },
+        set: function (v) {
+          if (typeof v === 'function') {
+            OrigCtor = v.__ucpfOrig || v;
+            held = wrapCtor(v);
+          } else {
+            held = v;
+          }
+        },
+      });
+    } catch (eDef) {
+      var tries = 0;
+      var poll = window.setInterval(function () {
+        tries += 1;
+        try {
+          if (typeof window.GFPPCP === 'function' && !window.GFPPCP.__ucpfPaypalGated) {
+            OrigCtor = window.GFPPCP;
+            window.GFPPCP = wrapCtor(window.GFPPCP);
+          }
+        } catch (ePoll) { /* ignore */ }
+        if ((window.GFPPCP && window.GFPPCP.__ucpfPaypalGated) || tries > 80) {
+          window.clearInterval(poll);
+        }
+      }, 50);
+    }
+  })();
+
   if (window.__ucpfNetworkGate) {
     return;
   }
   window.__ucpfNetworkGate = true;
+
+  // Nextend Smart Slider (and similar) call customElements.define on every script exec.
+  // Consent activate / map-style refire / duplicate parked copies can load them twice;
+  // re-define throws and aborts init (hero stays blank). Make define idempotent early.
+  try {
+    if (typeof customElements !== 'undefined' && customElements.define && !customElements.__ucpfDefinePatched) {
+      var nativeCeDefine = customElements.define.bind(customElements);
+      customElements.define = function (name, ctor, options) {
+        try {
+          if (name && typeof customElements.get === 'function' && customElements.get(name)) {
+            return;
+          }
+        } catch (eGet) { /* fall through to native */ }
+        return nativeCeDefine(name, ctor, options);
+      };
+      customElements.__ucpfDefinePatched = true;
+    }
+  } catch (eCePatch) { /* ignore */ }
 
   var COOKIE_NAME = 'ucpf_consent';
 
@@ -102,12 +277,17 @@
     // Privacy_State marks functional/marketing true whenever GPC is absent; that
     // must not bypass opt-in (GDPR / US baseline) before the visitor chooses.
     var consentType = String(window.__ucpfConsentType || 'optin').toLowerCase();
+    // Opt-in: pack category_defaults (often security:true) are for UI hints / opt-out
+    // models — never a pre-consent free pass for captcha or other optional scripts.
+    if (consentType === 'optin' || consentType === 'opt-in') {
+      return category === 'necessary';
+    }
     var defaults = window.__ucpfCategoryDefaults || null;
     if (defaults && Object.prototype.hasOwnProperty.call(defaults, category)) {
       return !!defaults[category];
     }
-    // optout: allow until declined; optin: deny until accepted.
-    if (consentType === 'optout') {
+    // optout: allow until declined; optin handled above.
+    if (consentType === 'optout' || consentType === 'opt-out') {
       return !(window.__ucpfPrivacy && window.__ucpfPrivacy[category] === false);
     }
     return false;
@@ -169,6 +349,10 @@
       '/wp-content/plugins/elementskit',
       '/wp-content/plugins/header-footer-elementor',
       '/wp-content/uploads/elementor/',
+      '/wp-content/plugins/smart-slider-3/',
+      '/wp-content/plugins/smart-slider-3-pro/',
+      'n2.min.js',
+      'smartslider-frontend',
       'jquery.min.js',
       'jquery.js',
       'jquery-migrate',
@@ -177,6 +361,29 @@
       if (needles[i] && u.indexOf(needles[i]) !== -1) {
         return true;
       }
+    }
+    return false;
+  }
+
+  /**
+   * Site media CDNs / mirrored uploads — never consent-gate.
+   * Smush (assetcdn.net) and Jetpack Photon host WP media off-origin; Image src/srcset
+   * hooks must not fail-closed those swaps as unknown third-party Marketing trackers.
+   */
+  function isSiteMediaUrl(url) {
+    if (!url || typeof url !== 'string') {
+      return false;
+    }
+    var u = url.toLowerCase();
+    if (u.indexOf('/wp-content/uploads/') !== -1) {
+      return true;
+    }
+    if (u.indexOf('assetcdn.net') !== -1) {
+      return true;
+    }
+    // Jetpack Photon: i0.wp.com, i1.wp.com, …
+    if (/\/\/i\d+\.wp\.com(\/|$)/.test(u)) {
+      return true;
     }
     return false;
   }
@@ -236,13 +443,53 @@
       u.indexOf('newassets.hcaptcha.com') !== -1 ||
       u.indexOf('challenges.cloudflare.com') !== -1 ||
       u.indexOf('friendlycaptcha.com') !== -1 ||
-      u.indexOf('friendly-challenge') !== -1
+      u.indexOf('friendly-challenge') !== -1 ||
+      // First-party captcha plugins (invisible reCAPTCHA for Woo/GF — no google.com URL).
+      u.indexOf('recaptcha-woo') !== -1 ||
+      u.indexOf('/rcfwc.js') !== -1 ||
+      u.indexOf('recaptcha-for-woocommerce') !== -1 ||
+      u.indexOf('woocommerce-recaptcha') !== -1
     ) {
       return 'security';
     }
 
-    // Functional: maps / embeds / widgets until Embeds consent (fonts allowlisted above).
+    // Cloudflare Web Analytics (edge-injected type=module beacon) — analytics, not NS/CDN.
+    // Keep challenges.cloudflare.com / __cf_bm / cdn-cgi/challenge as security/necessary elsewhere.
     if (
+      u.indexOf('static.cloudflareinsights.com') !== -1 ||
+      u.indexOf('cloudflareinsights.com') !== -1 ||
+      u.indexOf('/cdn-cgi/rum') !== -1 ||
+      (u.indexOf('cloudflare.com/cdn-cgi/') !== -1 && u.indexOf('rum') !== -1)
+    ) {
+      return 'analytics';
+    }
+
+    // First-party Zoom / VCZAPI (same-origin plugin assets) — Embeds.
+    if (
+      u.indexOf('video-conferencing-with-zoom-api') !== -1 ||
+      u.indexOf('vczapi-pro') !== -1 ||
+      u.indexOf('vczapi-woocommerce') !== -1 ||
+      u.indexOf('/vczapi/') !== -1
+    ) {
+      return 'functional';
+    }
+
+    // Google Site Kit analytics bundles (keep consent-mode bridge ungated).
+    if (u.indexOf('googlesitekit-consent-mode') !== -1 || (u.indexOf('google-site-kit/') !== -1 && u.indexOf('consent-mode') !== -1)) {
+      return null;
+    }
+    if (
+      (u.indexOf('google-site-kit/') !== -1 || u.indexOf('googlesitekit-') !== -1) &&
+      u.indexOf('consent-mode') === -1
+    ) {
+      return 'analytics';
+    }
+
+    // Functional: maps / embeds / widgets until Embeds consent (fonts allowlisted above).
+    // GSAP / Lottie are handled by isPresentationLibUrl (never gated) — do not classify here.
+    if (
+      // Lottie still listed for inventory classify when needed — but shouldBlockUrl allows via isPresentationLibUrl.
+      // Prefer maps / embeds / widgets below.
       u.indexOf('player.vimeo.com') !== -1 ||
       u.indexOf('vimeo.com/api') !== -1 ||
       u.indexOf('vimeocdn.com') !== -1 ||
@@ -296,6 +543,19 @@
       u.indexOf('paypal.com/sdk') !== -1 ||
       u.indexOf('paypalobjects.com') !== -1 ||
       u.indexOf('www.paypal.com/sdk') !== -1 ||
+      u.indexOf('c.paypal.com') !== -1 ||
+      u.indexOf('c6.paypal.com') !== -1 ||
+      u.indexOf('b.stats.paypal.com') !== -1 ||
+      u.indexOf('slc.stats.paypal.com') !== -1 ||
+      u.indexOf('lvs.stats.paypal.com') !== -1 ||
+      u.indexOf('stats.paypal.com') !== -1 ||
+      u.indexOf('paypal.com/smart/') !== -1 ||
+      u.indexOf('paypal.com/graphql') !== -1 ||
+      u.indexOf('paypal.com/xoplatform') !== -1 ||
+      u.indexOf('paypal.com/credit-presentment') !== -1 ||
+      u.indexOf('braintreegateway.com') !== -1 ||
+      u.indexOf('js.braintreegateway.com') !== -1 ||
+      u.indexOf('assets.braintreegateway.com') !== -1 ||
       u.indexOf('squareup.com') !== -1 ||
       u.indexOf('squarecdn.com') !== -1 ||
       u.indexOf('web.squarecdn.com') !== -1 ||
@@ -344,7 +604,10 @@
       u.indexOf('beacon-v2.helpscout.net') !== -1 ||
       u.indexOf('code.jivosite.com') !== -1 ||
       u.indexOf('smartsuppchat.com') !== -1 ||
-      u.indexOf('ladesk.com') !== -1
+      u.indexOf('ladesk.com') !== -1 ||
+      u.indexOf('vialivechat.com') !== -1 ||
+      u.indexOf('apexchat.com') !== -1 ||
+      u.indexOf('blazeo.com') !== -1
     ) {
       return 'functional';
     }
@@ -439,7 +702,15 @@
       u.indexOf('widgets.outbrain.com') !== -1 ||
       u.indexOf('static.criteo.net') !== -1 ||
       u.indexOf('bidder.criteo.com') !== -1 ||
-      u.indexOf('insight.adsrvr.org') !== -1
+      u.indexOf('insight.adsrvr.org') !== -1 ||
+      u.indexOf('adsrvr.org') !== -1 ||
+      u.indexOf('bidr.io') !== -1 ||
+      u.indexOf('casalemedia.com') !== -1 ||
+      u.indexOf('indexexchange.com') !== -1 ||
+      u.indexOf('bidswitch.net') !== -1 ||
+      u.indexOf('pubmatic.com') !== -1 ||
+      u.indexOf('xad.com') !== -1 ||
+      u.indexOf('groundtruth.com') !== -1
     ) {
       return 'marketing';
     }
@@ -477,8 +748,11 @@
       u.indexOf('youtube.com/s/player') !== -1 ||
       u.indexOf('player.vimeo.com') !== -1 ||
       u.indexOf('vimeo.com/video') !== -1 ||
+      u.indexOf('vimeo.com/api') !== -1 ||
       u.indexOf('vimeocdn.com') !== -1 ||
-      u.indexOf('arclight.vimeo.com') !== -1
+      u.indexOf('arclight.vimeo.com') !== -1 ||
+      // Cookie / API host used by the player (sets vuid).
+      (u.indexOf('vimeo.com') !== -1 && u.indexOf('vimeo.com/') !== -1)
     );
   }
 
@@ -499,14 +773,61 @@
   }
 
   /**
+   * GSAP / Lottie / AOS / etc. — presentation motion libs used in Elementor HTML widgets.
+   * Never consent-gate: parking breaks document-order + ScrollTrigger pin timelines.
+   */
+  function isPresentationLibUrl(url) {
+    var u = String(url || '').toLowerCase();
+    if (!u) {
+      return false;
+    }
+    return (
+      u.indexOf('cdn.jsdelivr.net/npm/gsap') !== -1 ||
+      u.indexOf('cdnjs.cloudflare.com/ajax/libs/gsap') !== -1 ||
+      u.indexOf('unpkg.com/gsap') !== -1 ||
+      u.indexOf('greensock.com') !== -1 ||
+      u.indexOf('gsap.com') !== -1 ||
+      /\/gsap(@[\w.-]+)?\/dist\//i.test(u) ||
+      /\/gsap(\.min)?\.js/i.test(u) ||
+      u.indexOf('scrolltrigger') !== -1 ||
+      u.indexOf('scrolltoplugin') !== -1 ||
+      u.indexOf('draggable.min.js') !== -1 ||
+      u.indexOf('draggable.js') !== -1 ||
+      u.indexOf('splittext') !== -1 ||
+      u.indexOf('motionpathplugin') !== -1 ||
+      u.indexOf('flip.min.js') !== -1 ||
+      u.indexOf('unpkg.com/@lottiefiles') !== -1 ||
+      u.indexOf('cdn.jsdelivr.net/npm/@lottiefiles') !== -1 ||
+      u.indexOf('cdn.jsdelivr.net/npm/lottie-web') !== -1 ||
+      u.indexOf('unpkg.com/lottie-web') !== -1 ||
+      u.indexOf('bodymovin') !== -1 ||
+      u.indexOf('lottiefiles.com') !== -1 ||
+      u.indexOf('dotlottie') !== -1 ||
+      u.indexOf('lottie-player') !== -1 ||
+      u.indexOf('dotlottie-wc') !== -1 ||
+      u.indexOf('dotlottie-player') !== -1 ||
+      u.indexOf('cdn.jsdelivr.net/npm/aos') !== -1 ||
+      u.indexOf('unpkg.com/aos@') !== -1 ||
+      u.indexOf('cdnjs.cloudflare.com/ajax/libs/aos') !== -1 ||
+      u.indexOf('cdn.jsdelivr.net/npm/animejs') !== -1 ||
+      u.indexOf('unpkg.com/animejs') !== -1 ||
+      u.indexOf('cdn.jsdelivr.net/npm/@rive-app') !== -1 ||
+      u.indexOf('unpkg.com/@rive-app') !== -1
+    );
+  }
+
+  /**
    * Third-party embeds/iframes can load Marketing trackers we cannot inspect.
-   * Require Marketing + Embeds together (except payment processors).
+   * Require Marketing + Embeds together (except payment processors and presentation libs).
    */
   function needsMarketingAndEmbeds(url) {
     if (isVideoEmbedUrl(url)) {
       return true;
     }
     if (isPaymentEmbedUrl(url)) {
+      return false;
+    }
+    if (isPresentationLibUrl(url)) {
       return false;
     }
     var kind = classifyUrl(url);
@@ -544,13 +865,30 @@
     );
   }
 
+  /** Nextend Smart Slider 3 — never park (customElements cannot re-define). */
+  function isSmartSliderUrl(url) {
+    var u = String(url || '').toLowerCase();
+    return (
+      u.indexOf('/smart-slider-3/') !== -1 ||
+      u.indexOf('/smart-slider-3-pro/') !== -1 ||
+      u.indexOf('n2.min.js') !== -1 ||
+      u.indexOf('smartslider-frontend') !== -1 ||
+      u.indexOf('smartslider') !== -1
+    );
+  }
+
   function shouldBlockUrl(url) {
     if (
       isAmeliaPluginUrl(url) ||
       isUserWayUrl(url) ||
+      isSmartSliderUrl(url) ||
       isLayoutFontUrl(url) ||
       isStylesheetUrl(url) ||
-      isSiteLayoutAsset(url)
+      isSiteLayoutAsset(url) ||
+      isSiteMediaUrl(url) ||
+      // GSAP / Lottie / AOS — Elementor HTML widgets depend on document order.
+      // Parking these breaks ScrollTrigger pins and inline DOMContentLoaded inits.
+      isPresentationLibUrl(url)
     ) {
       return false;
     }
@@ -559,6 +897,11 @@
       return !(categoryAllowed('marketing') && categoryAllowed('functional'));
     }
     var kind = classifyUrl(url);
+    // Payment processors (PayPal / Braintree / Stripe / Square / …) are Embeds-only.
+    // Never fall through to unknown→Marketing when isPaymentEmbedUrl matched.
+    if (!kind && isPaymentEmbedUrl(url)) {
+      kind = 'functional';
+    }
     if (kind) {
       return !categoryAllowed(kind);
     }
@@ -612,10 +955,60 @@
     return true;
   }
 
+  /** Lazy-load placeholders — not real embed targets. */
+  function isPlaceholderEmbedSrc(url) {
+    var u = String(url || '').trim();
+    if (!u || u === 'about:blank') {
+      return true;
+    }
+    var lower = u.toLowerCase();
+    if (
+      lower.indexOf('data:') === 0 ||
+      lower.indexOf('blob:') === 0 ||
+      lower.indexOf('javascript:') === 0
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Resolve real embed URL from lazy iframes/scripts (data-src over placeholder src).
+   *
+   * @param {Element} node
+   * @return {string}
+   */
+  function resolveDeferredEmbedUrl(node) {
+    if (!node || node.nodeType !== 1) {
+      return '';
+    }
+    var deferAttrs = ['data-src', 'data-lazy-src', 'data-original', 'data-iframe-src', 'data-ezsrc'];
+    var deferred = '';
+    var i;
+    for (i = 0; i < deferAttrs.length; i++) {
+      var dv = node.getAttribute(deferAttrs[i]) || '';
+      if (dv && !isPlaceholderEmbedSrc(dv)) {
+        deferred = dv;
+        break;
+      }
+    }
+    var live = node.getAttribute('src') || node.src || '';
+    if (deferred && isPlaceholderEmbedSrc(live)) {
+      return deferred;
+    }
+    if (live && !isPlaceholderEmbedSrc(live)) {
+      return live;
+    }
+    return deferred || live || '';
+  }
+
   /** Category to stamp on parked unknown third-party assets. */
   function gateCategoryForUrl(url) {
     if (needsMarketingAndEmbeds(url)) {
       // Prefer functional stamp for dual embeds; loader/guard still require both.
+      return classifyUrl(url) || 'functional';
+    }
+    if (isPaymentEmbedUrl(url)) {
       return classifyUrl(url) || 'functional';
     }
     if (isVideoEmbedUrl(url)) {
@@ -632,20 +1025,59 @@
     return rel.indexOf('stylesheet') !== -1 || rel.indexOf('preload') !== -1;
   }
 
+  /**
+   * Stash type=module / importmap before parking as text/plain so loader can restore.
+   *
+   * @param {Element} node
+   * @return {void}
+   */
+  function rememberScriptOriginalType(node) {
+    if (!node || node.nodeType !== 1) {
+      return;
+    }
+    if (node.getAttribute('data-ucpf-original-type')) {
+      return;
+    }
+    var t = '';
+    try {
+      t = String(node.getAttribute('type') || '').trim();
+    } catch (eT) {
+      t = '';
+    }
+    var lower = t.toLowerCase();
+    if (lower === 'module' || lower === 'importmap') {
+      try {
+        node.setAttribute('data-ucpf-original-type', lower);
+      } catch (eSet) { /* ignore */ }
+    }
+  }
+
   function blockScriptNode(node) {
     if (!node || node.tagName !== 'SCRIPT') {
       return false;
     }
-    var src = node.getAttribute('src') || node.getAttribute('data-src') || node.src || '';
-    if (!src || !shouldBlockUrl(src)) {
+    var src = resolveDeferredEmbedUrl(node);
+    if (!src) {
+      return blockInlineAnimationScriptNode(node);
+    }
+    if (!shouldBlockUrl(src)) {
       return false;
     }
     // Always re-assert parking — Elementor HTML widgets may restore src/type after gate.
+    rememberScriptOriginalType(node);
     if (!node.getAttribute('data-src')) {
       node.setAttribute('data-src', src);
     }
     node.setAttribute('data-ucpf-category', gateCategoryForUrl(src));
     node.setAttribute('data-ucpf-gated', '1');
+    // CF Web Analytics ships integrity= on type=module — stash then drop so parking sticks.
+    try {
+      var integ = node.getAttribute('integrity');
+      if (integ && !node.getAttribute('data-ucpf-integrity')) {
+        node.setAttribute('data-ucpf-integrity', integ);
+        node.removeAttribute('integrity');
+      }
+    } catch (eInteg) { /* ignore */ }
     try {
       node.type = 'text/plain';
     } catch (eType) {}
@@ -666,19 +1098,44 @@
     if (!node || node.tagName !== 'IFRAME') {
       return false;
     }
-    var src = node.getAttribute('src') || node.getAttribute('data-src') || node.src || '';
-    if (!src || src === 'about:blank' || !shouldBlockUrl(src)) {
+    var src = resolveDeferredEmbedUrl(node);
+    if (!src || isPlaceholderEmbedSrc(src) || !shouldBlockUrl(src)) {
       return false;
     }
     var kind = gateCategoryForUrl(src);
-    if (!node.getAttribute('data-src')) {
+    if (!node.getAttribute('data-src') || isPlaceholderEmbedSrc(node.getAttribute('data-src') || '')) {
       node.setAttribute('data-src', src);
     }
     node.setAttribute('data-ucpf-category', kind);
     node.setAttribute('data-ucpf-gated', '1');
     node.removeAttribute('data-ucpf-map-restored');
+    // Smush / lazysizes re-copy data-src → src when lazyload classes remain.
+    try {
+      node.classList.remove('lazyload', 'lazyloaded', 'lazyloading');
+      node.classList.add('no-lazyload', 'skip-lazy');
+    } catch (eLazy) { /* ignore */ }
+    try {
+      node.setAttribute('data-no-lazyload', '1');
+      node.setAttribute('data-skip-lazy-load', '1');
+    } catch (eSkip) { /* ignore */ }
     // Capture layout before removing src — empty iframes often collapse to 0.
-    if (!node.getAttribute('data-ucpf-iframe-h')) {
+    // Skip forced height on Elementor open-inline video widgets (breaks Quick Tip grids).
+    var skipKeepH = false;
+    try {
+      skipKeepH = !!(
+        (node.classList && node.classList.contains('elementor-video-iframe')) ||
+        (node.closest && node.closest('.elementor-wrapper.elementor-open-inline, .elementor-widget-video'))
+      );
+    } catch (eSkipH) {
+      skipKeepH = false;
+    }
+    if (skipKeepH) {
+      try {
+        node.removeAttribute('data-ucpf-iframe-h');
+        node.style.removeProperty('min-height');
+        node.style.removeProperty('height');
+      } catch (eClrH) { /* ignore */ }
+    } else if (!node.getAttribute('data-ucpf-iframe-h')) {
       var keepH = 0;
       try {
         keepH = Math.round(node.getBoundingClientRect().height || 0);
@@ -718,6 +1175,14 @@
     return false;
   }
 
+  /**
+   * Do not park Elementor / theme inline GSAP init — CDN GSAP is never gated, so
+   * parking inline breaks document order and double-fires ScrollTrigger pins.
+   */
+  function blockInlineAnimationScriptNode() {
+    return false;
+  }
+
   function blockNode(node) {
     if (!node || node.nodeType !== 1) {
       return;
@@ -730,6 +1195,7 @@
       blockLinkNode(node);
     } else if (node.querySelectorAll) {
       Array.prototype.forEach.call(node.querySelectorAll('script[src]'), blockScriptNode);
+      Array.prototype.forEach.call(node.querySelectorAll('script:not([src])'), blockInlineAnimationScriptNode);
       Array.prototype.forEach.call(node.querySelectorAll('iframe[src]'), blockIframeNode);
       Array.prototype.forEach.call(
         node.querySelectorAll('link[href][rel*="stylesheet"], link[href][rel*="preload"]'),
@@ -948,6 +1414,7 @@
             },
             set: function (value) {
               if (shouldBlockUrl(String(value || ''))) {
+                rememberScriptOriginalType(this);
                 this.setAttribute('data-src', value);
                 this.setAttribute('data-ucpf-category', gateCategoryForUrl(value));
                 this.setAttribute('data-ucpf-gated', '1');
@@ -971,10 +1438,20 @@
             },
             set: function (value) {
               var v = String(value || '');
-              if (v && v !== 'about:blank' && shouldBlockUrl(v)) {
+              if (v && v !== 'about:blank' && !isPlaceholderEmbedSrc(v) && shouldBlockUrl(v)) {
                 this.setAttribute('data-src', v);
                 this.setAttribute('data-ucpf-category', gateCategoryForUrl(v));
                 this.setAttribute('data-ucpf-gated', '1');
+                try {
+                  this.classList.remove('lazyload', 'lazyloaded', 'lazyloading');
+                } catch (eLz3) { /* ignore */ }
+                try {
+                  iframeDesc.set.call(this, '');
+                } catch (eClr3) {
+                  try {
+                    this.removeAttribute('src');
+                  } catch (eRm3) { /* ignore */ }
+                }
                 return;
               }
               iframeDesc.set.call(this, value);
@@ -1029,10 +1506,21 @@
         },
         set: function (value) {
           var v = String(value || '');
-          if (v && v !== 'about:blank' && shouldBlockUrl(v)) {
+          if (v && v !== 'about:blank' && !isPlaceholderEmbedSrc(v) && shouldBlockUrl(v)) {
             this.setAttribute('data-src', v);
             this.setAttribute('data-ucpf-category', gateCategoryForUrl(v));
             this.setAttribute('data-ucpf-gated', '1');
+            try {
+              this.classList.remove('lazyload', 'lazyloaded', 'lazyloading');
+            } catch (eLz) { /* ignore */ }
+            // Do not leave a prior live player URL on the node.
+            try {
+              iframeSrcDesc.set.call(this, '');
+            } catch (eClr) {
+              try {
+                this.removeAttribute('src');
+              } catch (eRm) { /* ignore */ }
+            }
             return;
           }
           iframeSrcDesc.set.call(this, value);
@@ -1046,10 +1534,16 @@
     HTMLIFrameElement.prototype.setAttribute = function (name, value) {
       if (String(name || '').toLowerCase() === 'src') {
         var v = String(value || '');
-        if (v && v !== 'about:blank' && shouldBlockUrl(v)) {
+        if (v && v !== 'about:blank' && !isPlaceholderEmbedSrc(v) && shouldBlockUrl(v)) {
           nativeIframeSetAttr.call(this, 'data-src', v);
           nativeIframeSetAttr.call(this, 'data-ucpf-category', gateCategoryForUrl(v));
           nativeIframeSetAttr.call(this, 'data-ucpf-gated', '1');
+          try {
+            this.classList.remove('lazyload', 'lazyloaded', 'lazyloading');
+          } catch (eLz2) { /* ignore */ }
+          try {
+            this.removeAttribute('src');
+          } catch (eRm2) { /* ignore */ }
           return;
         }
       }
@@ -1069,9 +1563,17 @@
         set: function (value) {
           var v = String(value || '');
           if (v && shouldBlockUrl(v)) {
+            rememberScriptOriginalType(this);
             this.setAttribute('data-src', v);
             this.setAttribute('data-ucpf-category', gateCategoryForUrl(v));
             this.setAttribute('data-ucpf-gated', '1');
+            try {
+              var integ = this.getAttribute('integrity');
+              if (integ && !this.getAttribute('data-ucpf-integrity')) {
+                this.setAttribute('data-ucpf-integrity', integ);
+                this.removeAttribute('integrity');
+              }
+            } catch (eIn) { /* ignore */ }
             this.type = 'text/plain';
             return;
           }
@@ -1101,6 +1603,7 @@
         if (attrName.toLowerCase() === 'src') {
           var v = String(value || '');
           if (v && shouldBlockUrl(v)) {
+            rememberScriptOriginalType(this);
             nativeScriptSetAttr.call(this, 'data-src', v);
             nativeScriptSetAttr.call(this, 'data-ucpf-category', gateCategoryForUrl(v));
             nativeScriptSetAttr.call(this, 'data-ucpf-gated', '1');
@@ -1124,6 +1627,25 @@
       });
       mo.observe(document.documentElement, { childList: true, subtree: true });
     } catch (eMo) {}
+    try {
+      var attrMo = new MutationObserver(function (mutations) {
+        mutations.forEach(function (m) {
+          var target = m.target;
+          if (!target || target.nodeType !== 1 || target.tagName !== 'IFRAME') {
+            return;
+          }
+          var name = String(m.attributeName || '').toLowerCase();
+          if (name === 'src' || name === 'data-src' || name === 'data-lazy-src') {
+            blockIframeNode(target);
+          }
+        });
+      });
+      attrMo.observe(document.documentElement, {
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['src', 'data-src', 'data-lazy-src'],
+      });
+    } catch (eAttrMo) {}
   }
 
   function repairDeferredStylesheets() {
@@ -1159,8 +1681,12 @@
   function scanExisting() {
     repairDeferredStylesheets();
     try {
-      Array.prototype.forEach.call(document.querySelectorAll('script[src]'), blockScriptNode);
-      Array.prototype.forEach.call(document.querySelectorAll('iframe[src]'), blockIframeNode);
+      Array.prototype.forEach.call(document.querySelectorAll('script[src], script[data-src]'), blockScriptNode);
+      Array.prototype.forEach.call(document.querySelectorAll('script:not([src])'), blockInlineAnimationScriptNode);
+      Array.prototype.forEach.call(
+        document.querySelectorAll('iframe[src], iframe[data-src], iframe[data-lazy-src]'),
+        blockIframeNode
+      );
       Array.prototype.forEach.call(
         document.querySelectorAll('link[href][rel*="stylesheet"], link[href][rel*="preload"]'),
         blockLinkNode
@@ -1177,6 +1703,157 @@
   window.__ucpfRescanGate = scanExisting;
   window.__ucpfShouldBlockUrl = shouldBlockUrl;
   window.__ucpfNeedsMarketingAndEmbeds = needsMarketingAndEmbeds;
+  window.__ucpfIsPresentationLibUrl = isPresentationLibUrl;
+  window.__ucpfResolveDeferredEmbedUrl = resolveDeferredEmbedUrl;
+  window.__ucpfIsPlaceholderEmbedSrc = isPlaceholderEmbedSrc;
+
+  /**
+   * SiteGround / peers sometimes drop ucpf-loader from the page. Without it, every
+   * text/plain parked script (PayPal SDK, captcha, GTM) stays dead after Accept.
+   */
+  function resolveLoaderUrl() {
+    try {
+      var link = document.querySelector(
+        'link[href*="universal-consent-privacy-framework/public/css/"], link[href*="universal-consent-privacy-framework"]'
+      );
+      if (link && link.href) {
+        return String(link.href).replace(/\/public\/css\/[^?#]*/i, '/public/js/loader.js').replace(/[?#].*$/, '');
+      }
+    } catch (eLink) { /* ignore */ }
+    try {
+      var s = document.querySelector('script[src*="universal-consent-privacy-framework/public/js/"]');
+      if (s && s.src) {
+        return String(s.src).replace(/\/public\/js\/[^/?#]+/i, '/public/js/loader.js').replace(/[?#].*$/, '');
+      }
+    } catch (eScript) { /* ignore */ }
+    return '';
+  }
+
+  function emergencyActivateParkedScripts() {
+    if (!window.UCPF || typeof window.UCPF.hasConsent !== 'function') {
+      return 0;
+    }
+    var n = 0;
+    var deferredDeps = [];
+    var nodes = document.querySelectorAll(
+      'script[type="text/plain"][data-src], script[data-ucpf-gated="1"][data-src]'
+    );
+    function activateOne(node, onLoad) {
+      var src = node.getAttribute('data-src') || '';
+      var cat = node.getAttribute('data-ucpf-category') || '';
+      if (!src) {
+        return false;
+      }
+      if (cat && !window.UCPF.hasConsent(cat)) {
+        return false;
+      }
+      if (!cat && typeof window.__ucpfShouldBlockUrl === 'function' && window.__ucpfShouldBlockUrl(src)) {
+        return false;
+      }
+      try {
+        var script = document.createElement('script');
+        Array.prototype.slice.call(node.attributes || []).forEach(function (attr) {
+          if (!attr || !attr.name) return;
+          if (
+            attr.name === 'type' ||
+            attr.name === 'data-src' ||
+            attr.name === 'src' ||
+            attr.name === 'data-ucpf-category' ||
+            attr.name === 'data-ucpf-service' ||
+            attr.name === 'data-ucpf-gated' ||
+            attr.name === 'data-ucpf-original-type'
+          ) {
+            return;
+          }
+          try {
+            script.setAttribute(attr.name, attr.value);
+          } catch (eA) { /* ignore */ }
+        });
+        script.src = src;
+        var origType = (node.getAttribute('data-ucpf-original-type') || '').trim();
+        script.type = origType === 'module' || origType === 'importmap' ? origType : 'text/javascript';
+        var integ = node.getAttribute('data-ucpf-integrity');
+        if (integ) {
+          try {
+            script.setAttribute('integrity', integ);
+          } catch (eIg) { /* ignore */ }
+        }
+        if (typeof onLoad === 'function') {
+          script.addEventListener('load', onLoad);
+          script.addEventListener('error', onLoad);
+        }
+        if (node.parentNode) {
+          node.parentNode.replaceChild(script, node);
+          return true;
+        }
+      } catch (eAct) { /* ignore */ }
+      return false;
+    }
+    for (var i = 0; i < nodes.length; i++) {
+      var node = nodes[i];
+      var src = (node.getAttribute('data-src') || '').toLowerCase();
+      // Hold GF PPCP frontend until PayPal SDK has loaded.
+      if (src.indexOf('gravityformsppcp') !== -1 && src.indexOf('frontend') !== -1) {
+        deferredDeps.push(node);
+        continue;
+      }
+      var isPaypalSdk = src.indexOf('paypal.com/sdk') !== -1 || src.indexOf('paypalobjects.com') !== -1;
+      if (activateOne(node, isPaypalSdk ? function () {
+        deferredDeps.forEach(function (dep) {
+          if (dep && dep.parentNode) {
+            activateOne(dep);
+          }
+        });
+        deferredDeps = [];
+        try {
+          if (typeof window.__ucpfFlushGfppcpAfterPaypal === 'function') {
+            window.__ucpfFlushGfppcpAfterPaypal();
+          }
+        } catch (eFlushEm) { /* ignore */ }
+      } : null)) {
+        n += 1;
+      }
+    }
+    if (window.paypal || deferredDeps.length) {
+      // No SDK was parked (already live) — release deps now.
+      if (window.paypal || !document.querySelector('script[src*="paypal.com/sdk"]')) {
+        deferredDeps.forEach(function (dep) {
+          if (dep && dep.parentNode && activateOne(dep)) {
+            n += 1;
+          }
+        });
+      }
+    }
+    return n;
+  }
+
+  function ensureLoaderThenApply() {
+    if (window.UCPFLoader && typeof window.UCPFLoader.applyConsent === 'function') {
+      window.UCPFLoader.applyConsent();
+      return;
+    }
+    var url = resolveLoaderUrl();
+    if (url && !window.__ucpfLoaderInjectAttempted) {
+      window.__ucpfLoaderInjectAttempted = true;
+      var s = document.createElement('script');
+      s.src = url;
+      s.setAttribute('data-cfasync', 'false');
+      s.setAttribute('data-no-optimize', '1');
+      s.onload = function () {
+        if (window.UCPFLoader && typeof window.UCPFLoader.applyConsent === 'function') {
+          window.UCPFLoader.applyConsent();
+        } else {
+          emergencyActivateParkedScripts();
+        }
+      };
+      s.onerror = function () {
+        emergencyActivateParkedScripts();
+      };
+      (document.head || document.documentElement).appendChild(s);
+      return;
+    }
+    emergencyActivateParkedScripts();
+  }
 
   window.addEventListener('ucpf:consent:changed', function () {
     // Accept/Reject is about to hard-reload — do not activate every parked asset first.
@@ -1185,8 +1862,101 @@
     }
     // Re-defer any live gated tags before/while the loader runs (e.g. after Reject All).
     scanExisting();
-    if (window.UCPFLoader && typeof window.UCPFLoader.applyConsent === 'function') {
-      window.UCPFLoader.applyConsent();
-    }
+    ensureLoaderThenApply();
   });
+
+  // Returning visitors: consent already stored, but optimizer may have dropped loader.
+  function bootEnsureLoader() {
+    if (window.__ucpfConsentReloadPending) {
+      return;
+    }
+    if (!window.UCPF || typeof window.UCPF.hasConsent !== 'function') {
+      return;
+    }
+    var hasParked = !!document.querySelector(
+      'script[type="text/plain"][data-src], script[data-ucpf-gated="1"][data-src]'
+    );
+    if (!hasParked) {
+      return;
+    }
+    // Any granted category with parked assets needs activation.
+    ensureLoaderThenApply();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootEnsureLoader);
+  } else {
+    bootEnsureLoader();
+  }
+  window.setTimeout(bootEnsureLoader, 0);
+
+  /**
+   * Heal missing Elementor Pro webpack runtime (older Pro builds only).
+   * Elementor Pro 4.3+ ships self-contained frontend bundles — webpack-pro.runtime
+   * may 404; do not inject a ghost URL (404 HTML → SyntaxError at :1).
+   * When optimizers strip a real runtime but leave frontend.min.js, chunks land on a
+   * plain array and elementorProFrontend never boots (mobile nav/popups).
+   */
+  function healElementorProWebpackRuntime() {
+    if (window.__ucpfElementorProRuntimeHealDone) {
+      return;
+    }
+    if (typeof window.elementorProFrontend !== 'undefined') {
+      window.__ucpfElementorProRuntimeHealDone = true;
+      return;
+    }
+    var hasProFrontend =
+      document.getElementById('elementor-pro-frontend-js') ||
+      document.querySelector('script[src*="elementor-pro/assets/js/frontend"]');
+    if (!hasProFrontend) {
+      return;
+    }
+    if (document.querySelector('script[data-ucpf-elementor-pro-runtime-heal]')) {
+      return;
+    }
+    window.__ucpfElementorProRuntimeHealDone = true;
+    var base =
+      (window.ElementorProFrontendConfig &&
+        window.ElementorProFrontendConfig.urls &&
+        window.ElementorProFrontendConfig.urls.assets) ||
+      '/wp-content/plugins/elementor-pro/assets/';
+    var src = String(base).replace(/\/?$/, '/') + 'js/webpack-pro.runtime.min.js';
+    fetch(src, { method: 'GET', cache: 'no-store', credentials: 'omit' })
+      .then(function (res) {
+        var ct = (res.headers && res.headers.get('content-type')) || '';
+        var isJs = ct.indexOf('javascript') !== -1 || ct.indexOf('ecmascript') !== -1;
+        if (!res.ok || !isJs) {
+          return;
+        }
+        var s = document.createElement('script');
+        s.src = src;
+        s.setAttribute('data-ucpf-elementor-pro-runtime-heal', '1');
+        s.setAttribute('data-cfasync', 'false');
+        s.setAttribute('data-no-optimize', '1');
+        s.onload = function () {
+          try {
+            if (window.jQuery) {
+              window.jQuery(window).trigger('elementor/frontend/init');
+            }
+          } catch (eInit) {}
+        };
+        (document.head || document.documentElement).appendChild(s);
+      })
+      .catch(function () {
+        /* missing file / network — leave Pro alone */
+      });
+  }
+  function scheduleElementorProRuntimeHeal() {
+    healElementorProWebpackRuntime();
+    window.setTimeout(healElementorProWebpackRuntime, 0);
+    window.setTimeout(healElementorProWebpackRuntime, 500);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', scheduleElementorProRuntimeHeal);
+  } else {
+    scheduleElementorProRuntimeHeal();
+  }
+  window.addEventListener('load', function () {
+    window.setTimeout(healElementorProWebpackRuntime, 0);
+  });
+
 })();

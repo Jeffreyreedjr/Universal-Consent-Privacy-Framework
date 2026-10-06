@@ -13,8 +13,12 @@ if ( ! isset( $settings ) || ! is_array( $settings ) ) {
 	$settings = \UCPF\Settings::all();
 }
 
-$option_key   = \UCPF\Settings::OPTION_KEY;
-$auto_refresh = ! empty( $settings['auto_refresh_cookie_policy_after_scan'] );
+$option_key        = \UCPF\Settings::OPTION_KEY;
+$auto_refresh      = ! empty( $settings['auto_refresh_cookie_policy_after_scan'] );
+$ai_disclosure     = isset( $settings['ai_image_disclosure'] ) ? sanitize_key( (string) $settings['ai_image_disclosure'] ) : 'off';
+if ( ! in_array( $ai_disclosure, array( 'off', 'website' ), true ) ) {
+	$ai_disclosure = 'off';
+}
 $dr_url       = isset( $settings['data_request_page_url'] ) ? (string) $settings['data_request_page_url'] : '';
 $dns_url      = isset( $settings['do_not_sell_page_url'] ) ? (string) $settings['do_not_sell_page_url'] : '';
 $resolved_dr  = \UCPF\Page_Generator::instance()->get_rights_url( 'data_request' );
@@ -37,6 +41,7 @@ $labels = array(
 			<button type="button" class="button button-primary" id="ucpf-generate-pages"><?php esc_html_e( 'Generate missing pages', 'universal-consent-privacy-framework' ); ?></button>
 			<button type="button" class="button" id="ucpf-regenerate-pages"><?php esc_html_e( 'Regenerate all pages (overwrite)', 'universal-consent-privacy-framework' ); ?></button>
 			<button type="button" class="button" id="ucpf-refresh-cookie-policy"><?php esc_html_e( 'Refresh Cookie Policy only', 'universal-consent-privacy-framework' ); ?></button>
+			<button type="button" class="button" id="ucpf-refresh-privacy-policy"><?php esc_html_e( 'Refresh Privacy Policy only', 'universal-consent-privacy-framework' ); ?></button>
 		</div>
 		<div id="ucpf-pages-status" class="ucpf-wizard__status" hidden></div>
 
@@ -83,6 +88,32 @@ $labels = array(
 		</section>
 
 		<section class="ucpf-panel">
+			<h2 class="ucpf-panel__title"><?php esc_html_e( 'AI image disclosure (Privacy Policy)', 'universal-consent-privacy-framework' ); ?></h2>
+			<p class="ucpf-panel__lede">
+				<?php esc_html_e( 'Optional section for sites that publish AI-generated or AI-enhanced images (for example weekly menus or promotional photos). This is transparency in the Privacy Policy only — it does not replace in-ad disclosure rules that may apply to paid advertising with AI human likenesses in some states.', 'universal-consent-privacy-framework' ); ?>
+			</p>
+			<table class="form-table" role="presentation">
+				<tr>
+					<th scope="row"><?php esc_html_e( 'Disclosure', 'universal-consent-privacy-framework' ); ?></th>
+					<td>
+						<fieldset>
+							<label>
+								<input type="radio" name="<?php echo esc_attr( $option_key ); ?>[ai_image_disclosure]" value="off" <?php checked( $ai_disclosure, 'off' ); ?> />
+								<?php esc_html_e( 'Off — do not include an AI images section', 'universal-consent-privacy-framework' ); ?>
+							</label>
+							<br />
+							<label>
+								<input type="radio" name="<?php echo esc_attr( $option_key ); ?>[ai_image_disclosure]" value="website" <?php checked( $ai_disclosure, 'website' ); ?> />
+								<?php esc_html_e( 'On — disclose AI-generated or enhanced website images', 'universal-consent-privacy-framework' ); ?>
+							</label>
+						</fieldset>
+						<p class="description"><?php esc_html_e( 'Saving updates the generated Privacy Policy when one exists. Use Refresh Privacy Policy only if you need to rebuild without changing other settings.', 'universal-consent-privacy-framework' ); ?></p>
+					</td>
+				</tr>
+			</table>
+		</section>
+
+		<section class="ucpf-panel">
 			<h2 class="ucpf-panel__title"><?php esc_html_e( 'Rights request pages (external)', 'universal-consent-privacy-framework' ); ?></h2>
 			<p class="ucpf-panel__lede">
 				<?php esc_html_e( 'These URLs are for linking only. This plugin does not collect rights-form submissions — host those forms on your home site. This is not legal advice and does not guarantee compliance.', 'universal-consent-privacy-framework' ); ?>
@@ -115,7 +146,7 @@ $labels = array(
 				</tr>
 			</table>
 
-			<?php submit_button( __( 'Save rights page URLs', 'universal-consent-privacy-framework' ) ); ?>
+			<?php submit_button( __( 'Save page settings', 'universal-consent-privacy-framework' ) ); ?>
 		</section>
 	</form>
 </div>

@@ -1,6 +1,27 @@
 (function ($) {
   'use strict';
 
+  /**
+   * Build a REST URL that works with pretty (/wp-json/…) and plain
+   * (index.php?rest_route=/…) permalinks. Paths like "scan/urls?depth=standard"
+   * must use & when restUrl already contains ?.
+   *
+   * @param {string} path Relative to ucpfAdmin.restUrl (may include ?query).
+   * @return {string}
+   */
+  function buildRestUrl(path) {
+    path = String(path || '');
+    var base = String((typeof ucpfAdmin !== 'undefined' && ucpfAdmin.restUrl) || '');
+    var qIndex = path.indexOf('?');
+    var route = qIndex === -1 ? path : path.slice(0, qIndex);
+    var query = qIndex === -1 ? '' : path.slice(qIndex + 1);
+    var url = base + route;
+    if (query) {
+      url += (url.indexOf('?') === -1 ? '?' : '&') + query;
+    }
+    return url;
+  }
+
   function parseJsonResponse(r) {
     return r.text().then(function (text) {
       var data = null;
@@ -42,7 +63,7 @@
     if (signal) {
       opts.signal = signal;
     }
-    return fetch(ucpfAdmin.restUrl + path, opts).then(parseJsonResponse);
+    return fetch(buildRestUrl(path), opts).then(parseJsonResponse);
   }
 
   function restGet(path, signal) {
@@ -52,7 +73,7 @@
     if (signal) {
       opts.signal = signal;
     }
-    return fetch(ucpfAdmin.restUrl + path, opts).then(parseJsonResponse);
+    return fetch(buildRestUrl(path), opts).then(parseJsonResponse);
   }
 
   /**
@@ -1376,7 +1397,7 @@
   }
 
   function clearDiscoverToken() {
-    return fetch(ucpfAdmin.restUrl + 'scan/discover-token', {
+    return fetch(buildRestUrl('scan/discover-token'), {
       method: 'DELETE',
       headers: { 'X-WP-Nonce': ucpfAdmin.nonce },
     }).catch(function () {});
@@ -2024,6 +2045,7 @@
       urls: urls,
       paths: pathList,
       pathList: pathList.join('\n'),
+      pathsCsv: pathList.join(','),
       merge_logged_in: $('#ucpf-playwright-merge-auth').is(':checked'),
       options: {
         depth: depth,
@@ -2078,9 +2100,13 @@
           'Scanner API is unreachable (nginx 502 / connection refused). The Node process is down or still restarting. Wait until GET /health works, then try again.'
         );
       }
-      if (/exactPaths job kept|paths_collapsed|only \d+ path/i.test(msg)) {
+      if (/exactPaths job kept/i.test(msg)) {
+        // Keep the PHP message (includes path count + scanner version); do not mask it.
+        throw new Error(msg);
+      }
+      if (/survived sanitizing|ucpf_scan_paths_collapsed/i.test(msg)) {
         throw new Error(
-          'Selected pages collapsed to a single path before Playwright ran. This is not a scanner restart issue. Update the WordPress plugin zip (sends paths + pathList) and copy tools/ucpf-scanner 1.5.4+, then restart Node.'
+          msg + ' This is a WordPress path filter problem (selected URLs must be on this site), not a scanner restart.'
         );
       }
       throw err;
@@ -2408,6 +2434,16 @@
     setStatus('#ucpf-pages-status', 'Refreshing Cookie Policy…');
     restPost('pages/generate', { page: 'cookie_policy' }).then(function () {
       setStatus('#ucpf-pages-status', 'Cookie Policy refreshed from latest scan.');
+      window.setTimeout(function () { window.location.reload(); }, 600);
+    }).catch(function (err) {
+      setStatus('#ucpf-pages-status', (err && err.message) ? err.message : 'Refresh failed.', true);
+    });
+  });
+
+  $('#ucpf-refresh-privacy-policy').on('click', function () {
+    setStatus('#ucpf-pages-status', 'Refreshing Privacy Policy…');
+    restPost('pages/generate', { page: 'privacy_policy' }).then(function () {
+      setStatus('#ucpf-pages-status', 'Privacy Policy refreshed from template.');
       window.setTimeout(function () { window.location.reload(); }, 600);
     }).catch(function (err) {
       setStatus('#ucpf-pages-status', (err && err.message) ? err.message : 'Refresh failed.', true);
@@ -2778,7 +2814,7 @@
       ? scope.querySelectorAll('.ucpf-shell__main table.widefat, .ucpf-admin table.widefat, .ucpf-wizard__panel table.widefat')
       : [];
     Array.prototype.forEach.call(tables, function (table) {
-      if (!table || table.closest('.ucpf-table-scroll')) {
+      if (!table || table.closest('.ucpf-table-scroll') || table.closest('[data-ucpf-gtm-containers]')) {
         return;
       }
       var wrap = document.createElement('div');
@@ -2856,6 +2892,294 @@
 
   $(document).on('change', '.ucpf-integration-card__enable input[type="checkbox"]', function () {
     $(this).closest('.ucpf-integration-card').toggleClass('is-enabled', this.checked);
+  });
+
+  function ucpfGtmNormalizeId(raw) {
+    var id = String(raw || '').trim();
+    if (!id) {
+      return '';
+    }
+    var upper = id.toUpperCase();
+    // GTM- (Tag Manager), GT- (Google Tag), G- (GA4) — longest prefix first.
+    if (/^GTM-[A-Z0-9]+$/.test(upper) || /^GT-[A-Z0-9]+$/.test(upper) || /^G-[A-Z0-9]+$/.test(upper)) {
+      return upper;
+    }
+    var m = id.match(/GTM-[A-Z0-9]+/i) || id.match(/GT-[A-Z0-9]+/i) || id.match(/G-[A-Z0-9]+/i);
+    return m ? String(m[0]).toUpperCase() : '';
+  }
+
+  function ucpfGtmExistingIds($root) {
+    var seen = {};
+    $root.find('[data-ucpf-gtm-rows] [data-ucpf-gtm-id]').each(function () {
+      var id = ucpfGtmNormalizeId($(this).val());
+      if (id) {
+        seen[id] = true;
+      }
+    });
+    return seen;
+  }
+
+  function ucpfGtmNamePrefix($root) {
+    // Prefer attribute over jQuery .data() — brackets in the value must stay a raw string.
+    var prefix = $root.attr('data-ucpf-gtm-name-prefix') || '';
+    if (!prefix) {
+      prefix = String($root.data('ucpfGtmNamePrefix') || '');
+    }
+    if (!prefix) {
+      var sample = $root.find('[data-ucpf-gtm-rows] [data-ucpf-gtm-id]').first().attr('name') || '';
+      var m = sample.match(/^(.*\[containers\])\[\d+\]\[id\]$/);
+      if (m) {
+        prefix = m[1];
+      }
+    }
+    return prefix;
+  }
+
+  function ucpfGtmSyncLegacyId($root) {
+    var first = '';
+    $root.find('[data-ucpf-gtm-rows] [data-ucpf-gtm-id]').each(function () {
+      if (first) {
+        return;
+      }
+      var id = ucpfGtmNormalizeId($(this).val());
+      if (id) {
+        first = id;
+      }
+    });
+    $root.find('[data-ucpf-gtm-legacy-id]').val(first);
+  }
+
+  function ucpfGtmFieldName(prefix, idx, field) {
+    // disclosure.platforms → [disclosure][platforms]; disclosure.purposes[] → [disclosure][purposes][]
+    if (field.indexOf('disclosure.') === 0) {
+      var rest = field.slice('disclosure.'.length);
+      var isArr = rest.slice(-2) === '[]';
+      if (isArr) {
+        rest = rest.slice(0, -2);
+      }
+      return prefix + '[' + idx + '][disclosure][' + rest + ']' + (isArr ? '[]' : '');
+    }
+    return prefix + '[' + idx + '][' + field + ']';
+  }
+
+  function ucpfGtmLiveRows($root) {
+    // Never touch <template> content — only list rows.
+    return $root.find('[data-ucpf-gtm-rows]').first().children('[data-ucpf-gtm-row]');
+  }
+
+  function ucpfGtmReindexRows($root) {
+    var prefix = ucpfGtmNamePrefix($root);
+    if (prefix) {
+      $root.data('ucpfGtmNamePrefix', prefix);
+    }
+    ucpfGtmLiveRows($root).each(function (idx) {
+      var $row = $(this);
+      $row.find('[data-ucpf-gtm-field]').each(function () {
+        var field = $(this).attr('data-ucpf-gtm-field');
+        if (!field || !prefix) {
+          return;
+        }
+        $(this).attr('name', ucpfGtmFieldName(prefix, idx, field));
+      });
+      $row.find('[data-name]').each(function () {
+        var field = $(this).attr('data-name');
+        if (!field || !prefix) {
+          return;
+        }
+        $(this).attr('name', ucpfGtmFieldName(prefix, idx, field));
+      });
+    });
+    ucpfGtmSyncLegacyId($root);
+  }
+
+  function ucpfGtmFieldValue($row, field) {
+    var $els = $row.find('[data-ucpf-gtm-field="' + field + '"]');
+    if (!$els.length) {
+      $els = $row.find('[data-name="' + field + '"]');
+    }
+    if (!$els.length) {
+      return field.indexOf('[]') !== -1 ? [] : '';
+    }
+    if (field.indexOf('[]') !== -1) {
+      var vals = [];
+      $els.filter(':checked').each(function () {
+        vals.push(String($(this).val() || ''));
+      });
+      return vals;
+    }
+    if ($els.is(':checkbox')) {
+      return $els.is(':checked') ? String($els.val() || '') : '';
+    }
+    return String($els.first().val() || '');
+  }
+
+  /**
+   * Build canonical containers payload for PHP (one JSON field — reliable multi-save).
+   * Sends the typed ID string; PHP normalizes GTM-/GT-/G-.
+   */
+  function ucpfGtmSerializeContainers($root) {
+    var list = [];
+    ucpfGtmLiveRows($root).each(function () {
+      var $row = $(this);
+      var rawId = String(ucpfGtmFieldValue($row, 'id') || $row.find('[data-ucpf-gtm-id]').val() || '').trim();
+      if (!rawId) {
+        return;
+      }
+      var id = ucpfGtmNormalizeId(rawId) || rawId;
+      var dl = String(ucpfGtmFieldValue($row, 'data_layer') || 'dataLayer').trim() || 'dataLayer';
+      list.push({
+        id: id,
+        label: String(ucpfGtmFieldValue($row, 'label') || ''),
+        data_layer: dl,
+        disclosure: {
+          platforms: String(ucpfGtmFieldValue($row, 'disclosure.platforms') || ''),
+          cookie_duration: String(ucpfGtmFieldValue($row, 'disclosure.cookie_duration') || ''),
+          recipients: String(ucpfGtmFieldValue($row, 'disclosure.recipients') || ''),
+          visitor_info: String(ucpfGtmFieldValue($row, 'disclosure.visitor_info') || ''),
+          notes: String(ucpfGtmFieldValue($row, 'disclosure.notes') || ''),
+          purposes: ucpfGtmFieldValue($row, 'disclosure.purposes[]') || [],
+          uses: ucpfGtmFieldValue($row, 'disclosure.uses[]') || [],
+        },
+      });
+    });
+    return list;
+  }
+
+  function ucpfGtmPrepareSubmit($root) {
+    ucpfGtmInitRoot($root);
+    ucpfGtmLiveRows($root).find('[data-ucpf-gtm-id]').each(function () {
+      var normalized = ucpfGtmNormalizeId($(this).val());
+      if (normalized) {
+        $(this).val(normalized);
+      }
+    });
+    ucpfGtmReindexRows($root);
+    ucpfGtmSyncLegacyId($root);
+
+    var list = ucpfGtmSerializeContainers($root);
+    var $json = $root.find('[data-ucpf-gtm-containers-json]').first();
+    if ($json.length) {
+      $json.prop('disabled', false);
+      // Only use JSON when we actually captured IDs. Never disable nested fields —
+      // empty JSON + disabled inputs was wiping GT- IDs on save.
+      if (list.length) {
+        $json.val(JSON.stringify(list));
+      } else {
+        $json.val('');
+      }
+    }
+    return list;
+  }
+
+  function ucpfGtmInitRoot($root) {
+    if (!$root.length) {
+      return;
+    }
+    if ($root.data('ucpfGtmInit')) {
+      return;
+    }
+    $root.data('ucpfGtmInit', 1);
+    var prefixAttr = $root.attr('data-ucpf-gtm-name-prefix');
+    if (prefixAttr) {
+      $root.data('ucpfGtmNamePrefix', prefixAttr);
+    }
+    ucpfGtmReindexRows($root);
+  }
+
+  function ucpfGtmAddRow($root, values) {
+    var $tpl = $root.find('[data-ucpf-gtm-row-template]').first();
+    var $list = $root.find('[data-ucpf-gtm-rows]').first();
+    if (!$tpl.length || !$list.length) {
+      return;
+    }
+    var tplEl = $tpl.get(0);
+    var frag = tplEl && tplEl.content ? tplEl.content.cloneNode(true) : null;
+    if (!frag) {
+      return;
+    }
+    var $row = $(frag);
+    if (values) {
+      if (values.id) {
+        $row.find('[data-ucpf-gtm-field="id"], [data-name="id"]').val(values.id);
+      }
+      if (values.label) {
+        $row.find('[data-ucpf-gtm-field="label"], [data-name="label"]').val(values.label);
+      }
+      if (values.data_layer) {
+        $row.find('[data-ucpf-gtm-field="data_layer"], [data-name="data_layer"]').val(values.data_layer);
+      }
+    }
+    $list.append($row);
+    ucpfGtmReindexRows($root);
+  }
+
+  function ucpfGtmAddSuggested($root) {
+    var raw = $root.attr('data-ucpf-gtm-suggestions') || '[]';
+    var list = [];
+    try {
+      list = JSON.parse(raw);
+    } catch (e) {
+      list = [];
+    }
+    if (!list.length) {
+      return;
+    }
+    var seen = ucpfGtmExistingIds($root);
+    list.forEach(function (id) {
+      id = ucpfGtmNormalizeId(id);
+      if (id && !seen[id]) {
+        ucpfGtmAddRow($root, { id: id, data_layer: 'dataLayer' });
+        seen[id] = true;
+      }
+    });
+    $root.find('.ucpf-gtm-containers__scan-notice').remove();
+  }
+
+  $(document).on('input change', '[data-ucpf-gtm-containers] [data-ucpf-gtm-id]', function () {
+    ucpfGtmSyncLegacyId($(this).closest('[data-ucpf-gtm-containers]'));
+  });
+
+  $(document).on('click', '[data-ucpf-gtm-add]', function (e) {
+    e.preventDefault();
+    ucpfGtmAddRow($(this).closest('[data-ucpf-gtm-containers]'));
+  });
+
+  $(document).on('click', '[data-ucpf-gtm-remove]', function (e) {
+    e.preventDefault();
+    var $root = $(this).closest('[data-ucpf-gtm-containers]');
+    var $rows = ucpfGtmLiveRows($root);
+    if ($rows.length <= 1) {
+      $rows.find('input[type="text"]').val('');
+      $rows.find('textarea').val('');
+      $rows.find('input[type="checkbox"]').prop('checked', false);
+      $rows.find('[data-ucpf-gtm-field="data_layer"], [data-name="data_layer"]').val('dataLayer');
+      $rows.find('.ucpf-gtm-disclosure').prop('open', false);
+      ucpfGtmSyncLegacyId($root);
+      return;
+    }
+    $(this).closest('[data-ucpf-gtm-row]').remove();
+    ucpfGtmReindexRows($root);
+  });
+
+  $(document).on('click', '[data-ucpf-gtm-add-suggested]', function (e) {
+    e.preventDefault();
+    ucpfGtmAddSuggested($(this).closest('[data-ucpf-gtm-containers]'));
+  });
+
+  $('[data-ucpf-gtm-containers]').each(function () {
+    ucpfGtmInitRoot($(this));
+  });
+
+  // Integrations: serialize GTM containers to one JSON field before options.php.
+  // Match any form that posts the tracking marker (action may be relative or absolute).
+  $(document).on('submit', 'form', function () {
+    var $form = $(this);
+    if (!$form.find('input[name*="[_ucpf_tracking_form]"]').length) {
+      return;
+    }
+    $form.find('[data-ucpf-gtm-containers]').each(function () {
+      ucpfGtmPrepareSubmit($(this));
+    });
   });
 
   wrapWideTables();

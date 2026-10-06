@@ -4,7 +4,126 @@ All notable changes to Universal Consent & Privacy Framework are documented here
 
 ## [Unreleased]
 
+### Fixed
+- **Mailchimp Woo pixel pre-consent leak:** Hummingbird Asset Optimization rewrites pixel/SMS scripts to `/hummingbird-assets/{hash}.js`, so URL catalog patterns never matched and `window.mcPixel` initialized before consent. Soft-defer now parks by WP handle (`mailchimp-woocommerce*`) even when the src is hashed; `script_loader_tag` runs at priority `99999` after optimizer rewrites; always-on HTML OB also parks Mailchimp/chimpstatic tags by `id` as a belt-and-suspenders pass.
+- **YouTube mislabeled as functional:** Site-local knowledge / Cookie Review overrides could stamp `youtube` (and related trackers) as Embeds-only; canonical heal restores marketing/analytics categories. Removed YouTube patterns from `media_embed_extra` so scan labels stop stealing YT cookies into functional.
+
 ### Added
+- **Google tags → policy sync:** Saving GA4/GTM (or GTM “What’s inside this container” disclosures) refreshes Cookie + Privacy Policy pages. Catalog cookie families (with Duration) merge for enabled Google tags; site-specific free-text partner answers (platforms, duration, purposes, recipients) appear on Cookie/Privacy — per site, no hard-coded vendors. Integrations: full-width multi-container cards + **Refresh policies for current tags**.
+
+### Fixed
+- **Opt-in form Security covers without in-DOM CAPTCHA:** Gravity Forms / CF7 / WPForms / Elementor / Fluent / Ninja / Formidable (incl. The Plus `tp-gravityt-form`) always get a Security overlay under opt-in until consent — quizzes with no captcha markup were left interactive while gated security scripts block submit. Search / Add to Cart stay exempt. Opt-out still requires captcha or sitewide signal.
+- **Elementor Swiper pause-on-hover after custom destroy:** Justified / image carousels that `destroy()` + `new Swiper()` left Elementor mouseenter handlers calling a dead `this.swiper.autoplay` (`start`/`stop` TypeError after Accept). Rebind pause-on-hover to the live `el.swiper`.
+- **Cloudflare Web Analytics pre-consent:** Edge-injected `type=module` `static.cloudflareinsights.com/beacon.min.js` bypassed PHP parking and raced the gate. Early head MO parks the beacon as Analytics; NS/CDN/challenge hosts unchanged. Removed insights hosts from leak noise ignore.
+- **Elementor-embedded CF Web Analytics:** Custom Code / HTML widget beacons (`type=module` + `data-cf-beacon`) soft-defer with token attrs preserved; always-on cheap OB parks insights scripts even when full/safe OB is off (MO alone is too late for module fetch → `cdn-cgi/rum`); loader restores `type=module` + beacon after Analytics consent.
+- **Resources Quick Tips blank after Accept/Reject:** UCPF always soft-deferred Vimeo/YouTube (empty `src`), then `runReadyTrigger` re-stuck Elementor fade-ins under `.elementor-invisible`. Always heal video-card entrances; skip PHP video re-park when Marketing+Embeds already consented. Page-wide stuck-entrance unhide must never touch `.elementor-sticky__spacer` (revealing the sticky header clone doubles the header and collapses Resources layout — huge headings, content through footer).
+- **Smush lazy Vimeo before consent:** WP Smush sets iframe `src=data:svg` with real `data-src=player.vimeo.com` — that was misclassified as self-hosted and `parkVideoIframes` skipped it, so Smush promoted Vimeo into `src`. Resolve deferred embed URLs, strip `lazyload` / stamp `no-lazyload` + Smush skip filters, soft-defer YouTube/Vimeo **in place** (keep Elementor open-inline wrappers), clear live `src` when gated, and skip forced iframe heights on Elementor video cards. Consent covers also attach inside parent `.elementor-invisible` fade-ins (Resources Quick Tips).
+- **Elementor CSS + stale page HTML:** After Elementor CSS clear, purge origin HTML page caches (Hummingbird Page Cache, Rocket, LiteSpeed, W3TC, etc. — not Autoptimize `clearall`). Heal the current document’s missing `post-{id}.css` without consuming the per-request heal cap. Prevents clean URLs looking unstyled until Accept All (`?_ucpf=` cache bypass). Ops: purge HB page cache and confirm View Source has `elementor-post-{ID}-css` without consent.
+- **PayPal / Gravity Forms embeds:** Network gate classifies all PayPal + Braintree payment hosts as Embeds (`functional`) so they no longer fall through to Marketing. PHP soft-defers `gform_paypal_sdk` / `paypal.com/sdk`. Post-consent GF PPCP / PayPal Buttons reinit + Embeds overlay for GF payment wrappers (Woo checkout path unchanged). Catalog adds Braintree; maps `gravityformsppcp`; scanner detects PPCP/SDK hosts even when PayPal uses `disableSetCookie`. Optimizer exclusions append PayPal/GF/Braintree needles only.
+- **Optimizer fleet hardening:** Auto-exclude jQuery / Migrate, Elementor frontend, The Plus, and Mailchimp Woo pixel/SMS from Hummingbird delay/minify and Autoptimize / WP Rocket / LiteSpeed exclude lists; stamp matching script tags with `data-no-optimize` / `data-no-defer` / `data-cfasync="false"`. Clears Hummingbird AO (minify) cache on UCPF asset bust so combined bundles that caused `jQuery(...).ready is not a function` are rebuilt. Calendly cancel pre-consent remains expected Functional gating.
+- **GTM containers UI:** Multi-container rows use full integration-card width (card layout) so Label/Container IDs are readable without cramped horizontal scroll.
+- **Woo product PayPal duplicate overlays:** Guard only `.ppc-button-wrapper` (not `.ppcp-messages`); dedupe sibling PayPal panels under the same add-to-cart widget.
+
+## [0.1.40-alpha] — 2026-09-09
+
+### Fixed
+- **Integrations GTM save actually persists IDs:** Root cause — submit JS wrote empty `containers_json` and disabled the real inputs, so Enable could stick while `GT-…` IDs vanished. Nested fields always POST now; empty JSON falls back to nested rows; Integrations form saves through `admin-post.php` with an on-screen success notice listing saved IDs. Confirm version line shows `UCPF 0.1.40-alpha`.
+- **Google tags → Cookie/Privacy docs after admin-post save:** Explicitly refresh policy inventory + generated pages when Integrations fingerprint changes (`Settings::update` skips the options.php hook). Cookie/Privacy shortcodes list configured `GTM-` / `GT-` / `G-` IDs; partner disclosures show label + ID; GTM catalog seeds `_ga_*` / `_gid`; GT-/G- under GTM also seed GA4 cookie families.
+- **Cloudflare Web Analytics refire after Accept:** Early head MutationObserver no longer re-parks `beacon.min.js` / rum when analytics consent is granted (cookie/handoff/UCPF). PHP soft-defer also skips when analytics already allowed so Elementor/edge beacons stay live after consent.
+- **Embed soft-defer consent parity:** Safe-iframe / maps / CTCT placeholder rewrites skip when Marketing+Embeds already granted; YouTube/Vimeo stay on in-place soft-defer (not placeholders). Calendly reinit requires Marketing+Embeds. Loader fires `ucpf:tracker:ready` and re-runs managed inject after GTM/gtag/Meta/CF load.
+
+## [0.1.39-alpha] — 2026-09-09
+
+### Fixed
+- **GTM Enable + multi-ID save (GT- vs GTM-):** Integrations previously accepted only `GTM-…` and silently dropped `GT-…` Google Tag IDs (e.g. `GT-M393MCT9`), so Enable/IDs looked wiped after Save. Now accepts `GTM-…`, `GT-…`, and `G-…`, persists them, dedupes duplicates, loads Tag Manager via `gtm.js` and Google Tags via `gtag.js`, and hardens the Integrations submit handler.
+
+## [0.1.38-alpha] — 2026-09-09
+
+### Fixed
+- **Integrations GTM enable + multi-container save:** On Save, admin JS serializes every container (id/label/dataLayer/disclosure) into one `containers_json` field and disables fragile nested `containers[n][…]` inputs — PHP prefers that payload. Visible **Enable** label on each integration card. Row reindex scoped to the live list only (never `<template>`). Selftests cover JSON multi-save + URL extract + legacy preserve.
+
+## [0.1.37-alpha] — 2026-09-09
+
+### Fixed
+- **Integrations GTM save (multi-container + legacy):** Blank/empty container POSTs no longer wipe a pre-multi single `id` or saved `containers[]`. Legacy IDs are prepended into `containers[]` when missing. `dataLayer` stays camelCase (loader no longer breaks via `datalayer`). GTM-… extracted from pasted URLs/snippets. Truncated tracking form keeps prior `service_ids` with an admin error. Submit reindexes/normalizes GTM fields before `options.php`.
+
+## [0.1.36-alpha] — 2026-09-08
+
+### Fixed
+- **Plugin Check:** wizard `$_POST['service_ids']` assigned after `wp_unslash` with phpcs ignore; still sanitized by `Tracking_Templates::sanitize_posted_service_ids()`.
+
+## [0.1.35-alpha] — 2026-09-08
+
+### Fixed
+- **GTM multi-container (Integrations + wizard):** Legacy single `id` hydrates into the container list (no blank UI / wipe on save). Persisted migration writes `containers[]` on upgrade. Wizard Statistics no longer forces `enabled=false` when posting IDs; unchecked slots disable fields so empty posts cannot clear saved containers. Wizard Services summary lists every GTM ID. Same-page Accept injects all GTM containers (not only the first). “Add container” template clone hardened.
+
+### Added
+- `php tests/phpunit/gtm-multi-container-selftest.php` for legacy migrate / wizard merge / dedupe contracts.
+
+## [0.1.34-alpha] — 2026-09-08
+
+### Added
+- **Universal consent durability:** Accept / Reject / Save writes cookie (`Max-Age` + `Expires`) + localStorage + sessionStorage + IndexedDB; restore from any layer and rehydrate upward. Boot shim matches validity rules (policy/consent version) and rewrites cookie from backup/handoff before first paint. Always attach `#ucpf_c=` handoff on post-consent reload (all browsers). `pageshow` / `visibilitychange` keep the banner closed when stored consent is still valid.
+- **Cookie lifetime floor:** PHP `save_consent` / `set_cookie` never emit a zero/near-zero expiry (empty/0 days → 180).
+- **Durability self-test:** `node tests/js/consent-durability.test.js` covers validity, lifetime clamp, and rehydrate-from-backup. Docs: GETTING-STARTED triage + QA device matrix.
+
+### Fixed
+- Post-persist REST/loader errors can no longer unwind a successful Accept path; `consentInFlight` unlocks safely after soft saves / reload fallback.
+
+### Added
+- **Google Tag Manager — multi-container:** Integrations and Setup Wizard support a repeatable list of GTM container IDs (label + optional dataLayer per row). Privacy scans suggest discovered `GTM-…` IDs with **Add all to list**. Legacy single `id` migrates to the first row; all containers inject after analytics consent.
+- **Map viewer catalog:** MapMe, MapHub, BatchGeo, ZeeMaps, and uMap services for scanner classification and gate patterns.
+
+### Fixed
+- **Lazy iframe embed bypass:** Early network gate now resolves real URLs from `data-src` / `data-lazy-src` when `src` is a lazy-load placeholder (`data:`, `blob:`, `about:blank`). MapMe and other third-party map iframes are parked pre-consent; attribute MutationObserver re-parks late lazy-load swaps. Guard and loader restore paths aligned; PHP safe iframe OB reads deferred URLs.
+- **Smush / media CDN images:** Image `src`/`srcset` hooks no longer fail-closed WPMU DEV Smush (`*.assetcdn.net`), Jetpack Photon (`iN.wp.com`), or any URL whose path contains `/wp-content/uploads/`. Site media loads before consent; tracker pixels and map embeds stay gated.
+
+## [0.1.32-alpha] — 2026-08-31
+
+### Fixed
+- Mapster force-refire: soft + force pass no longer creates two `*-ucpf-refire` clones in the same tick (nested MapLibre canvases). Soft pass excludes Mapster when forcing; even `force:true` skips if a clone already exists. Guard skips force when a live canvas is already present.
+- Elementor background YouTube: after Marketing+Embeds, clear stuck `elementor-loading` / `elementor-invisible` on containers that already have a live `iframe.elementor-background-video-embed` and resize the player (no second iframe). Immediate heal (no Vimeo API wait), `ucpf-bg-video-ready` CSS stick, and MutationObserver if Elementor re-adds loading classes.
+
+### Added
+- **AI image disclosure (Privacy Policy):** per-site toggle on Generated Pages (`off` | `website`); optional template section for AI-generated or enhanced on-site images (menus, promos). Auto-refreshes Privacy Policy on save; **Refresh Privacy Policy only** button. Filter `ucpf_privacy_ai_disclosure_html` for custom copy.
+
+## [0.1.31-alpha] — 2026-08-21
+
+### Fixed (same version rebuild)
+- Consent leak noise: Cloudflare Web Analytics (`static.cloudflareinsights.com` / provider) ignored — sites already behind CF proxy before the banner.
+- Admin REST helper: plain permalinks `rest_route` query args use `&` so scanner page discovery works (the empty page list / 404).
+- Playwright path recovery: do not treat options.maxPages as selected page count (false “3 selected / 1 survived”); prefer pathList + urls when rebuilding paths.
+- Consent loader preserves `type="module"` / `importmap` (`data-ucpf-original-type`).
+- Embed consent guards: collapsed-shell min-height for all embeds + Elementor popup remasure.
+- Zip/asset bust: Redis Object Cache group `ucpf` + OPcache invalidate for UCPF PHP.
+
+### Added (same version rebuild)
+- Catalog: LottieFiles / DotLottie as **functional** (consent), not necessary.
+
+### Changed
+- Docs: [CLOUDFLARE-CACHE.md](docs/CLOUDFLARE-CACHE.md) expanded into full caching guide — consent-state matrix, required Plesk/nginx skip for `ucpf_consent` / `ucpf_dns` / `_ucpf`, CF Approach A vs B, quiet vs busy TTLs, industry CMP notes, plugin purge/`?ver=` behavior.
+- **UCPF update → Cloudflare purge (no WP-Cron):** sticky `ucpf_cf_purge_required` survives failed shutdown; drains on shutdown and next front/admin `init`; UCPF zip/update/activate bypasses the 10-minute lock and retries on API failure (60s backoff). Requires Advanced → Enable purge + token.
+- **Global push / cache life:** `ucpf_asset_version()` uses `UCPF_VERSION[.size.crc32b][.ucpf_assets_rev]`; content fingerprint on zip overwrite; optional deploy HTML `CDN-Cache-Control: no-store` window; CF purge on zip can bypass the 10-minute lock when purge API is enabled.
+- Settings runtime memo is blog-scoped and flushes on `switch_blog` / `ucpf_settings` option writes (safe for multisite override clears).
+- Legal pages detect via `_ucpf_generated_page` **or** IDs in `generated_pages` (no admin heal required for CSS).
+- `form-captcha-guard.js` lazy loader is sync (not async); eager on Elementor documents; wider captcha selectors.
+- **Scheduled / recurring Deep scans retired** — manual Cookie Scanner / Playwright / import only. Cron hooks cleared; Advanced UI no longer offers schedule toggles. Canary checklist: [docs/CANARY-QA.md](docs/CANARY-QA.md).
+- **Performance (300-site / Plesk):** Gate `Migration::maybe_upgrade()` so `dbDelta` / SHOW INDEX / plaintext migrate run only when schema is not ready for the current version; `force_services_necessary()` no longer writes options/DB when already correct; stop deleting `ucpf_scan_running` on every request.
+- Vendor catalog JSON is compiled once into object-cache + transient (filemtime + version stamp); remote registry status option no longer rewritten on every cache hit.
+- `Settings::get()` / `raw()` / defaults memoized per request (blog-scoped); flushed on `Settings::update()` and option hooks.
+- Defer front-end noise: Cookie_Scanner boots in admin only; generated-page meta heal on `admin_init`; agency well-known rewrite register in admin.
+- Public assets: enqueue only the active banner theme CSS; `legal.css` only on UCPF legal pages; `form-captcha-guard.js` (~167KB) loads eagerly when content/Elementor/Woo heuristics match, otherwise a tiny MutationObserver loader fetches it when forms/embeds appear.
+- Cookie/Privacy shortcode inventory cached in a transient keyed by scan stamp + overrides (busted on scan persist / review).
+- Cloudflare: prefer short-TTL edge cache for UCPF `.css`/`.js`/`woff2` (with `?ver=`); Bypass `?_ucpf=` + consented HTML; full plugin-dir Bypass is legacy. Free Cache Rules stack documented in CLOUDFLARE-CACHE.md.
+
+### Added
+- Vendor catalog from knowledge pack: Magnite `audit` / `audit_p` / `khaos_p`, Google Ads `IDE`, ActiveCampaign `CMPS` / `CMPRO`, Trade Desk `TDID` / `TDCPM`, Xandr `uuid2` / `XANDR_PANID`, plus Beeswax, Casale Media, BidSwitch, PubMatic, Yahoo `A3`, and GroundTruth `xad-uid`. Network-gate parks those DSP hosts as Marketing.
+
+## [0.1.30-alpha] — 2026-08-14
+
+### Added
+- **ApexChat** (Blazeo / ViaLiveChat) vendor catalog + network-gate: park `vialivechat.com` / `apexchat.com` / `blazeo.com` as Embeds; classify `apexchat_*` / `livechat_*` cookies (analytics/marketing overrides for referrer + traffic-source cookies). Plugin map: `apexchat`.
+- Google Ads catalog: `test_cookie` (DoubleClick cookie-support probe) as Marketing.
 - Multisite **Network Admin** connection settings (`ucpf_network_settings`): shared Scanner API URL/key, Privacy Preference API, and agency registry defaults. Sites inherit when Advanced fields are blank; filled site fields override. Promote-from-site + clear-overrides tools for existing installs.
 - Elementor Video **open-inline** fallback: when park/restore and Elementor `runReadyTrigger` leave `.elementor-wrapper.elementor-open-inline` empty, inject/restore `iframe.elementor-video` from `data-settings` (`youtube_url` / `vimeo_url`). Background inject and existing video handling unchanged.
 - Smash Balloon **YouTube Feed** (`.sb_youtube`, live/regular containers) and **Social Wall** (`.sb-wall` Instagram) consent covers: Marketing + Embeds overlay, park `youtube-feed-pro` / `social-wall` scripts, skip `#youtube-feed-loader`. Existing Elementor video, maps, Calendly, forms, and captcha covers unchanged.
@@ -17,6 +136,8 @@ All notable changes to Universal Consent & Privacy Framework are documented here
 - Scanner API `/health` version **1.5.3** with live `features.exactPaths` (not only `package.json`). Copy `tools/ucpf-scanner` **and restart Node** — a version bump on disk while the old process is running still walked only `/`.
 
 ### Fixed
+- Smart Slider 3 hero blank after Accept All: `n2` / `ss3-*` scripts were parked then re-executed, throwing `CustomElementRegistry` “already been used” and leaving no `<ss3-force-full-width>`. Treat as necessary/layout (never gate), skip loader activate while consent reload is pending, refuse re-insert when SS3 custom elements / live scripts already exist, dedupe parked SS3 srcs, never refire-clone SS3, and patch `customElements.define` early so a second define is a no-op.
+- Map consent covers: prefer outermost host (Elementor Google Maps / WPGMZA / Mapster), skip nested `.gm-style` / inner map nodes, decorate map shells in place, and apply a modest 16:9 min-height when the map box measures ~0px before tiles.
 - Playwright 409 `exactPaths job kept 1 path(s) but maxPages=14`: WordPress no longer forwards a larger JS `maxPages` after sanitizing the path list; selected URLs are kept (path extracted from absolute URLs, UTF-8 permalinks); `pathList` is sent as a newline string. nginx 502 `connection refused` during `systemctl restart` is treated as “Node is down”, not a stale scanner.
 - Playwright “Scanner accepted 1 of 14 path(s)” after a plugin + scanner file update: recover JSON bodies sent as `x-www-form-urlencoded`, never default a curated job to `['/']`, and do not treat a missing `paths_count` as 1. Confirm `GET /health` includes `"features":{"exactPaths":true}`.
 - Playwright no longer silently scans only the homepage when many pages are selected: WordPress compares scanner-accepted vs sent paths, refuses Scanner API hosts below **1.5.3** with `features.exactPaths` (`GET /health`), and does not inflate progress `pages_total`. Picker groups show selected/total; remembered picks persist up to 200 URLs.

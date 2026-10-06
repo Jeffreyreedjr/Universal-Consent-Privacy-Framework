@@ -23,6 +23,19 @@ class Cloudflare_Cache {
 	const LOCK_TRANSIENT = 'ucpf_cf_purge_lock';
 	const STATUS_OPTION  = 'ucpf_cloudflare_purge_last';
 	const PENDING_FILES  = 'ucpf_cf_pending_files';
+	const DEPLOY_UNTIL   = 'ucpf_deploy_revalidate_until';
+	const PENDING_REASON = 'ucpf_cf_purge_pending_reason';
+	/** Sticky until API purge succeeds (survives failed shutdown / disabled WP-Cron). */
+	const REQUIRED_PURGE = 'ucpf_cf_purge_required';
+
+	/**
+	 * Reasons that must purge immediately and retry on the next front/admin request.
+	 *
+	 * @return string[]
+	 */
+	private static function critical_purge_reasons() {
+		return array( 'ucpf_update', 'ucpf_zip_overwrite', 'activate' );
+	}
 
 	/**
 	 * @var Cloudflare_Cache|null
@@ -40,12 +53,54 @@ class Cloudflare_Cache {
 	}
 
 	/**
-	 * Register cron consumer + admin fallback when external cron never fires.
+	 * Register consumers. No WP-Cron — hosts with external cron runners break spawn_cron.
 	 */
 	public function init() {
 		add_action( self::CRON_HOOK, array( $this, 'purge_edge' ), 10, 1 );
-		// If a previous request queued a purge but died before shutdown, finish it in admin.
-		add_action( 'admin_init', array( $this, 'run_pending_purge_on_shutdown' ), 30 );
+		// Front + admin: finish a purge queued by zip/upload if shutdown never ran.
+		add_action( 'init', array( $this, 'maybe_flush_pending_purge' ), 20 );
+		add_action( 'admin_init', array( $this, 'maybe_flush_pending_purge' ), 30 );
+		add_action( 'send_headers', array( $this, 'maybe_send_deploy_revalidate_headers' ), 0 );
+		// Migration may have queued a sticky purge earlier this request — drain now (no cron).
+		$this->maybe_flush_pending_purge();
+	}
+
+	/**
+	 * After same-version zip / upgrade: force HTML edge revalidation for a short window
+	 * so new ?ver= links appear without a manual Cloudflare dashboard flush.
+	 *
+	 * @param int $seconds Window length (default 5 minutes).
+	 * @return void
+	 */
+	public static function mark_deploy_revalidate( $seconds = 300 ) {
+		$seconds = max( 60, min( 900, (int) $seconds ) );
+		update_option( self::DEPLOY_UNTIL, time() + $seconds, false );
+	}
+
+	/**
+	 * Send CDN-aware no-store headers while a deploy revalidate window is open.
+	 *
+	 * @return void
+	 */
+	public function maybe_send_deploy_revalidate_headers() {
+		$until = (int) get_option( self::DEPLOY_UNTIL, 0 );
+		if ( $until <= 0 ) {
+			return;
+		}
+		if ( $until < time() ) {
+			delete_option( self::DEPLOY_UNTIL );
+			return;
+		}
+		if ( is_admin() || wp_doing_ajax() || wp_doing_cron() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
+			return;
+		}
+		if ( headers_sent() ) {
+			return;
+		}
+		// Origin + Cloudflare CDN cache control (Cache Rules that respect origin / CDN-CC).
+		header( 'Cache-Control: no-cache, must-revalidate, max-age=0' );
+		header( 'CDN-Cache-Control: no-store' );
+		header( 'Cloudflare-CDN-Cache-Control: no-store' );
 	}
 
 	/**
@@ -98,10 +153,21 @@ class Cloudflare_Cache {
 	}
 
 	/**
+	 * Soft-purge via Cloudflare WordPress plugin hooks only (no API / no lock).
+	 *
+	 * @param string $reason Reason slug.
+	 * @return void
+	 */
+	public function soft_purge_only( $reason = '' ) {
+		$this->try_soft_purge_hooks( sanitize_key( (string) $reason ) );
+	}
+
+	/**
 	 * Queue a Cloudflare edge purge without WP-Cron / spawn_cron.
 	 *
 	 * Some hosts use external cron runners that break `wp_schedule_single_event`
-	 * + `spawn_cron` loopbacks. We run on shutdown of this request instead.
+	 * + `spawn_cron` loopbacks. We run on shutdown of this request, and retry on
+	 * the next `init` (front or admin) until the API purge succeeds.
 	 *
 	 * @param string          $reason Reason slug.
 	 * @param string[]|string $files  Optional absolute CSS/asset URLs to purge by file.
@@ -115,14 +181,24 @@ class Cloudflare_Cache {
 
 		$this->queue_pending_files( $files );
 
-		// Soft CF plugin hooks even without our token (best-effort, no spam lock).
+		$critical = in_array( $reason, self::critical_purge_reasons(), true );
+		if ( $critical ) {
+			update_option( self::REQUIRED_PURGE, $reason, false );
+		}
+
+		// Soft CF plugin hooks even without our token (best-effort).
+		$this->try_soft_purge_hooks( $reason );
+
 		if ( ! $this->is_ready() ) {
-			$this->try_soft_purge_hooks( $reason );
+			if ( $critical ) {
+				// Keep REQUIRED_PURGE so the next request retries once credentials exist;
+				// still soft-hooked above for Cloudflare's WordPress plugin.
+				update_option( self::PENDING_REASON, $reason, false );
+			}
 			return false;
 		}
 
-		$this->try_soft_purge_hooks( $reason );
-		update_option( 'ucpf_cf_purge_pending_reason', $reason, false );
+		update_option( self::PENDING_REASON, $reason, false );
 
 		// Drop any legacy cron jobs from older builds (broken under external cron runners).
 		wp_clear_scheduled_hook( self::CRON_HOOK );
@@ -134,17 +210,66 @@ class Cloudflare_Cache {
 	}
 
 	/**
-	 * Shutdown / admin fallback: run a queued Cloudflare purge (no WP-Cron).
+	 * Shutdown hook: flush a queued purge (no WP-Cron).
 	 *
 	 * @return void
 	 */
 	public function run_pending_purge_on_shutdown() {
-		$reason = get_option( 'ucpf_cf_purge_pending_reason', '' );
-		if ( '' === $reason || false === $reason ) {
+		$this->maybe_flush_pending_purge();
+	}
+
+	/**
+	 * Run pending / sticky UCPF purge if any (idempotent per request).
+	 *
+	 * Clears the sticky flag only after a successful API purge, or after soft-hook
+	 * when purge is not configured (nothing more to retry until settings change).
+	 *
+	 * @return void
+	 */
+	public function maybe_flush_pending_purge() {
+		static $ran = false;
+		if ( $ran ) {
 			return;
 		}
-		delete_option( 'ucpf_cf_purge_pending_reason' );
-		$this->purge_edge( sanitize_key( (string) $reason ) );
+
+		$required = (string) get_option( self::REQUIRED_PURGE, '' );
+		$pending  = (string) get_option( self::PENDING_REASON, '' );
+		$reason   = '' !== $required ? $required : $pending;
+		if ( '' === $reason ) {
+			return;
+		}
+
+		// Back off after a failed API attempt (keeps sticky flag, avoids hammering Cloudflare).
+		if ( '' !== $required && get_transient( 'ucpf_cf_purge_retry_wait' ) ) {
+			return;
+		}
+
+		$ran = true;
+		$result = $this->purge_edge( sanitize_key( $reason ) );
+		$ok     = ! empty( $result['ok'] );
+
+		if ( $ok ) {
+			delete_option( self::REQUIRED_PURGE );
+			delete_option( self::PENDING_REASON );
+			delete_transient( 'ucpf_cf_purge_retry_wait' );
+			return;
+		}
+
+		// Not configured: soft-hooks already ran inside purge_edge; stop hammering every request.
+		if ( ! $this->is_ready() ) {
+			delete_option( self::REQUIRED_PURGE );
+			delete_option( self::PENDING_REASON );
+			return;
+		}
+
+		// API/network failure: keep sticky critical reasons; retry on a later request (60s backoff).
+		if ( '' !== $required && in_array( $required, self::critical_purge_reasons(), true ) ) {
+			update_option( self::PENDING_REASON, $required, false );
+			set_transient( 'ucpf_cf_purge_retry_wait', 1, 60 );
+			return;
+		}
+
+		delete_option( self::PENDING_REASON );
 	}
 
 	/**
@@ -211,7 +336,10 @@ class Cloudflare_Cache {
 			$lock_seconds = 60;
 		}
 
-		if ( get_transient( self::LOCK_TRANSIENT ) ) {
+		// Zip / UCPF activate must clear stale HTML immediately — do not soft-skip on the 10-minute lock.
+		$force_full = in_array( $reason, array( 'ucpf_zip_overwrite', 'ucpf_update', 'activate' ), true );
+
+		if ( get_transient( self::LOCK_TRANSIENT ) && ! $force_full ) {
 			// Still try file/prefix purge — Elementor CSS poison cannot wait on the 10-minute lock.
 			$zone  = $this->get_zone_id( true );
 			$token = $this->get_api_token();
@@ -227,6 +355,10 @@ class Cloudflare_Cache {
 			);
 			$this->store_status( $result, $reason );
 			return $result;
+		}
+
+		if ( $force_full ) {
+			delete_transient( self::LOCK_TRANSIENT );
 		}
 
 		// Claim lock before network call so concurrent crons do not double-fire.

@@ -342,6 +342,9 @@ class Consent_Manager {
 		$state = isset( $payload['state'] ) ? sanitize_key( $payload['state'] ) : 'custom';
 
 		$lifetime = (int) apply_filters( 'ucpf_consent_cookie_lifetime', Settings::get( 'cookie_lifetime_days' ) );
+		if ( $lifetime < 1 ) {
+			$lifetime = 180;
+		}
 		$expires  = time() + ( $lifetime * DAY_IN_SECONDS );
 
 		$uuid = ! empty( $payload['uuid'] ) ? sanitize_text_field( $payload['uuid'] ) : '';
@@ -475,6 +478,9 @@ class Consent_Manager {
 
 		$secure   = is_ssl();
 		$lifetime = (int) apply_filters( 'ucpf_consent_cookie_lifetime', Settings::get( 'cookie_lifetime_days' ) );
+		if ( $lifetime < 1 ) {
+			$lifetime = 180;
+		}
 		$value    = rawurlencode( wp_json_encode( $data ) );
 
 		// Keep under typical proxy/browser cookie limits (~4KB).

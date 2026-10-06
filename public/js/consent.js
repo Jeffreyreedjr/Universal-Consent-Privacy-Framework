@@ -176,9 +176,104 @@
     }
   }
 
+  function consentMaxAgeSeconds() {
+    var maxAge = parseInt(config.cookieLifetime, 10);
+    if (!maxAge || maxAge < 86400) {
+      maxAge = 180 * 86400;
+    }
+    return maxAge;
+  }
+
   function cookieBase(maxAge) {
     var secure = location.protocol === 'https:' ? '; Secure' : '';
-    return '; Path=' + cookiePath() + cookieDomainAttr() + '; Max-Age=' + maxAge + '; SameSite=Lax' + secure;
+    var expiresUtc = new Date(Date.now() + maxAge * 1000).toUTCString();
+    // Max-Age + Expires: some WebViews / older Safari honor one but not the other.
+    return (
+      '; Path=' +
+      cookiePath() +
+      cookieDomainAttr() +
+      '; Max-Age=' +
+      maxAge +
+      '; Expires=' +
+      expiresUtc +
+      '; SameSite=Lax' +
+      secure
+    );
+  }
+
+  var IDB_NAME = 'ucpf_consent_db';
+  var IDB_STORE = 'consent';
+  var IDB_KEY = 'current';
+
+  function idbOpen(cb) {
+    try {
+      if (!window.indexedDB) {
+        cb(null);
+        return;
+      }
+      var req = indexedDB.open(IDB_NAME, 1);
+      req.onupgradeneeded = function (ev) {
+        try {
+          var db = ev.target.result;
+          if (!db.objectStoreNames.contains(IDB_STORE)) {
+            db.createObjectStore(IDB_STORE);
+          }
+        } catch (eUp) { /* ignore */ }
+      };
+      req.onsuccess = function (ev) {
+        cb(ev.target.result || null);
+      };
+      req.onerror = function () {
+        cb(null);
+      };
+    } catch (eOpen) {
+      cb(null);
+    }
+  }
+
+  function idbWrite(data) {
+    idbOpen(function (db) {
+      if (!db || !data) {
+        return;
+      }
+      try {
+        var tx = db.transaction(IDB_STORE, 'readwrite');
+        tx.objectStore(IDB_STORE).put(data, IDB_KEY);
+      } catch (eW) { /* ignore */ }
+    });
+  }
+
+  function idbRead(cb) {
+    idbOpen(function (db) {
+      if (!db) {
+        cb(null);
+        return;
+      }
+      try {
+        var tx = db.transaction(IDB_STORE, 'readonly');
+        var getReq = tx.objectStore(IDB_STORE).get(IDB_KEY);
+        getReq.onsuccess = function () {
+          cb(getReq.result || null);
+        };
+        getReq.onerror = function () {
+          cb(null);
+        };
+      } catch (eR) {
+        cb(null);
+      }
+    });
+  }
+
+  function idbClear() {
+    idbOpen(function (db) {
+      if (!db) {
+        return;
+      }
+      try {
+        var tx = db.transaction(IDB_STORE, 'readwrite');
+        tx.objectStore(IDB_STORE).delete(IDB_KEY);
+      } catch (eC) { /* ignore */ }
+    });
   }
 
   function expireCookieAtPath(path) {
@@ -198,8 +293,7 @@
     // URL handoff first (Brave Shields often drops cookies/storage across reload).
     var handoff = readConsentHandoff();
     if (handoff && !shouldReprompt(handoff)) {
-      writeLocalCookie(handoff);
-      writeConsentBackup(handoff);
+      persistConsent(handoff);
       return handoff;
     }
     var cookie = parseCookie();
@@ -212,7 +306,7 @@
     }
     var bridge = readConsentBridge();
     if (bridge && !shouldReprompt(bridge)) {
-      writeLocalCookie(bridge);
+      persistConsent(bridge);
       return bridge;
     }
     return null;
@@ -277,6 +371,7 @@
         if (window.sessionStorage) sessionStorage.removeItem('ucpf_consent_backup');
       }
     } catch (e) { /* ignore */ }
+    idbClear();
   }
 
   function defaultRejected() {
@@ -317,6 +412,74 @@
     return false;
   }
 
+  function isValidConsent(data) {
+    return !shouldReprompt(data);
+  }
+
+  /**
+   * Multi-layer persist: cookie (Max-Age+Expires) + local/session backup + IndexedDB.
+   * Always call this for Accept / Reject / Save — never rely on UI hide alone.
+   * Returns the payload even if the cookie jar rejects the write (storage + handoff still hold).
+   */
+  function persistConsent(payload) {
+    var data = writeLocalCookie(payload);
+    try {
+      writeConsentBridge(data);
+    } catch (eBr) { /* ignore */ }
+    try {
+      idbWrite(data);
+    } catch (eIdb) { /* ignore */ }
+    // Verify at least one durable layer is readable; retry cookie once if needed.
+    var cookieOk = false;
+    try {
+      var rb = parseCookie();
+      cookieOk = !!(rb && rb.state === data.state);
+    } catch (eRb) { /* ignore */ }
+    if (!cookieOk) {
+      try {
+        var encoded = encodeURIComponent(JSON.stringify(data));
+        document.cookie = COOKIE_NAME + '=' + encoded + cookieBase(consentMaxAgeSeconds());
+      } catch (eRetry) { /* ignore */ }
+    }
+    var storageOk = false;
+    try {
+      var bak = readConsentBackup();
+      storageOk = !!(bak && bak.state === data.state);
+    } catch (eBak) { /* ignore */ }
+    if (!cookieOk && !storageOk) {
+      try {
+        writeConsentBackup(data);
+      } catch (eBak2) { /* ignore */ }
+    }
+    return data;
+  }
+
+  function loadConsent() {
+    return readStoredConsent();
+  }
+
+  function applyLoadedConsent(cookie) {
+    if (!cookie || !isValidConsent(cookie)) {
+      return false;
+    }
+    // Rehydrate missing cookie / backups from whichever layer survived.
+    if (!parseCookie() || !isValidConsent(parseCookie())) {
+      persistConsent(cookie);
+    } else {
+      writeConsentBackup(cookie);
+      try {
+        idbWrite(cookie);
+      } catch (eIdb2) { /* ignore */ }
+    }
+    state.uuid = cookie.uuid || '';
+    state.state = cookie.state || 'custom';
+    state.categories = cookie.categories || defaultRejected();
+    state.services = cookie.services || {};
+    markConsentDone();
+    clearReshowTimers();
+    return true;
+  }
+
   function loadState() {
     if (config.discoverMode) {
       state.state = 'discover';
@@ -326,22 +489,58 @@
       return;
     }
     var cookie = readStoredConsent();
-    if (!cookie) {
-      state.state = 'unknown';
-      state.categories = defaultRejected();
-      state.services = {};
-      state.uuid = '';
+    if (cookie && applyLoadedConsent(cookie)) {
       return;
     }
-    // Cookie missing/corrupt but backup valid — rehydrate so Path=COOKIEPATH persists again.
-    if (!parseCookie()) {
-      writeLocalCookie(cookie);
+    state.state = 'unknown';
+    state.categories = defaultRejected();
+    state.services = {};
+    state.uuid = '';
+  }
+
+  /** Async tertiary restore (IndexedDB) when sync layers were empty. */
+  function restoreFromIndexedDbIfNeeded() {
+    if (config.discoverMode || state.state !== 'unknown') {
+      return;
     }
-    state.uuid = cookie.uuid || '';
-    state.state = cookie.state || 'custom';
-    state.categories = cookie.categories || defaultRejected();
-    state.services = cookie.services || {};
-    markConsentDone();
+    idbRead(function (stored) {
+      if (!stored || !isValidConsent(stored)) {
+        return;
+      }
+      if (state.state !== 'unknown' && window.__ucpfConsentDone) {
+        return;
+      }
+      if (!applyLoadedConsent(stored)) {
+        return;
+      }
+      try {
+        hideBanner();
+        showFab();
+        syncWpConsent(state.categories, state.services);
+        syncGtagConsent(state.categories);
+        dispatch('ucpf:consent:changed', state);
+      } catch (eUi) { /* ignore */ }
+    });
+  }
+
+  function restoreConsentUiIfNeeded() {
+    if (config.discoverMode) {
+      return;
+    }
+    var stored = readStoredConsent();
+    if (!stored || !isValidConsent(stored)) {
+      restoreFromIndexedDbIfNeeded();
+      return;
+    }
+    if (!applyLoadedConsent(stored)) {
+      return;
+    }
+    try {
+      hideBanner();
+      showFab();
+      syncWpConsent(state.categories, state.services);
+      syncGtagConsent(state.categories);
+    } catch (eRest) { /* ignore */ }
   }
 
   function collectCookieNames() {
@@ -469,8 +668,11 @@
   }
 
   function scheduleConsentReload(local) {
-    writeConsentBridge(local);
-    writeConsentBackup(local);
+    try {
+      writeConsentBridge(local);
+      writeConsentBackup(local);
+      idbWrite(local);
+    } catch (ePre) { /* ignore */ }
     clearNavigationBlockers();
     try {
       window.__ucpfConsentReloadPending = true;
@@ -478,9 +680,9 @@
     // Give cookie/storage writes time to flush (Brave Shields / Mac Chrome).
     var reloadDelay = 220;
     window.setTimeout(function () {
-      writeLocalCookie(local);
-      writeConsentBridge(local);
-      writeConsentBackup(local);
+      try {
+        persistConsent(local);
+      } catch (ePers) { /* ignore */ }
       navigateAfterConsent(local);
     }, reloadDelay);
     // If navigation is cancelled (dirty Woo form / extension), unlock and hydrate once.
@@ -531,11 +733,8 @@
   }
 
   function writeWpConsentCookie(category, value) {
-    var maxAge = parseInt(config.cookieLifetime, 10);
-    if (!maxAge || maxAge < 86400) {
-      maxAge = 180 * 86400;
-    }
-    document.cookie = 'wp_consent_' + category + '=' + (value ? 'allow' : 'deny') + cookieBase(maxAge);
+    document.cookie =
+      'wp_consent_' + category + '=' + (value ? 'allow' : 'deny') + cookieBase(consentMaxAgeSeconds());
   }
 
   function softStubWooOrderAttribution() {
@@ -553,8 +752,10 @@
     categories = categories || {};
     softStubWooOrderAttribution();
 
-    // Client-side WP Consent API cookies so Site Kit / other listeners wake without reload.
-    writeWpConsentCookie('functional', true);
+    // Map UCPF categories onto WP Consent API cookies. Embeds = UCPF "functional".
+    // Never force functional=allow — that left wp_consent_functional=allow after Reject
+    // and let WP Consent API consumers (Site Kit, Woo, etc.) treat Embeds as granted.
+    writeWpConsentCookie('functional', !!categories.functional);
     writeWpConsentCookie('preferences', !!categories.preferences);
     writeWpConsentCookie('statistics', !!categories.analytics);
     writeWpConsentCookie('marketing', !!categories.marketing);
@@ -564,8 +765,8 @@
 
     try {
       if (typeof window.wp_set_consent === 'function') {
-        window.wp_set_consent('functional', 'allow');
         var map = {
+          functional: categories.functional,
           preferences: categories.preferences,
           statistics: categories.analytics,
           marketing: categories.marketing,
@@ -603,15 +804,12 @@
   }
 
   function writeLocalCookie(payload) {
-    var maxAge = parseInt(config.cookieLifetime, 10);
-    if (!maxAge || maxAge < 86400) {
-      maxAge = 180 * 86400;
-    }
+    var maxAge = consentMaxAgeSeconds();
     var expires = Math.floor(Date.now() / 1000) + maxAge;
     var data = {
       uuid: payload.uuid || state.uuid || (window.crypto && crypto.randomUUID ? crypto.randomUUID() : String(Date.now())),
-      version: config.consentVersion || '1.0.0',
-      policy_version: config.policyVersion || '',
+      version: (payload.version != null && payload.version !== '') ? payload.version : (config.consentVersion || '1.0.0'),
+      policy_version: (payload.policy_version != null) ? payload.policy_version : (config.policyVersion || ''),
       state: payload.state || 'custom',
       categories: payload.categories || defaultRejected(),
       services: payload.services || {},
@@ -691,24 +889,27 @@
   function finishConsentRequest(local, payload, action) {
     return apiRequest('consent', Object.assign({ action: action, uuid: local.uuid }, payload))
       .then(function (response) {
-        if (
-          response &&
-          response.consent &&
-          response.consent.categories &&
-          response.consent.state &&
-          response.consent.state !== 'unknown'
-        ) {
-          writeLocalCookie(response.consent);
-          syncWpConsent(state.categories, state.services);
-        }
-        consentInFlight = false;
-        setConsentControlsLocked(false);
+        try {
+          if (
+            response &&
+            response.consent &&
+            response.consent.categories &&
+            response.consent.state &&
+            response.consent.state !== 'unknown'
+          ) {
+            persistConsent(response.consent);
+            syncWpConsent(state.categories, state.services);
+          }
+        } catch (eFin) { /* never unwind prior persist */ }
         return response;
       })
       .catch(function () {
+        return { success: true, consent: local, offline: true };
+      })
+      .then(function (response) {
         consentInFlight = false;
         setConsentControlsLocked(false);
-        return { success: true, consent: local, offline: true };
+        return response;
       });
   }
 
@@ -720,65 +921,82 @@
     setConsentControlsLocked(true);
 
     var skipReload = action === 'save_preferences' && savePreferencesUnchanged(payload);
-
-    // Persist immediately so Accept All / Save always stick even if REST fails.
-    clearReshowTimers();
-    var local = writeLocalCookie(payload);
-    syncWpConsent(local.categories, local.services);
-    syncGtagConsent(local.categories);
-
     var willHardReload =
       action === 'accept_all' ||
       action === 'reject_all' ||
       (action === 'save_preferences' && !skipReload);
-    if (willHardReload) {
-      try {
-        window.__ucpfConsentReloadPending = true;
-      } catch (eFlagEarly) { /* ignore */ }
-    }
+    var local = null;
 
-    dispatch('ucpf:consent:changed', state);
-    if (action === 'accept_all') dispatch('ucpf:consent:accepted_all', state);
-    if (action === 'reject_all') dispatch('ucpf:consent:rejected_all', state);
-    if (action === 'reject_all') {
-      if (window.UCPFLoader && typeof window.UCPFLoader.unloadService === 'function') {
+    try {
+      // Persist first — post-write UI/REST/loader errors must not unwind consent.
+      clearReshowTimers();
+      local = persistConsent(payload);
+
+      try {
+        syncWpConsent(local.categories, local.services);
+        syncGtagConsent(local.categories);
+      } catch (eSync) { /* ignore */ }
+
+      if (willHardReload) {
         try {
-          window.UCPFLoader.unloadService();
-        } catch (eUnload0) { /* ignore */ }
+          window.__ucpfConsentReloadPending = true;
+        } catch (eFlagEarly) { /* ignore */ }
+      }
+
+      try {
+        dispatch('ucpf:consent:changed', state);
+        if (action === 'accept_all') dispatch('ucpf:consent:accepted_all', state);
+        if (action === 'reject_all') dispatch('ucpf:consent:rejected_all', state);
+        if (action === 'reject_all') {
+          if (window.UCPFLoader && typeof window.UCPFLoader.unloadService === 'function') {
+            window.UCPFLoader.unloadService();
+          }
+        }
+      } catch (eEvt) { /* ignore */ }
+
+      prefsDirty = false;
+      prefsBaseline = null;
+      try {
+        hideBanner();
+        hidePrefs();
+        showFab();
+      } catch (eUi) { /* ignore */ }
+
+      // Accept / Reject / Save Preferences: reload so PHP re-renders enqueued tags.
+      // Always attach #ucpf_c= handoff (all browsers) via scheduleConsentReload.
+      if (willHardReload) {
+        var hardReq = apiRequest('consent', Object.assign({ action: action, uuid: local.uuid }, payload)).catch(function () {
+          return { success: true, consent: local, offline: true };
+        });
+        scheduleConsentReload(local);
+        return hardReq;
+      }
+
+      if (skipReload) {
+        return Promise.resolve({ success: true, consent: local, unchanged: true });
+      }
+
+      try {
+        if (window.UCPFLoader) window.UCPFLoader.applyConsent(state);
+      } catch (eLoad) { /* ignore */ }
+
+      return finishConsentRequest(local, payload, action);
+    } catch (eApply) {
+      // Persist may have succeeded before this throw — do not clear layers.
+      if (!willHardReload) {
+        consentInFlight = false;
+        setConsentControlsLocked(false);
+      }
+      return Promise.resolve({ success: true, consent: local, recovered: true });
+    } finally {
+      // Hard reload: scheduleConsentReload owns unlock.
+      // Soft save with REST: finishConsentRequest owns unlock.
+      // Unchanged save: unlock here.
+      if (!willHardReload && skipReload) {
+        consentInFlight = false;
+        setConsentControlsLocked(false);
       }
     }
-    prefsDirty = false;
-    prefsBaseline = null;
-    hideBanner();
-    hidePrefs();
-    showFab();
-
-    // Accept / Reject / Save Preferences: reload so PHP re-renders enqueued tags
-    // (GT &ver=, fonts, captchas) for the exact consent mix. Same-page inject alone
-    // misses WordPress-enqueued scripts that were deferred as text/plain.
-    // Exception: Save with no toggle changes — close UI only (no refresh).
-    if (willHardReload) {
-      // Do NOT call UCPFLoader.applyConsent here — activating every parked script
-      // + Mapster/Elementor refire on the main thread freezes the tab before reload.
-      // Cookie is already written; PHP serves the right tags after navigation.
-      // If navigation is cancelled, scheduleConsentReload's fallback hydrates once.
-      var hardReq = apiRequest('consent', Object.assign({ action: action, uuid: local.uuid }, payload)).catch(function () {
-        return { success: true, consent: local, offline: true };
-      });
-      scheduleConsentReload(local);
-      return hardReq;
-    }
-
-    // Unchanged Save Preferences: local cookie already written; skip REST so audit log stays clean.
-    if (skipReload) {
-      consentInFlight = false;
-      setConsentControlsLocked(false);
-      return Promise.resolve({ success: true, consent: local, unchanged: true });
-    }
-
-    if (window.UCPFLoader) window.UCPFLoader.applyConsent(state);
-
-    return finishConsentRequest(local, payload, action);
   }
 
   var bannerEl, prefsEl, fabEl, prefsReturnFocus;
@@ -1165,23 +1383,23 @@
       consentInFlight = true;
       setConsentControlsLocked(true);
       clearReshowTimers();
-      var local = writeLocalCookie({
+      var local = persistConsent({
         state: 'withdrawn',
         categories: defaultRejected(),
         services: {},
         uuid: state.uuid,
       });
-      syncWpConsent(local.categories, local.services);
-      syncGtagConsent(local.categories);
-      if (window.UCPFLoader && typeof window.UCPFLoader.unloadService === 'function') {
-        window.UCPFLoader.unloadService();
-      }
-      hideBanner();
-      hidePrefs();
-      showFab();
-      dispatch('ucpf:consent:withdrawn', state);
-      writeConsentBridge(local);
-      writeConsentBackup(local);
+      try {
+        syncWpConsent(local.categories, local.services);
+        syncGtagConsent(local.categories);
+        if (window.UCPFLoader && typeof window.UCPFLoader.unloadService === 'function') {
+          window.UCPFLoader.unloadService();
+        }
+        hideBanner();
+        hidePrefs();
+        showFab();
+        dispatch('ucpf:consent:withdrawn', state);
+      } catch (eWd) { /* ignore */ }
       var withdrawReq = fetch(config.restUrl + 'withdraw', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': config.nonce },
@@ -1193,6 +1411,9 @@
       scheduleConsentReload(local);
       return withdrawReq;
     },
+    persistConsent: persistConsent,
+    loadConsent: loadConsent,
+    isValidConsent: isValidConsent,
     openPreferences: function (options) {
       showPrefs();
       var highlight = options && options.highlight ? String(options.highlight) : '';
@@ -1237,6 +1458,7 @@
 
   function init() {
     loadState();
+    restoreFromIndexedDbIfNeeded();
     if (state.state !== 'unknown') {
       markConsentDone();
       clearReshowTimers();
@@ -1287,6 +1509,17 @@
         }
       }, ms));
     });
+
+    // Safari bfcache / tab restore must not resurrect the banner when consent is valid.
+    window.addEventListener('pageshow', function () {
+      restoreConsentUiIfNeeded();
+    });
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') {
+        restoreConsentUiIfNeeded();
+      }
+    });
+
     dispatch('ucpf:ready', state);
   }
 

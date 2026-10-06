@@ -2,9 +2,9 @@
 Contributors: jeffreyreedjr
 Tags: privacy, gdpr, cookies, consent, cookie banner
 Requires at least: 6.3
-Tested up to: 7.0
+Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.29-alpha
+Stable tag: 0.1.40-alpha
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -97,6 +97,77 @@ Created and developed by Jeffrey Reed Jr.
 Cookie descriptions may fall back to a bundled offline snapshot of the Open Cookie Database (https://github.com/jkwakman/Open-Cookie-Database). Attribution to jkwakman/Open-Cookie-Database. The snapshot is local only (no runtime phone-home to cookiedatabase.org) and is not a compliance guarantee.
 
 == Changelog ==
+
+= 0.1.40-alpha =
+
+* Fix: Integrations saves via admin-post (not options.php); never wipe GTM/GT IDs when containers_json is empty — nested fields always post; success notice lists saved IDs
+* Fix: Integrations save refreshes Cookie/Privacy for Google tags; policies list configured GTM-/GT- IDs; richer GTM cookie families
+* Fix: Cloudflare Web Analytics beacon re-fires after Accept (early MO + soft-defer honor analytics consent)
+* Fix: Maps/safe-iframe soft-defer skip when Marketing+Embeds granted; Calendly needs both; tracker load re-injects managed tags
+
+= 0.1.39-alpha =
+
+* Fix: GTM Integrations save accepts GT-… Google Tag IDs (and GTM-… containers); loads gtag.js vs gtm.js correctly; duplicate IDs dedupe; Enable + IDs persist after save
+
+= 0.1.38-alpha =
+
+* Fix: Integrations GTM multi-container save — containers serialized to one containers_json field on submit (reliable enable + multi-ID persist); visible Enable label; robust row reindex
+* Fix: PHP prefers containers_json over nested containers[]; still preserves legacy single id
+
+= 0.1.37-alpha =
+
+* Fix: Integrations GTM multi-container save — preserve legacy single id, do not wipe on blank POST, keep dataLayer camelCase, extract GTM- from pasted URLs
+* Fix: truncated tracking form POST no longer clears all service_ids; admin notices for incomplete save / missing GTM IDs
+* Fix: Integrations submit reindexes/normalizes GTM container fields before save
+
+= 0.1.36-alpha =
+
+* Fix: Plugin Check warning — wizard $_POST[service_ids] unslash + sanitize via Tracking_Templates (phpcs)
+
+= 0.1.35-alpha =
+
+* Fix: GTM multi-container — legacy single ID shows/migrates into containers[]; wizard no longer disables GTM on save; empty unchecked fields no longer wipe IDs
+* Fix: Integrations + wizard share the same GTM row hydrate; wizard summary lists all container IDs
+* Fix: same-page Accept injects every GTM container (not only the first)
+* Added: php tests/phpunit/gtm-multi-container-selftest.php
+
+= 0.1.34-alpha =
+
+* Added: universal consent durability (cookie Max-Age+Expires, localStorage, sessionStorage, IndexedDB; boot rehydrate; always #ucpf_c= handoff; pageshow restore)
+* Added: PHP cookie lifetime floor (>= 1 day, default 180)
+* Added: node tests/js/consent-durability.test.js + banner-every-session triage docs
+* Fix: post-persist errors cannot unwind Accept; soft-save unlock path hardened
+
+= 0.1.33-alpha =
+
+* Added: Google Tag Manager multi-container (Integrations + Setup Wizard; scan “Add all to list”)
+* Added: Map viewer catalog (MapMe, MapHub, BatchGeo, ZeeMaps, uMap)
+* Fix: lazy iframe embeds with data-src + data: placeholder parked pre-consent (MapMe / maps)
+* Fix: Smush / media CDN images (assetcdn.net, Jetpack Photon, /wp-content/uploads/) load before consent
+
+= 0.1.32-alpha =
+
+* Fix: Mapster force-refire no longer creates duplicate *-ucpf-refire clones (nested MapLibre canvases)
+* Fix: Elementor background YouTube stuck blank after Marketing+Embeds (clear elementor-loading/invisible; ucpf-bg-video-ready)
+* Added: AI image disclosure toggle on Generated Pages (Privacy Policy section)
+
+= 0.1.31-alpha =
+
+* Fix: scanner page list 404 on plain permalinks (REST query args use & with rest_route)
+* Fix: Playwright paths sent as JSON array again (no scanner host update required for this rebuild)
+* Fix: ES module scripts (Lottie/DotLottie) preserve type=module after consent
+* LottieFiles cataloged as functional (consent); Redis/OPcache invalidate on zip bust
+* Cache life: content-based asset ?ver= (size + crc32); zip overwrite fingerprint + deploy revalidate headers
+* Cloudflare purge after UCPF zip/activate/upgrade without WP-Cron (sticky retry on next page load; enable purge API + token)
+* Docs: full Cloudflare + Plesk/nginx caching guide (skip ucpf_consent / ucpf_dns / _ucpf on origin page cache)
+* Performance / global push: schema_ready gate, catalog cache, lazy form-captcha-guard, retire scheduled Deep scans
+* Plugin Check: Tested up to 7.1; readme Stable tag sync
+
+= 0.1.30-alpha =
+
+* Fix: Smart Slider 3 hero blank after Accept All (never gate/refire; idempotent customElements.define)
+* Fix: nested map consent covers (outermost host + collapsed map min-height)
+* Added: ApexChat / ViaLiveChat embeds + cookie catalog; Google Ads test_cookie
 
 = 0.1.29-alpha =
 

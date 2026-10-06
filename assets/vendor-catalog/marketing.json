@@ -64,7 +64,12 @@
         "b.stats.paypal.com",
         "c6.paypal.com",
         "lvs.stats.paypal.com",
-        "stats.paypal.com"
+        "slc.stats.paypal.com",
+        "stats.paypal.com",
+        "paypal.com/smart/",
+        "paypal.com/graphql",
+        "paypal.com/xoplatform",
+        "paypal.com/credit-presentment"
       ],
       "cookie_patterns": ["paypal*", "ts*", "enforce_policy", "l7_az", "sc_f", "KHcl0EuY7AKSMgfvHl7J5E7hPtK", "__paypal*"],
       "cookies": [
@@ -96,7 +101,25 @@
           "contexts": ["guest", "logged_in", "checkout"]
         }
       ],
-      "iframe_patterns": ["paypal.com", "c.paypal.com"],
+      "iframe_patterns": ["paypal.com", "c.paypal.com", "braintreegateway.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "braintree",
+      "name": "Braintree",
+      "provider": "PayPal / Braintree",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Braintree hosted fields and tokenization frames used by PayPal Checkout and card payments.",
+      "privacy_url": "https://www.paypal.com/us/legalhub/privacy-full",
+      "script_patterns": [
+        "braintreegateway.com",
+        "js.braintreegateway.com",
+        "assets.braintreegateway.com"
+      ],
+      "cookie_patterns": ["braintree*"],
+      "cookies": [],
+      "iframe_patterns": ["braintreegateway.com", "assets.braintreegateway.com"],
       "default_blocking": true
     },
     {
@@ -145,7 +168,7 @@
       "treatment": "consent",
       "description": "Email marketing forms and tracking.",
       "privacy_url": "https://www.constantcontact.com/legal/privacy-center",
-      "script_patterns": ["static.ctctcdn.com", "listgrowth.ctctcdn.com", "constantcontact.com"],
+      "script_patterns": ["static.ctctcdn.com", "listgrowth.ctctcdn.com", "constantcontact.com", "constant-contact-forms"],
       "cookie_patterns": [],
       "cookies": [],
       "iframe_patterns": [],
@@ -165,7 +188,7 @@
         "ads.rubiconproject.com",
         "pixel.rubiconproject.com"
       ],
-      "cookie_patterns": ["khaos", "audit", "receive-cookie-deprecation"],
+      "cookie_patterns": ["khaos", "khaos_p", "audit", "audit_p", "receive-cookie-deprecation"],
       "cookies": [
         {
           "name": "c",
@@ -181,6 +204,33 @@
           "pattern": "khaos",
           "purpose": "Magnite user identifier for advertising.",
           "retention": "months",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "khaos_p",
+          "pattern": "khaos_p",
+          "purpose": "Stores Magnite consent or partner-matching state for the current domain.",
+          "retention": "1 year",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "audit",
+          "pattern": "audit",
+          "purpose": "Programmatic advertising and bidstream (formerly Rubicon Project).",
+          "retention": "1 year",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "audit_p",
+          "pattern": "audit_p",
+          "purpose": "Stores Magnite interest or partner-matching data for advertising.",
+          "retention": "1 year",
           "category": "marketing",
           "treatment": "consent",
           "contexts": ["guest", "logged_in"]
@@ -203,8 +253,27 @@
         "activecampaign.com",
         "lusrprx.com"
       ],
-      "cookie_patterns": ["cmp*"],
-      "cookies": [],
+      "cookie_patterns": ["cmp*", "CMPS", "CMPRO"],
+      "cookies": [
+        {
+          "name": "CMPS",
+          "pattern": "CMPS",
+          "purpose": "ActiveCampaign site tracking and email marketing session.",
+          "retention": "1 day",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "CMPRO",
+          "pattern": "CMPRO",
+          "purpose": "ActiveCampaign site tracking and email marketing session.",
+          "retention": "1 day",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
       "iframe_patterns": [],
       "default_blocking": true
     },
@@ -296,8 +365,27 @@
         "ib.adnxs.com",
         "secure.adnxs.com"
       ],
-      "cookie_patterns": [],
-      "cookies": [],
+      "cookie_patterns": ["uuid2", "XANDR_PANID"],
+      "cookies": [
+        {
+          "name": "uuid2",
+          "pattern": "uuid2",
+          "purpose": "Random unique value so Xandr can distinguish browsers and devices for ads.",
+          "retention": "90 days",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "XANDR_PANID",
+          "pattern": "XANDR_PANID",
+          "purpose": "Registers visitor data used to optimize advertisement relevance.",
+          "retention": "400 days",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
       "iframe_patterns": ["adnxs.com"],
       "default_blocking": true
     },
@@ -375,9 +463,208 @@
         "insight.adsrvr.org",
         "adsrvr.org"
       ],
-      "cookie_patterns": [],
-      "cookies": [],
-      "iframe_patterns": [],
+      "cookie_patterns": ["TDID", "TDCPM"],
+      "cookies": [
+        {
+          "name": "TDID",
+          "pattern": "TDID",
+          "purpose": "Registers a unique ID that identifies a returning user's device for targeted ads.",
+          "retention": "1 year",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "TDCPM",
+          "pattern": "TDCPM",
+          "purpose": "Registers a unique ID that identifies a returning user's device for targeted ads.",
+          "retention": "1 year",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": ["adsrvr.org"],
+      "default_blocking": true
+    },
+    {
+      "key": "beeswax",
+      "name": "Beeswax (bidr.io)",
+      "provider": "Beeswax",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Beeswax programmatic advertising and real-time bidding (bidr.io).",
+      "privacy_url": "https://www.beeswax.com/privacy/",
+      "script_patterns": ["bidr.io", "match.prod.bidr.io", "cdn.bidr.io"],
+      "cookie_patterns": ["bito", "bitoIsSecure"],
+      "cookies": [
+        {
+          "name": "bito",
+          "pattern": "bito",
+          "purpose": "Advertising identifier used by bidr.io / Beeswax for targeted ads.",
+          "retention": "1 year",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "bitoIsSecure",
+          "pattern": "bitoIsSecure",
+          "purpose": "Marks a secure Beeswax / bidr.io pairing so third-party advertisers can target the visitor through real-time bidding.",
+          "retention": "1 year",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": ["bidr.io"],
+      "default_blocking": true
+    },
+    {
+      "key": "casale_media",
+      "name": "Casale Media (Index Exchange)",
+      "provider": "Casale Media",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Casale Media / Index Exchange advertising cookies.",
+      "privacy_url": "https://www.indexexchange.com/privacy/",
+      "script_patterns": ["casalemedia.com", "indexexchange.com"],
+      "cookie_patterns": ["CMID"],
+      "cookies": [
+        {
+          "name": "CMID",
+          "pattern": "CMID",
+          "purpose": "Collects visit data such as number of visits and pages loaded in order to display targeted ads.",
+          "retention": "1 day",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": ["casalemedia.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "bidswitch",
+      "name": "BidSwitch",
+      "provider": "IPONWEB / BidSwitch",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "BidSwitch cookie sync and advertising identity (bidswitch.net).",
+      "privacy_url": "https://www.bidswitch.com/privacy-policy/",
+      "script_patterns": ["bidswitch.net", "x.bidswitch.net"],
+      "cookie_patterns": ["tuuid", "tuuid_lu", "checkForPermission"],
+      "cookies": [
+        {
+          "name": "tuuid",
+          "pattern": "tuuid",
+          "purpose": "Unique visitor ID used to identify users across BidSwitch partner sites.",
+          "retention": "13 months",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "tuuid_lu",
+          "pattern": "tuuid_lu",
+          "purpose": "Unique visitor ID so BidSwitch can track the visitor across websites, optimize ad relevance, and limit repeated ads.",
+          "retention": "3 months",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "checkForPermission",
+          "pattern": "checkForPermission",
+          "purpose": "BidSwitch cookie-sync permission check before pairing advertising identifiers.",
+          "retention": "Session / short-lived",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": ["bidswitch.net"],
+      "default_blocking": true
+    },
+    {
+      "key": "pubmatic",
+      "name": "PubMatic",
+      "provider": "PubMatic",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "PubMatic programmatic advertising and cookie matching.",
+      "privacy_url": "https://pubmatic.com/legal/privacy-policy/",
+      "script_patterns": ["pubmatic.com", "ads.pubmatic.com", "image2.pubmatic.com"],
+      "cookie_patterns": ["KRTBCOOKIE_*", "PugT"],
+      "cookies": [
+        {
+          "name": "KRTBCOOKIE_*",
+          "pattern": "KRTBCOOKIE_*",
+          "purpose": "Registers a unique ID that identifies the user's device on return visits across sites that use the same ad network, for targeted ads.",
+          "retention": "29 days",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "PugT",
+          "pattern": "PugT",
+          "purpose": "Tracks when advertising cookies were last updated so PubMatic can limit calls to its cookie store.",
+          "retention": "30 days",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": ["pubmatic.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "yahoo_advertising",
+      "name": "Yahoo Advertising",
+      "provider": "Yahoo",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Yahoo advertising identifier cookies.",
+      "privacy_url": "https://legal.yahoo.com/us/en/yahoo/privacy/index.html",
+      "script_patterns": ["ads.yahoo.com", "analytics.yahoo.com", "yahoo.com", "yahoo.net"],
+      "cookie_patterns": ["A3"],
+      "cookies": [
+        {
+          "name": "A3",
+          "pattern": "A3",
+          "purpose": "Yahoo advertising identifier used to recognize a returning browser for targeted ads.",
+          "retention": "1 year",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": ["yahoo.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "groundtruth",
+      "name": "GroundTruth (xAd)",
+      "provider": "GroundTruth",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "GroundTruth (formerly xAd) location and advertising identifier.",
+      "privacy_url": "https://www.groundtruth.com/privacy-policy/",
+      "script_patterns": ["xad.com", "groundtruth.com"],
+      "cookie_patterns": ["xad-uid"],
+      "cookies": [
+        {
+          "name": "xad-uid",
+          "pattern": "xad-uid",
+          "purpose": "GroundTruth advertising identifier used to recognize a visitor for targeted ads.",
+          "retention": "months",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": ["xad.com"],
       "default_blocking": true
     }
   ]

@@ -69,7 +69,15 @@
       "treatment": "consent",
       "description": "Zoom web client / meeting embedding hosts.",
       "privacy_url": "https://explore.zoom.us/en/privacy/",
-      "script_patterns": ["zoom.us/wc", "applications.zoom.us"],
+      "script_patterns": [
+        "zoom.us/wc",
+        "applications.zoom.us",
+        "zoom.us",
+        "video-conferencing-with-zoom-api",
+        "vczapi-pro",
+        "vczapi-woocommerce",
+        "/vczapi/"
+      ],
       "cookie_patterns": [],
       "cookies": [],
       "iframe_patterns": ["zoom.us"],

@@ -171,6 +171,236 @@
       "cookies": [],
       "iframe_patterns": ["zendesk.com"],
       "default_blocking": true
+    },
+    {
+      "key": "apexchat",
+      "name": "ApexChat (Blazeo / ViaLiveChat)",
+      "provider": "ApexChat / Blazeo",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "ApexChat live chat / invitation widget (vialivechat.com). Scripts and most chat-state cookies wait on Embeds & Widgets.",
+      "privacy_url": "https://www.apexchat.com/privacy-policy/",
+      "script_patterns": [
+        "v2.vialivechat.com",
+        "vialivechat.com",
+        "apexchat.com",
+        "cdn.apexchat.com",
+        "blazeo.com"
+      ],
+      "cookie_patterns": [
+        "apexchat_*",
+        "livechat_*",
+        "questionTypeId"
+      ],
+      "cookies": [
+        {
+          "name": "apexchat_dropdown_invitation",
+          "pattern": "apexchat_dropdown_invitation",
+          "purpose": "Stores the state of an ApexChat dropdown chat invitation.",
+          "retention": "Session / short-term",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "apexchat_tab_invitation",
+          "pattern": "apexchat_tab_invitation",
+          "purpose": "Stores the state of an ApexChat tab-style invitation.",
+          "retention": "Session / short-term",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "apexchat_dompopup_chatwindow",
+          "pattern": "apexchat_dompopup_chatwindow",
+          "purpose": "Stores state for the ApexChat popup chat window.",
+          "retention": "Session / short-term",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "apexchat_prechat_invitation",
+          "pattern": "apexchat_prechat_invitation",
+          "purpose": "Stores pre-chat invitation display state.",
+          "retention": "Session / short-term",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "livechat_v3_invitation_shown",
+          "pattern": "livechat_v3_invitation_shown",
+          "purpose": "Records whether a live-chat invitation was recently shown.",
+          "retention": "Session / short-term",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "livechat_is_page_refreshed",
+          "pattern": "livechat_is_page_refreshed",
+          "purpose": "Records whether the page refreshed while chat/pre-chat was active.",
+          "retention": "Session",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "livechat_original_referrer",
+          "pattern": "livechat_original_referrer",
+          "purpose": "Stores the visitor's original referring URL for chat acquisition context.",
+          "retention": "Session / short-term",
+          "category": "analytics",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "livechat_agent_alias_id",
+          "pattern": "livechat_agent_alias_id",
+          "purpose": "Stores the chat agent alias id for the visitor's conversation.",
+          "retention": "Session / short-term",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "livechat_operator_id",
+          "pattern": "livechat_operator_id",
+          "purpose": "Stores the live-chat operator handling the conversation.",
+          "retention": "Session / short-term",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "livechat_profile_id",
+          "pattern": "livechat_profile_id",
+          "purpose": "Stores the visitor's live-chat profile identifier.",
+          "retention": "months",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "livechat_invitation_traffic_sources",
+          "pattern": "livechat_invitation_traffic_sources",
+          "purpose": "Stores traffic-source / campaign data for chat invitation attribution.",
+          "retention": "Session / short-term",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "livechat_prechat_messagecounter",
+          "pattern": "livechat_prechat_messagecounter",
+          "purpose": "Tracks pre-chat message activity for the chat interface.",
+          "retention": "Session",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "livechat_visitor_id",
+          "pattern": "livechat_visitor_id",
+          "purpose": "Assigns a visitor id so ApexChat can recognize the visitor across pages.",
+          "retention": "months",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "livechat_visitLogged",
+          "pattern": "livechat_visitLogged",
+          "purpose": "Records live-chat visit state for an existing or recent session.",
+          "retention": "Session / short-term",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "livechat_prechat_message_ids",
+          "pattern": "livechat_prechat_message_ids",
+          "purpose": "Stores identifiers for pre-chat messages used by the chat UI.",
+          "retention": "Session",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "livechat_prechat_lastmessage",
+          "pattern": "livechat_prechat_lastmessage",
+          "purpose": "Stores the most recent pre-chat message across reloads.",
+          "retention": "Session",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "questionTypeId",
+          "pattern": "questionTypeId",
+          "purpose": "Stores the selected ApexChat inquiry/question type for the chat workflow.",
+          "retention": "Session",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": ["vialivechat.com", "apexchat.com", "blazeo.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "lottiefiles",
+      "name": "LottieFiles / DotLottie",
+      "provider": "LottieFiles",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Lottie and DotLottie animation players (often loaded as ES modules from unpkg/jsDelivr).",
+      "privacy_url": "https://lottiefiles.com/page/privacy-policy",
+      "script_patterns": [
+        "unpkg.com/@lottiefiles",
+        "cdn.jsdelivr.net/npm/@lottiefiles",
+        "cdn.jsdelivr.net/npm/lottie-web",
+        "unpkg.com/lottie-web",
+        "lottiefiles.com",
+        "dotlottie-wc",
+        "dotlottie-player",
+        "lottie-player",
+        "dotlottie",
+        "bodymovin"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "greensock_gsap",
+      "name": "GSAP / GreenSock",
+      "provider": "GreenSock",
+      "category": "necessary",
+      "treatment": "necessary",
+      "description": "GSAP animation library and plugins (ScrollTrigger, ScrollToPlugin, etc.). Treated as layout/motion (never gated) so Elementor HTML custom code keeps document order.",
+      "privacy_url": "https://gsap.com/community/standard-license/",
+      "script_patterns": [
+        "cdn.jsdelivr.net/npm/gsap",
+        "cdnjs.cloudflare.com/ajax/libs/gsap",
+        "unpkg.com/gsap",
+        "greensock.com",
+        "gsap.com",
+        "gsap.min.js",
+        "ScrollTrigger",
+        "ScrollToPlugin",
+        "Draggable.min.js",
+        "SplitText",
+        "MotionPathPlugin",
+        "Flip.min.js"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": [],
+      "default_blocking": false
     }
   ]
 }

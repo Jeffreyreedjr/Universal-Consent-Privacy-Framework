@@ -18,7 +18,7 @@ export const FAIL_FINDINGS = [
 export const WARN_FINDINGS = ['retained_after_revoke'];
 
 const TRACKING_RE =
-  /google-analytics|googletagmanager|g\/collect|doubleclick|facebook|hotjar|clarity|cloudflareinsights|segment\.|mixpanel|tiktok|linkedin|snapchat|bing\.com\/bat|pinterest\.com\/ct|twitter\.com|t\.co\/i\/adsct|pixel-tracking|mailchimp-woocommerce|mailchimp-for-woocommerce|-pixel\.js|tracking\.js|\/tracker\//i;
+  /google-analytics|googletagmanager|g\/collect|doubleclick|facebook|hotjar|clarity|segment\.|mixpanel|tiktok|linkedin|snapchat|bing\.com\/bat|pinterest\.com\/ct|twitter\.com|t\.co\/i\/adsct|pixel-tracking|mailchimp-woocommerce|mailchimp-for-woocommerce|-pixel\.js|tracking\.js|\/tracker\//i;
 
 /**
  * @param {Record<string, object>} sessions sessionName → session payload

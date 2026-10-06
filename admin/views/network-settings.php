@@ -36,7 +36,7 @@ $notice = isset( $_GET['ucpf_net'] ) ? sanitize_key( wp_unslash( $_GET['ucpf_net
 	<?php endif; ?>
 
 	<p class="description">
-		<?php esc_html_e( 'Configure the shared Playwright scanner host, Privacy Preference API, and agency knowledge hub once for the whole network. Banner branding, consent categories, cookie inventory, and scheduled scan paths stay per-site.', 'universal-consent-privacy-framework' ); ?>
+		<?php esc_html_e( 'Configure the shared Playwright scanner host, Privacy Preference API, and agency knowledge hub once for the whole network. Banner branding, consent categories, and cookie inventory stay per-site. Deep scans are manual only (no network-wide scheduled cron).', 'universal-consent-privacy-framework' ); ?>
 	</p>
 
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -117,7 +117,7 @@ $notice = isset( $_GET['ucpf_net'] ) ? sanitize_key( wp_unslash( $_GET['ucpf_net
 			<tr>
 				<th scope="row"><label for="ucpf-net-remote-url"><?php esc_html_e( 'Raw registry.json URL', 'universal-consent-privacy-framework' ); ?></label></th>
 				<td>
-					<input type="url" class="regular-text" id="ucpf-net-remote-url" name="remote_registry_url" value="<?php echo esc_attr( $remote_url ); ?>" placeholder="https://raw.githubusercontent.com/org/repo/main/registry.json" />
+					<input type="url" class="regular-text" id="ucpf-net-remote-url" name="remote_registry_url" value="<?php echo esc_attr( $remote_url ); ?>" placeholder="<?php esc_attr_e( 'https://example.com/registry.json', 'universal-consent-privacy-framework' ); ?>" />
 				</td>
 			</tr>
 		</table>

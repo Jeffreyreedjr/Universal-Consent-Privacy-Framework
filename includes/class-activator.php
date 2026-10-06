@@ -50,7 +50,8 @@ class Activator {
 			wp_schedule_event( time(), 'daily', 'ucpf_daily_cleanup' );
 		}
 
-		Scheduled_Scan::instance()->ensure_schedule();
+		// Automated Deep scans retired — clear any leftover WP-Cron events.
+		Scheduled_Scan::instance()->clear_schedule();
 
 		// First-time / re-activate: refresh UCPF asset stamps only.
 		// Avoid Autoptimize / Rocket / LiteSpeed full clears — those delete CSS files

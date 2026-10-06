@@ -44,7 +44,14 @@
       "treatment": "consent",
       "description": "Bot protection and spam prevention.",
       "privacy_url": "https://policies.google.com/privacy",
-      "script_patterns": ["google.com/recaptcha", "gstatic.com/recaptcha"],
+      "script_patterns": [
+        "google.com/recaptcha",
+        "gstatic.com/recaptcha",
+        "recaptcha-woo",
+        "/rcfwc.js",
+        "recaptcha-for-woocommerce",
+        "woocommerce-recaptcha"
+      ],
       "cookie_patterns": ["_GRECAPTCHA"],
       "cookies": [
         {
@@ -82,7 +89,12 @@
       "treatment": "consent",
       "description": "Bot protection widget.",
       "privacy_url": "https://www.cloudflare.com/privacypolicy/",
-      "script_patterns": ["challenges.cloudflare.com"],
+      "script_patterns": [
+        "challenges.cloudflare.com",
+        "gravityformscloudflareturnstile",
+        "simple-cloudflare-turnstile",
+        "cf-turnstile"
+      ],
       "cookie_patterns": [],
       "cookies": [],
       "iframe_patterns": [],

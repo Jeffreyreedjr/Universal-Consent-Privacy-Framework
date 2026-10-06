@@ -201,7 +201,7 @@ class Shortcodes {
 
 			<p class="ucpf-legal__label"><?php esc_html_e( 'Cookies on this site', 'universal-consent-privacy-framework' ); ?></p>
 			<p class="ucpf-legal__meta"><?php echo esc_html( sprintf( /* translators: %s: scan date */ __( 'Inventory from last privacy scan: %s', 'universal-consent-privacy-framework' ), $scan_date ) ); ?></p>
-			<p><?php esc_html_e( 'This list is built from cookies actually observed on this website. Names, services, and purposes are filled from our catalog when available.', 'universal-consent-privacy-framework' ); ?></p>
+			<p><?php esc_html_e( 'This list includes cookies observed on this website and standard cookie families from Google tags enabled under Integrations. Names, services, purposes, and durations come from our catalog when available. Agency-entered details about advertising platforms inside Google Tag Manager appear below when provided for this site.', 'universal-consent-privacy-framework' ); ?></p>
 			<div class="ucpf-cookie-table-wrap">
 				<table class="ucpf-cookie-table">
 					<thead>
@@ -210,12 +210,13 @@ class Shortcodes {
 							<th><?php esc_html_e( 'Service', 'universal-consent-privacy-framework' ); ?></th>
 							<th><?php esc_html_e( 'Category', 'universal-consent-privacy-framework' ); ?></th>
 							<th><?php esc_html_e( 'Purpose', 'universal-consent-privacy-framework' ); ?></th>
+							<th><?php esc_html_e( 'Duration', 'universal-consent-privacy-framework' ); ?></th>
 							<th><?php esc_html_e( 'Consent', 'universal-consent-privacy-framework' ); ?></th>
 						</tr>
 					</thead>
 					<tbody>
 						<?php if ( empty( $cookies ) ) : ?>
-							<tr><td colspan="5"><?php esc_html_e( 'No cookies in the stored inventory yet. Run Cookie Scanner (Deep privacy scan or import), then refresh this Cookie Policy page.', 'universal-consent-privacy-framework' ); ?></td></tr>
+							<tr><td colspan="6"><?php esc_html_e( 'No cookies in the stored inventory yet. Enable Google tags under Integrations and/or run Cookie Scanner (Deep privacy scan or import), then refresh this Cookie Policy page.', 'universal-consent-privacy-framework' ); ?></td></tr>
 						<?php else : ?>
 							<?php foreach ( $cookies as $cookie ) : ?>
 								<tr>
@@ -236,6 +237,7 @@ class Shortcodes {
 									</td>
 									<td><?php echo esc_html( ! empty( $cookie['category_label'] ) ? $cookie['category_label'] : $cookie['category'] ); ?></td>
 									<td><?php echo esc_html( $cookie['purpose'] ); ?></td>
+									<td><?php echo esc_html( ! empty( $cookie['retention'] ) ? $cookie['retention'] : __( 'Session / varies', 'universal-consent-privacy-framework' ) ); ?></td>
 									<td><?php echo esc_html( ! empty( $cookie['consent_label'] ) ? $cookie['consent_label'] : ( ! empty( $cookie['consent_required'] ) ? __( 'Optional (consent)', 'universal-consent-privacy-framework' ) : __( 'Essential', 'universal-consent-privacy-framework' ) ) ); ?></td>
 								</tr>
 							<?php endforeach; ?>
@@ -243,6 +245,73 @@ class Shortcodes {
 					</tbody>
 				</table>
 			</div>
+
+			<?php
+			$gtm_configured = Tracking_Templates::gtm_configured_tags_for_policy();
+			if ( $gtm_configured ) :
+				?>
+				<p class="ucpf-legal__label"><?php esc_html_e( 'Google tags configured on this site', 'universal-consent-privacy-framework' ); ?></p>
+				<p><?php esc_html_e( 'These container and tag IDs are enabled under Integrations and load only after the visitor consents to the relevant category. They identify which Google tags this site loads — they are not cookie names. Cookie families that may be set by those tags are listed in the table above.', 'universal-consent-privacy-framework' ); ?></p>
+				<div class="ucpf-cookie-table-wrap">
+					<table class="ucpf-cookie-table">
+						<thead>
+							<tr>
+								<th><?php esc_html_e( 'Label', 'universal-consent-privacy-framework' ); ?></th>
+								<th><?php esc_html_e( 'Container / Tag ID', 'universal-consent-privacy-framework' ); ?></th>
+							</tr>
+						</thead>
+						<tbody>
+							<?php foreach ( $gtm_configured as $gt ) : ?>
+								<tr>
+									<td><?php echo esc_html( ! empty( $gt['label'] ) ? $gt['label'] : '—' ); ?></td>
+									<td><code><?php echo esc_html( $gt['id'] ); ?></code></td>
+								</tr>
+							<?php endforeach; ?>
+						</tbody>
+					</table>
+				</div>
+			<?php endif; ?>
+
+			<?php
+			$gtm_disclosures = Tracking_Templates::gtm_disclosures_for_policy();
+			if ( $gtm_disclosures ) :
+				?>
+				<p class="ucpf-legal__label"><?php esc_html_e( 'Advertising and tags disclosed for Google Tag Manager', 'universal-consent-privacy-framework' ); ?></p>
+				<p><?php esc_html_e( 'The following details were provided for this website about platforms and tracking technologies loaded through Google Tag Manager. They are site-specific and may differ from other sites.', 'universal-consent-privacy-framework' ); ?></p>
+				<div class="ucpf-cookie-table-wrap">
+					<table class="ucpf-cookie-table">
+						<thead>
+							<tr>
+								<th><?php esc_html_e( 'Container', 'universal-consent-privacy-framework' ); ?></th>
+								<th><?php esc_html_e( 'Platforms / tags', 'universal-consent-privacy-framework' ); ?></th>
+								<th><?php esc_html_e( 'Duration', 'universal-consent-privacy-framework' ); ?></th>
+								<th><?php esc_html_e( 'Purpose', 'universal-consent-privacy-framework' ); ?></th>
+								<th><?php esc_html_e( 'Recipients', 'universal-consent-privacy-framework' ); ?></th>
+							</tr>
+						</thead>
+						<tbody>
+							<?php foreach ( $gtm_disclosures as $gd ) : ?>
+								<?php
+								$d     = $gd['disclosure'];
+								$label = Tracking_Templates::gtm_policy_display_label(
+									isset( $gd['label'] ) ? $gd['label'] : '',
+									isset( $gd['id'] ) ? $gd['id'] : '',
+									__( 'GTM container', 'universal-consent-privacy-framework' )
+								);
+								$purp  = Tracking_Templates::gtm_disclosure_labels( isset( $d['purposes'] ) ? $d['purposes'] : array(), 'purposes' );
+								?>
+								<tr>
+									<td><?php echo esc_html( $label ); ?></td>
+									<td><?php echo esc_html( ! empty( $d['platforms'] ) ? $d['platforms'] : '—' ); ?></td>
+									<td><?php echo esc_html( ! empty( $d['cookie_duration'] ) ? $d['cookie_duration'] : '—' ); ?></td>
+									<td><?php echo esc_html( $purp ? $purp : '—' ); ?></td>
+									<td><?php echo esc_html( ! empty( $d['recipients'] ) ? $d['recipients'] : '—' ); ?></td>
+								</tr>
+							<?php endforeach; ?>
+						</tbody>
+					</table>
+				</div>
+			<?php endif; ?>
 
 			<?php if ( $storage ) : ?>
 				<p class="ucpf-legal__label"><?php esc_html_e( 'Browser storage', 'universal-consent-privacy-framework' ); ?></p>
@@ -355,11 +424,17 @@ class Shortcodes {
 		$service_ids = Settings::get( 'service_ids', array() );
 		if ( is_array( $service_ids ) ) {
 			foreach ( $service_ids as $sid_key => $sid_row ) {
-				if ( is_array( $sid_row ) && ! empty( $sid_row['enabled'] ) && ( ! empty( $sid_row['id'] ) || ! empty( $sid_row['code'] ) ) ) {
+				if ( ! is_array( $sid_row ) || empty( $sid_row['enabled'] ) ) {
+					continue;
+				}
+				if ( Tracking_Templates::row_has_ids( (string) $sid_key, $sid_row ) || ! empty( $sid_row['code'] ) ) {
 					$service_keys[] = (string) $sid_key;
 				}
 			}
 		}
+
+		$gtm_disclosures = Tracking_Templates::gtm_disclosures_for_policy( is_array( $service_ids ) ? $service_ids : array() );
+		$gtm_configured = Tracking_Templates::gtm_configured_tags_for_policy( is_array( $service_ids ) ? $service_ids : array() );
 
 		$has = static function ( $needles ) use ( $service_keys, $plugins, $tech, $destinations ) {
 			$hay = strtolower( implode( ' ', array_merge( $service_keys, wp_list_pluck( $plugins, 'service_key' ), wp_list_pluck( $plugins, 'name' ), wp_list_pluck( $tech, 'name' ), wp_list_pluck( $destinations, 'name' ), wp_list_pluck( $destinations, 'host' ) ) ) );
@@ -377,7 +452,7 @@ class Shortcodes {
 			<p class="ucpf-legal__meta"><?php echo esc_html( sprintf( /* translators: %s: date */ __( 'Inventory from last privacy scan and plugin map: %s', 'universal-consent-privacy-framework' ), $scan_date ) ); ?></p>
 
 			<h3><?php esc_html_e( 'Cookies observed on this site', 'universal-consent-privacy-framework' ); ?></h3>
-			<p><?php esc_html_e( 'Names, services, categories, and purposes from the latest scan. Entries are enriched with the local vendor catalog when a match is known.', 'universal-consent-privacy-framework' ); ?></p>
+			<p><?php esc_html_e( 'Names, services, categories, purposes, and durations from the latest scan and from Google tags enabled under Integrations. Entries are enriched with the local vendor catalog when a match is known.', 'universal-consent-privacy-framework' ); ?></p>
 			<div class="ucpf-cookie-table-wrap">
 				<table class="ucpf-cookie-table">
 					<thead>
@@ -386,12 +461,13 @@ class Shortcodes {
 							<th><?php esc_html_e( 'Service or provider', 'universal-consent-privacy-framework' ); ?></th>
 							<th><?php esc_html_e( 'Category', 'universal-consent-privacy-framework' ); ?></th>
 							<th><?php esc_html_e( 'Purpose', 'universal-consent-privacy-framework' ); ?></th>
+							<th><?php esc_html_e( 'Duration', 'universal-consent-privacy-framework' ); ?></th>
 							<th><?php esc_html_e( 'Consent', 'universal-consent-privacy-framework' ); ?></th>
 						</tr>
 					</thead>
 					<tbody>
 						<?php if ( empty( $cookies ) ) : ?>
-							<tr><td colspan="5"><?php esc_html_e( 'No cookies in inventory yet. Run Cookie Scanner, then regenerate or refresh this Privacy Policy.', 'universal-consent-privacy-framework' ); ?></td></tr>
+							<tr><td colspan="6"><?php esc_html_e( 'No cookies in inventory yet. Enable Google tags under Integrations and/or run Cookie Scanner, then regenerate or refresh this Privacy Policy.', 'universal-consent-privacy-framework' ); ?></td></tr>
 						<?php else : ?>
 							<?php foreach ( $cookies as $cookie ) : ?>
 								<tr>
@@ -407,6 +483,7 @@ class Shortcodes {
 									</td>
 									<td><?php echo esc_html( ! empty( $cookie['category_label'] ) ? $cookie['category_label'] : $cookie['category'] ); ?></td>
 									<td><?php echo esc_html( $cookie['purpose'] ); ?></td>
+									<td><?php echo esc_html( ! empty( $cookie['retention'] ) ? $cookie['retention'] : __( 'Session / varies', 'universal-consent-privacy-framework' ) ); ?></td>
 									<td><?php echo esc_html( ! empty( $cookie['consent_label'] ) ? $cookie['consent_label'] : ( ! empty( $cookie['consent_required'] ) ? __( 'Optional (consent)', 'universal-consent-privacy-framework' ) : __( 'Essential', 'universal-consent-privacy-framework' ) ) ); ?></td>
 								</tr>
 							<?php endforeach; ?>
@@ -537,14 +614,76 @@ class Shortcodes {
 				</table>
 			</div>
 
-			<?php if ( $has( array( 'google_analytics', 'google-analytics', 'gtag', 'site kit' ) ) ) : ?>
+			<?php if ( $has( array( 'google_analytics', 'google-analytics', 'gtag', 'site kit', 'google_analytics_4' ) ) ) : ?>
 				<h3><?php esc_html_e( 'Google Analytics', 'universal-consent-privacy-framework' ); ?></h3>
-				<p><?php esc_html_e( 'This website may use Google Analytics to understand how visitors find and use the site. That can include pages viewed, device and browser details, approximate location, referrers, and events. Google may use cookies or similar technologies. We do not intentionally send names, email addresses, phone numbers, or payment card numbers to Google Analytics. Where required by law, Analytics loads only after appropriate consent.', 'universal-consent-privacy-framework' ); ?></p>
+				<p><?php esc_html_e( 'This website may use Google Analytics to understand how visitors find and use the site. That can include pages viewed, device and browser details, approximate location, referrers, and events. Google may use cookies or similar technologies. Typical Analytics cookie lifetimes in our catalog include _ga / _ga_* for about 2 years, _gid for about 24 hours, and _gat* for about 1 minute. We do not intentionally send names, email addresses, phone numbers, or payment card numbers to Google Analytics. Where required by law, Analytics loads only after appropriate consent.', 'universal-consent-privacy-framework' ); ?></p>
 			<?php endif; ?>
 
 			<?php if ( $has( array( 'google_tag_manager', 'tag manager', 'googletagmanager' ) ) ) : ?>
 				<h3><?php esc_html_e( 'Google Tag Manager', 'universal-consent-privacy-framework' ); ?></h3>
-				<p><?php esc_html_e( 'Google Tag Manager may be used to manage tags and integrations for analytics, ads, and consent signals. Data collected depends on the tags configured. Where required, tags that load analytics or advertising should respect consent choices before firing.', 'universal-consent-privacy-framework' ); ?></p>
+				<p><?php esc_html_e( 'Google Tag Manager may be used to manage tags and integrations for analytics, ads, and consent signals. Data collected depends on the tags configured in each container. Tags fired through GTM may set cookies such as _ga or advertising identifiers (_gcl_*), with lifetimes that vary by the underlying service. Where required, tags that load analytics or advertising should respect consent choices before firing.', 'universal-consent-privacy-framework' ); ?></p>
+			<?php endif; ?>
+
+			<?php if ( $gtm_configured ) : ?>
+				<h3><?php esc_html_e( 'Google tags configured on this site', 'universal-consent-privacy-framework' ); ?></h3>
+				<p><?php esc_html_e( 'The following Google container and tag IDs are enabled for this website and load after the visitor consents to the relevant category. These IDs identify which tags load; they are not cookie names. Cookie families that may be set appear in the cookie table above.', 'universal-consent-privacy-framework' ); ?></p>
+				<ul>
+					<?php foreach ( $gtm_configured as $gt ) : ?>
+						<li>
+							<code><?php echo esc_html( $gt['id'] ); ?></code>
+							<?php if ( ! empty( $gt['label'] ) ) : ?>
+								— <?php echo esc_html( $gt['label'] ); ?>
+							<?php endif; ?>
+						</li>
+					<?php endforeach; ?>
+				</ul>
+			<?php endif; ?>
+
+			<?php if ( $has( array( 'google_ads', 'google ad', 'doubleclick', '_gcl' ) ) || ( $has( array( 'google_tag_manager' ) ) && ( $gtm_disclosures || $gtm_configured ) ) ) : ?>
+				<h3><?php esc_html_e( 'Google Ads and advertising tags', 'universal-consent-privacy-framework' ); ?></h3>
+				<p><?php esc_html_e( 'Google Ads or related advertising tags may measure conversions, support remarketing, or help deliver ads. Catalog cookie families include _gcl_* (about 90 days), IDE (about 2 years), and short-lived test cookies. Where required by law, these tools load only after marketing consent.', 'universal-consent-privacy-framework' ); ?></p>
+			<?php endif; ?>
+
+			<?php if ( $gtm_disclosures ) : ?>
+				<h3><?php esc_html_e( 'Tags and platforms disclosed for Google Tag Manager on this site', 'universal-consent-privacy-framework' ); ?></h3>
+				<p><?php esc_html_e( 'The site operator recorded the following partner-provided details about technologies loaded through Google Tag Manager. This information is specific to this website and is used to keep disclosures accurate when advertising containers change.', 'universal-consent-privacy-framework' ); ?></p>
+				<?php foreach ( $gtm_disclosures as $gd ) : ?>
+					<?php
+					$d          = $gd['disclosure'];
+					$cont_label = Tracking_Templates::gtm_policy_display_label(
+						isset( $gd['label'] ) ? $gd['label'] : '',
+						isset( $gd['id'] ) ? $gd['id'] : '',
+						__( 'Configured GTM container', 'universal-consent-privacy-framework' )
+					);
+					$purp       = Tracking_Templates::gtm_disclosure_labels( isset( $d['purposes'] ) ? $d['purposes'] : array(), 'purposes' );
+					$uses       = Tracking_Templates::gtm_disclosure_labels( isset( $d['uses'] ) ? $d['uses'] : array(), 'uses' );
+					?>
+					<h4><?php echo esc_html( $cont_label ); ?></h4>
+					<ul>
+						<?php if ( ! empty( $d['platforms'] ) ) : ?>
+							<li><?php echo esc_html( sprintf( /* translators: %s: platforms */ __( 'Platforms, pixels, scripts, or tags: %s', 'universal-consent-privacy-framework' ), $d['platforms'] ) ); ?></li>
+						<?php endif; ?>
+						<?php if ( ! empty( $d['cookie_duration'] ) ) : ?>
+							<li><?php echo esc_html( sprintf( /* translators: %s: duration */ __( 'Cookie or identifier duration: %s', 'universal-consent-privacy-framework' ), $d['cookie_duration'] ) ); ?></li>
+						<?php endif; ?>
+						<?php if ( $purp ) : ?>
+							<li><?php echo esc_html( sprintf( /* translators: %s: purposes */ __( 'Purpose: %s', 'universal-consent-privacy-framework' ), $purp ) ); ?></li>
+						<?php endif; ?>
+						<?php if ( ! empty( $d['visitor_info'] ) ) : ?>
+							<li><?php echo esc_html( sprintf( /* translators: %s: visitor info description */ __( 'Visitor information described by the partner: %s', 'universal-consent-privacy-framework' ), $d['visitor_info'] ) ); ?></li>
+						<?php endif; ?>
+						<?php if ( ! empty( $d['recipients'] ) ) : ?>
+							<li><?php echo esc_html( sprintf( /* translators: %s: recipients */ __( 'Third parties that may receive or process information: %s', 'universal-consent-privacy-framework' ), $d['recipients'] ) ); ?></li>
+						<?php endif; ?>
+						<?php if ( $uses ) : ?>
+							<li><?php echo esc_html( sprintf( /* translators: %s: uses */ __( 'Use of information: %s', 'universal-consent-privacy-framework' ), $uses ) ); ?></li>
+						<?php endif; ?>
+						<?php if ( ! empty( $d['notes'] ) ) : ?>
+							<li><?php echo esc_html( $d['notes'] ); ?></li>
+						<?php endif; ?>
+					</ul>
+				<?php endforeach; ?>
+				<p><?php esc_html_e( 'Advertising and conversion technologies may involve identifiers and activity related to ads even when a partner describes the data as limited. Where required, these tags wait for marketing consent. Cookie Settings and Do Not Sell or Share links (when available) provide additional controls.', 'universal-consent-privacy-framework' ); ?></p>
 			<?php endif; ?>
 
 			<?php if ( $has( array( 'microsoft_clarity', 'clarity.ms', 'clarity' ) ) ) : ?>
@@ -607,7 +746,7 @@ class Shortcodes {
 			<h2><?php esc_html_e( 'Data retention', 'universal-consent-privacy-framework' ); ?></h2>
 			<p><?php echo esc_html( sprintf(
 				/* translators: %d: days */
-				__( 'We retain information only as long as reasonably necessary for the purposes described here, unless a longer period is required or allowed by law. Configured operational retention for certain privacy records on this site is approximately %d days. Other systems such as orders, security logs, and analytics may use different periods.', 'universal-consent-privacy-framework' ),
+				__( 'We retain information only as long as reasonably necessary for the purposes described here, unless a longer period is required or allowed by law. Configured operational retention for certain privacy records on this site is approximately %d days. Third-party cookie and identifier lifetimes (for example Analytics, Ads, or partner tags disclosed for Google Tag Manager) follow each provider’s or partner’s periods and are listed in the Cookie Policy where available — those durations are separate from this operational retention setting.', 'universal-consent-privacy-framework' ),
 				max( 1, $retention )
 			) ); ?></p>
 

@@ -14,7 +14,15 @@
         "google-analytics.com",
         "analytics.google.com",
         "region1.google-analytics.com",
-        "/g/collect"
+        "/g/collect",
+        "google-site-kit/dist",
+        "googlesitekit-modules-analytics",
+        "googlesitekit-modules-adsense",
+        "googlesitekit-modules-tagmanager",
+        "googlesitekit-datastore",
+        "googlesitekit-api",
+        "googlesitekit-main",
+        "googlesitekit-webpack"
       ],
       "cookie_patterns": ["_ga", "_ga_*", "_gid", "_gat", "_gat_*"],
       "cookies": [
@@ -85,6 +93,24 @@
           "category": "analytics",
           "treatment": "consent",
           "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "_ga_*",
+          "pattern": "_ga_*",
+          "purpose": "May persist GA4 session state when Analytics tags fire through GTM.",
+          "retention": "2 years",
+          "category": "analytics",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "_gid",
+          "pattern": "_gid",
+          "purpose": "May distinguish users for Analytics tags fired through GTM.",
+          "retention": "24 hours",
+          "category": "analytics",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
         }
       ],
       "iframe_patterns": [],
@@ -104,13 +130,31 @@
         "doubleclick.net",
         "googlesyndication.com"
       ],
-      "cookie_patterns": ["_gcl_*", "IDE", "NID"],
+      "cookie_patterns": ["_gcl_*", "IDE", "NID", "test_cookie"],
       "cookies": [
         {
           "name": "_gcl_*",
           "pattern": "_gcl_*",
           "purpose": "Stores ad click information for conversions.",
           "retention": "90 days",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "test_cookie",
+          "pattern": "test_cookie",
+          "purpose": "Set by DoubleClick to check whether the browser supports cookies.",
+          "retention": "Session / ~15 minutes",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "IDE",
+          "pattern": "IDE",
+          "purpose": "DoubleClick advertising and conversion tracking identifier.",
+          "retention": "2 years",
           "category": "marketing",
           "treatment": "consent",
           "contexts": ["guest", "logged_in"]
