@@ -494,7 +494,7 @@
       "category": "marketing",
       "treatment": "consent",
       "description": "Beeswax programmatic advertising and real-time bidding (bidr.io).",
-      "privacy_url": "https://www.beeswax.com/privacy/",
+      "privacy_url": "https://www.beeswax.com/cookies/",
       "script_patterns": ["bidr.io", "match.prod.bidr.io", "cdn.bidr.io"],
       "cookie_patterns": ["bito", "bitoIsSecure"],
       "cookies": [
@@ -625,8 +625,8 @@
       "provider": "Yahoo",
       "category": "marketing",
       "treatment": "consent",
-      "description": "Yahoo advertising identifier cookies.",
-      "privacy_url": "https://legal.yahoo.com/us/en/yahoo/privacy/index.html",
+      "description": "Yahoo advertising identifier cookies and pixels.",
+      "privacy_url": "https://legal.yahoo.com/xw/en/yahoo/privacy/enterprise/pixelandcustomaudience/index.html",
       "script_patterns": ["ads.yahoo.com", "analytics.yahoo.com", "yahoo.com", "yahoo.net"],
       "cookie_patterns": ["A3"],
       "cookies": [
@@ -665,6 +665,109 @@
         }
       ],
       "iframe_patterns": ["xad.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "amazon_ads",
+      "name": "Amazon Ads",
+      "provider": "Amazon",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Amazon Advertising remarketing and conversion pixels (amazon-adsystem.com).",
+      "privacy_url": "https://advertising.amazon.com/resources/ad-policy/remarketing-conversion-pixel-requirements",
+      "script_patterns": [
+        "amazon-adsystem.com",
+        "aax.amazon-adsystem.com",
+        "c.amazon-adsystem.com",
+        "z-na.amazon-adsystem.com",
+        "fls-na.amazon-adsystem.com"
+      ],
+      "cookie_patterns": ["ad-id", "ad-privacy", "ad-id-ap"],
+      "cookies": [
+        {
+          "name": "ad-id",
+          "pattern": "ad-id",
+          "purpose": "Amazon Advertising identifier used for remarketing and conversion measurement.",
+          "retention": "months",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "ad-privacy",
+          "pattern": "ad-privacy",
+          "purpose": "Stores Amazon Advertising privacy / opt-out preference for ad cookies.",
+          "retention": "months",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": ["amazon-adsystem.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "semcasting_wvid",
+      "name": "Website Visitor ID (Semcasting / AdTini)",
+      "provider": "Semcasting",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Website Visitor ID (WVID) advertising measurement that uses IP address and device-level signals rather than cookies, for audience activation and attribution.",
+      "privacy_url": "https://www.semcasting.com/privacy_policy_v1",
+      "script_patterns": [
+        "semcasting.com",
+        "adtini.com",
+        "sync.semcasting.com",
+        "pixel.semcasting.com",
+        "cdn.adtini.com",
+        "pixel.adtini.com"
+      ],
+      "cookie_patterns": [],
+      "cookies": [],
+      "iframe_patterns": ["semcasting.com", "adtini.com"],
+      "default_blocking": true
+    },
+    {
+      "key": "mntn",
+      "name": "MNTN",
+      "provider": "MNTN",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "MNTN (formerly SteelHouse) connected-TV and performance advertising pixels.",
+      "privacy_url": "https://mountain.com/cookie-policy/",
+      "script_patterns": [
+        "mountain.com",
+        "dx.mountain.com",
+        "px.mountain.com",
+        "gs.mountain.com",
+        "pxs.mountain.com",
+        "c-mtag.mountain.com",
+        "steelhouse.com"
+      ],
+      "cookie_patterns": ["guid", "tt"],
+      "cookies": [
+        {
+          "name": "guid",
+          "pattern": "guid",
+          "purpose": "MNTN visitor identifier used to identify visitors and measure or optimize advertising campaign performance.",
+          "retention": "months",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"],
+          "requires_host_context": true
+        },
+        {
+          "name": "tt",
+          "pattern": "tt",
+          "purpose": "MNTN performance and advertising cookie. MNTN says it records website speed and performance; its policy also groups tt with MNTN advertising cookies.",
+          "retention": "days / months",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"],
+          "requires_host_context": true
+        }
+      ],
+      "iframe_patterns": ["mountain.com", "steelhouse.com"],
       "default_blocking": true
     }
   ]

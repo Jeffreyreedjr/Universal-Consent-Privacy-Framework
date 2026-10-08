@@ -32,6 +32,7 @@ _compare*/
 tools/_tmp*
 tools/_hotfix*
 tools/_dbg*
+agent-tools/
 
 # OS
 .DS_Store

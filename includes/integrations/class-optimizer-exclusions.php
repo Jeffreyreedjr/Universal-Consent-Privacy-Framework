@@ -72,11 +72,24 @@ class Optimizer_Exclusions {
 				'elementor-pro-webpack-runtime',
 				'webpack-pro.runtime',
 				'elementor/assets/js',
+				'elementor/assets/lib',
 				// Pro webpack runtime must stay ahead of elementor-pro-frontend.
 				// Protecting only frontend (data-no-optimize) while optimizers delay/strip
 				// webpack-pro.runtime leaves chunks on a plain array → no elementorProFrontend
 				// → Elementor popups / mobile nav never open.
 				'elementor-pro/assets/js',
+				// Pro sticky / smartmenus live under assets/lib — CF Rocket Loader delays
+				// them when only assets/js is stamped data-cfasync=false → handlers run
+				// first → "wp is not defined" / "$element.sticky is not a function".
+				'elementor-pro/assets/lib',
+				'jquery.sticky',
+				'e-sticky',
+				'smartmenus',
+				// Elementor Pro elements-handlers expects window.wp (i18n/hooks).
+				'wp-i18n',
+				'wp-hooks',
+				'wp-includes/js/dist/i18n',
+				'wp-includes/js/dist/hooks',
 				// The Plus Addons for Elementor.
 				'the-plus-addons',
 				'theplus',
@@ -185,9 +198,16 @@ class Optimizer_Exclusions {
 				'ucpf-consent-motion',
 				'ucpf-loader',
 				'ucpf-form-captcha-guard',
+				'elementor-frontend',
+				'elementor-webpack-runtime',
+				'elementor-frontend-modules',
 				'elementor-pro-webpack-runtime',
 				'elementor-pro-frontend',
 				'pro-elements-handlers',
+				'e-sticky',
+				'smartmenus',
+				'wp-i18n',
+				'wp-hooks',
 			)
 		);
 	}

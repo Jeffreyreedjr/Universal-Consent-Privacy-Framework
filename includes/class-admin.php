@@ -1333,8 +1333,8 @@ class Admin {
 			'label'  => __( 'WP Consent API', 'universal-consent-privacy-framework' ),
 			'status' => 'ok',
 			'detail' => $wp_consent
-				? __( 'Official WP Consent API detected; UCPF syncs categories to it.', 'universal-consent-privacy-framework' )
-				: __( 'Bundled shim active (no separate WP Consent API plugin required).', 'universal-consent-privacy-framework' ),
+				? __( 'Official WP Consent API detected; UCPF is registered as a compatible CMP and syncs categories (Site Kit Consent Mode).', 'universal-consent-privacy-framework' )
+				: __( 'Bundled shim active and registered as a WP Consent API–compatible CMP (Site Kit Consent Mode).', 'universal-consent-privacy-framework' ),
 		);
 
 		$remote   = ! empty( $settings['remote_registry_enabled'] );

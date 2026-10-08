@@ -364,7 +364,23 @@ class Shortcodes {
 			<?php endif; ?>
 
 			<p class="ucpf-legal__label"><?php esc_html_e( 'How to change your choices', 'universal-consent-privacy-framework' ); ?></p>
-			<p><?php esc_html_e( 'Use Cookie Settings anytime to accept, reject, or fine-tune optional categories. You can open it from the floating button or from Customize on the banner. Your choice is stored in the ucpf_consent cookie on this site only.', 'universal-consent-privacy-framework' ); ?></p>
+			<p><?php esc_html_e( 'Use Cookie Settings anytime to accept, reject, or fine-tune optional categories. You can open it from the floating button or from Customize on the banner. Your choice is stored in the essential ucpf_consent cookie on this site only (and ucpf_dns when you opt out of sale or sharing). A browser storage backup (ucpf_consent_backup) may also keep the same choice if cookies are cleared mid-session — it is not a third-party tracker.', 'universal-consent-privacy-framework' ); ?></p>
+			<?php if ( Settings::get( 'consent_logging' ) ) : ?>
+				<?php
+				$log_days = (int) Settings::get( 'log_retention_days', 360 );
+				$log_days = max( 1, $log_days );
+				?>
+				<p class="ucpf-legal__label"><?php esc_html_e( 'Consent records', 'universal-consent-privacy-framework' ); ?></p>
+				<p><?php
+					echo esc_html(
+						sprintf(
+							/* translators: %d: retention days */
+							__( 'When you save a choice in Cookie Settings, this site may store a proof-of-consent record on our servers (timestamp, action, and category selections — not the contents of other cookies). These records help demonstrate consent and are retained for about %d days, then removed. They are not advertising cookies and do not track browsing across other websites.', 'universal-consent-privacy-framework' ),
+							$log_days
+						)
+					);
+				?></p>
+			<?php endif; ?>
 			<p>
 				<button type="button" class="ucpf-btn ucpf-btn--pill ucpf-btn--primary-tier ucpf-btn--fill" data-ucpf-open-preferences>
 					<?php esc_html_e( 'Open Cookie Settings', 'universal-consent-privacy-framework' ); ?>

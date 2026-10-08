@@ -390,26 +390,23 @@ class Cookie_Scanner {
 			);
 		}
 
-		$blog_cats = get_categories(
-			array(
-				'hide_empty' => true,
-				'number'     => 30,
+		// Blog category / tag archives and bot/WAF paths are low-value — omit.
+		$urls = array_values(
+			array_filter(
+				$urls,
+				function ( $item ) {
+					if ( ! is_array( $item ) ) {
+						return false;
+					}
+					$source = isset( $item['source'] ) ? (string) $item['source'] : '';
+					if ( in_array( $source, array( 'category', 'post_tag', 'tag' ), true ) ) {
+						return false;
+					}
+					$url = isset( $item['url'] ) ? (string) $item['url'] : '';
+					return ! $this->is_scanner_noise_path( $url );
+				}
 			)
 		);
-		foreach ( $blog_cats as $cat ) {
-			$link = get_category_link( $cat->term_id );
-			if ( ! $link ) {
-				continue;
-			}
-			$urls[] = array(
-				'url'      => $link,
-				'context'  => 'guest',
-				'label'    => $cat->name,
-				'source'   => 'category',
-				'group'    => 'categories',
-				'priority' => 6,
-			);
-		}
 
 		usort(
 			$urls,
@@ -424,14 +421,83 @@ class Cookie_Scanner {
 		);
 
 		$deduped = $this->dedupe_url_defs( $urls, $limit );
-		foreach ( $deduped as &$row ) {
+		$out     = array();
+		foreach ( $deduped as $row ) {
 			if ( empty( $row['group'] ) ) {
 				$row['group'] = $this->infer_url_group( $row );
 			}
+			if ( 'categories' === ( $row['group'] ?? '' ) || 'tags' === ( $row['group'] ?? '' ) ) {
+				continue;
+			}
+			if ( ! empty( $row['url'] ) && $this->is_scanner_noise_path( (string) $row['url'] ) ) {
+				continue;
+			}
+			$out[] = $row;
 		}
-		unset( $row );
 
-		return $deduped;
+		return $out;
+	}
+
+	/**
+	 * Blog category / tag / product-tag archives (not Woo product-category).
+	 *
+	 * @param string $url_or_path URL or path.
+	 * @return bool
+	 */
+	public function is_blog_taxonomy_archive_path( $url_or_path ) {
+		$path = (string) wp_parse_url( (string) $url_or_path, PHP_URL_PATH );
+		if ( '' === $path ) {
+			$path = (string) $url_or_path;
+		}
+		$path = strtolower( untrailingslashit( $path ) );
+		if ( '' === $path || '/' === $path ) {
+			return false;
+		}
+		// Woo product categories stay eligible for shop scans.
+		if ( preg_match( '#/(product-category)(/|$)#', $path ) ) {
+			return false;
+		}
+		if ( preg_match( '#/(category|tag|product-tag|topics?|author)(/|$)#', $path ) ) {
+			return true;
+		}
+		/**
+		 * Filter whether a discovered URL is a low-value taxonomy archive for the scanner picker.
+		 *
+		 * @param bool   $omit Whether to omit.
+		 * @param string $path Normalized path.
+		 */
+		return (bool) apply_filters( 'ucpf_is_blog_taxonomy_archive_path', false, $path );
+	}
+
+	/**
+	 * Low-value / bot / WAF paths that should not appear in the scanner picker.
+	 *
+	 * @param string $url_or_path URL or path.
+	 * @return bool
+	 */
+	public function is_scanner_noise_path( $url_or_path ) {
+		$path = (string) wp_parse_url( (string) $url_or_path, PHP_URL_PATH );
+		if ( '' === $path ) {
+			$path = (string) $url_or_path;
+		}
+		$path = strtolower( untrailingslashit( $path ) );
+		if ( '' === $path || '/' === $path ) {
+			return false;
+		}
+		if ( $this->is_blog_taxonomy_archive_path( $path ) ) {
+			return true;
+		}
+		$noise = false;
+		if ( preg_match( '#/(imunify-bot-check|cdn-cgi|wp-json|xmlrpc\.php|feed|comments/feed)(/|$)#', $path ) ) {
+			$noise = true;
+		}
+		/**
+		 * Filter whether a discovered URL is scanner picker noise (bot checks, feeds, etc.).
+		 *
+		 * @param bool   $noise Whether to omit.
+		 * @param string $path  Normalized path.
+		 */
+		return (bool) apply_filters( 'ucpf_is_scanner_noise_path', $noise, $path );
 	}
 
 	/**
@@ -463,7 +529,7 @@ class Cookie_Scanner {
 		if ( 'page' === ( $item['post_type'] ?? '' ) || 'wp_content' === $source || 'priority' === $source ) {
 			return 'pages';
 		}
-		if ( 'category' === $source ) {
+		if ( in_array( $source, array( 'category', 'post_tag', 'tag' ), true ) ) {
 			return 'categories';
 		}
 		$path = '';
@@ -480,7 +546,7 @@ class Cookie_Scanner {
 		if ( preg_match( '#/(cart|checkout|my-account)/?#', $path ) ) {
 			return 'woocommerce';
 		}
-		if ( preg_match( '#/(category|tag)/#', $path ) ) {
+		if ( $this->is_blog_taxonomy_archive_path( $path ) ) {
 			return 'categories';
 		}
 		return 'other';
@@ -520,6 +586,9 @@ class Cookie_Scanner {
 		foreach ( $loc_urls as $loc ) {
 			$path = wp_parse_url( $loc, PHP_URL_PATH );
 			if ( $this->is_non_html_scan_path( $path ? $path : $loc ) ) {
+				continue;
+			}
+			if ( $this->is_scanner_noise_path( $path ? $path : $loc ) ) {
 				continue;
 			}
 			$parts = wp_parse_url( $loc );
@@ -644,6 +713,9 @@ class Cookie_Scanner {
 			}
 			$path = wp_parse_url( $href, PHP_URL_PATH );
 			if ( $this->is_non_html_scan_path( $path ? $path : $href ) ) {
+				continue;
+			}
+			if ( $this->is_scanner_noise_path( $path ? $path : $href ) ) {
 				continue;
 			}
 			// Strip query/fragment so ?utm=… homepage links do not flood the picker.
@@ -3647,6 +3719,102 @@ class Cookie_Scanner {
 	}
 
 	/**
+	 * Always surface UCPF consent / DNS cookies on Cookie Policy (even before a scan).
+	 *
+	 * @param array           $by_name    Cookie rows keyed by lowercase display name (by ref).
+	 * @param Script_Registry $registry   Registry.
+	 * @param array           $categories Consent categories.
+	 * @param array           $overrides  Display overrides.
+	 * @return void
+	 */
+	private function merge_managed_ucpf_cookies( array &$by_name, $registry, array $categories, array $overrides ) {
+		$service = $registry->get_service( 'ucpf_consent' );
+		if ( ! is_array( $service ) || empty( $service['cookies'] ) || ! is_array( $service['cookies'] ) ) {
+			return;
+		}
+		foreach ( $service['cookies'] as $cookie ) {
+			if ( ! is_array( $cookie ) || empty( $cookie['name'] ) ) {
+				continue;
+			}
+			$name = (string) $cookie['name'];
+			if ( '' === $name || Scan_Noise_Filter::should_omit_cookie( $name ) ) {
+				continue;
+			}
+			$key = strtolower( $name );
+			$ov  = isset( $overrides[ $key ] ) ? $overrides[ $key ] : array();
+			if ( ! empty( $ov['visibility'] ) && 'hide' === $ov['visibility'] ) {
+				continue;
+			}
+
+			$category = ! empty( $cookie['category'] ) ? sanitize_key( (string) $cookie['category'] ) : 'necessary';
+			if ( ! empty( $ov['category'] ) ) {
+				$category = sanitize_key( (string) $ov['category'] );
+			}
+			$treatment = ! empty( $cookie['treatment'] ) ? sanitize_key( (string) $cookie['treatment'] ) : 'necessary';
+			if ( ! empty( $ov['treatment'] ) ) {
+				$treatment = sanitize_key( (string) $ov['treatment'] );
+			}
+			$purpose = ! empty( $cookie['purpose'] ) ? (string) $cookie['purpose'] : '';
+			if ( '' === $purpose && ! empty( $service['description'] ) ) {
+				$purpose = (string) $service['description'];
+			}
+			if ( ! empty( $ov['purpose'] ) ) {
+				$purpose = (string) $ov['purpose'];
+			}
+			$retention = ! empty( $cookie['retention'] ) ? (string) $cookie['retention'] : '';
+			if ( '' === $retention ) {
+				$days = (int) Settings::get( 'cookie_lifetime_days', 180 );
+				$retention = sprintf(
+					/* translators: %d: retention days */
+					__( 'Configurable (default %d days)', 'universal-consent-privacy-framework' ),
+					max( 1, $days )
+				);
+			}
+			$service_name  = ! empty( $service['name'] ) ? (string) $service['name'] : 'UCPF Consent Cookie';
+			$display_label = ! empty( $ov['label'] ) ? (string) $ov['label'] : $service_name;
+			$provider      = ! empty( $service['provider'] ) ? (string) $service['provider'] : 'Universal Consent & Privacy Framework';
+			$visibility    = ! empty( $ov['visibility'] ) ? (string) $ov['visibility'] : 'show';
+			$document_only = ( 'document_only' === $visibility || 'ignore' === $treatment );
+			$consent_required = false;
+			$cat_label     = isset( $categories[ $category ]['label'] ) ? $categories[ $category ]['label'] : $category;
+
+			if ( isset( $by_name[ $key ] ) ) {
+				$prev = $by_name[ $key ];
+				if ( empty( $prev['service_key'] ) ) {
+					$by_name[ $key ]['service_key'] = 'ucpf_consent';
+				}
+				if ( empty( $prev['purpose'] ) && $purpose ) {
+					$by_name[ $key ]['purpose'] = $purpose;
+				}
+				continue;
+			}
+
+			$by_name[ $key ] = array(
+				'name'               => $name,
+				'display_label'      => $display_label,
+				'service_name'       => $service_name,
+				'provider'           => $provider,
+				'category'           => $category,
+				'category_label'     => $cat_label,
+				'purpose'            => $purpose,
+				'retention'          => $retention,
+				'treatment'          => $treatment,
+				'visibility'         => $visibility,
+				'consent_required'   => $consent_required,
+				'consent_label'      => self::consent_column_label( $treatment, $category, $visibility ),
+				'document_only'      => $document_only,
+				'contexts'           => '',
+				'description_source' => 'catalog',
+				'domain'             => '',
+				'path'               => '',
+				'httpOnly'           => false,
+				'service_key'        => 'ucpf_consent',
+				'source'             => 'from_managed_service',
+			);
+		}
+	}
+
+	/**
 	 * Uncached inventory builder (was get_policy_inventory body).
 	 *
 	 * @param array $scan Last scan payload.
@@ -3693,8 +3861,9 @@ class Cookie_Scanner {
 				continue;
 			}
 
-			$match   = $registry->match_cookie_name( $observed );
-			$service = ( $match && ! empty( $match['service'] ) ) ? $registry->get_service( $match['service'] ) : null;
+			$cookie_domain = isset( $cookie['domain'] ) ? (string) $cookie['domain'] : '';
+			$match         = $registry->match_cookie_name( $observed, $cookie_domain );
+			$service       = ( $match && ! empty( $match['service'] ) ) ? $registry->get_service( $match['service'] ) : null;
 
 			// Collapse property-/site-specific names (_ga_XXXX, _hjSession_123, …) to catalog patterns.
 			$name = Cookie_Knowledge::policy_cookie_display_name( $observed, is_array( $match ) ? $match : null );
@@ -3824,6 +3993,7 @@ class Cookie_Scanner {
 		}
 
 		$this->merge_managed_google_cookies( $by_name, $registry, $categories, $overrides );
+		$this->merge_managed_ucpf_cookies( $by_name, $registry, $categories, $overrides );
 
 		$cookies = array_values( $by_name );
 		usort(

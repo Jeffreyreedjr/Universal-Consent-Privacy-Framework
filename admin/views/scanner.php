@@ -38,62 +38,34 @@ $active_pct      = isset( $active_progress['percent'] ) ? max( 0, min( 100, (int
 $active_msg      = ! empty( $active_progress['message'] ) ? (string) $active_progress['message'] : ( ! empty( $active_job['message'] ) ? (string) $active_job['message'] : '' );
 $active_log      = ( ! empty( $active_progress['log'] ) && is_array( $active_progress['log'] ) ) ? $active_progress['log'] : array();
 ?>
-<div class="wrap ucpf-admin">
+<div class="wrap ucpf-admin ucpf-scanner">
 	<h1><?php esc_html_e( 'Cookie Scanner', 'universal-consent-privacy-framework' ); ?></h1>
-	<p class="description"><?php esc_html_e( 'Two different tools: (1) Playwright scan — real Chromium via the Scanner API on Advanced Settings (or import a local CLI report). (2) WordPress helper — lighter fallback in this browser. Consent coverage below only applies to Playwright. Technical inventory only — not a legal determination.', 'universal-consent-privacy-framework' ); ?></p>
+	<p class="description"><?php esc_html_e( 'Pick pages, run a scan, then review cookies that need attention. Technical inventory only — not a legal determination.', 'universal-consent-privacy-framework' ); ?></p>
 	<?php if ( is_multisite() ) : ?>
-		<p class="notice notice-info inline"><strong><?php esc_html_e( 'Multisite:', 'universal-consent-privacy-framework' ); ?></strong> <?php esc_html_e( 'Scans and inventory on this screen apply to this site only. Prefer a distinct Scanner API key per site on a shared scanner host.', 'universal-consent-privacy-framework' ); ?></p>
+		<p class="notice notice-info inline"><strong><?php esc_html_e( 'Multisite:', 'universal-consent-privacy-framework' ); ?></strong> <?php esc_html_e( 'Scans on this screen apply to this site only.', 'universal-consent-privacy-framework' ); ?></p>
 	<?php endif; ?>
-	<p class="description"><?php esc_html_e( 'Cookie descriptions: UCPF service catalog + site knowledge log + bundled Open Cookie Database (offline). Does not call cookiedatabase.org.', 'universal-consent-privacy-framework' ); ?></p>
-
-	<div class="ucpf-cookie-lookup" id="ucpf-cookie-lookup">
-		<h2><?php esc_html_e( 'Cookie lookup', 'universal-consent-privacy-framework' ); ?></h2>
-		<p class="description"><?php esc_html_e( 'Search the local vendor catalog, this site’s knowledge log, and the Open Cookie Database snapshot. Export knowledge pack includes last scan cookies + review overrides (for your agency hub). Use Contribute for a scrubbed public GitHub pack.', 'universal-consent-privacy-framework' ); ?></p>
-		<p class="ucpf-cookie-lookup__row">
-			<label class="screen-reader-text" for="ucpf-cookie-lookup-q"><?php esc_html_e( 'Cookie name', 'universal-consent-privacy-framework' ); ?></label>
-			<input type="search" class="regular-text" id="ucpf-cookie-lookup-q" placeholder="<?php esc_attr_e( 'e.g. _ga, sbjs_session, VISITOR_INFO1_LIVE', 'universal-consent-privacy-framework' ); ?>" />
-			<button type="button" class="button button-primary" id="ucpf-cookie-lookup-go"><?php esc_html_e( 'Search', 'universal-consent-privacy-framework' ); ?></button>
-			<button type="button" class="button" id="ucpf-knowledge-export"><?php esc_html_e( 'Export knowledge pack', 'universal-consent-privacy-framework' ); ?></button>
-			<button type="button" class="button" id="ucpf-knowledge-import"><?php esc_html_e( 'Import knowledge pack', 'universal-consent-privacy-framework' ); ?></button>
-			<input type="file" id="ucpf-knowledge-import-file" accept="application/json,.json" hidden />
+	<?php if ( $has_scan ) : ?>
+		<p class="ucpf-scanner-summary">
+			<?php
+			echo esc_html(
+				sprintf(
+					/* translators: 1: datetime, 2: known count, 3: unknown count */
+					__( 'Last scan: %1$s — %2$d known cookie(s), %3$d unknown.', 'universal-consent-privacy-framework' ),
+					$last_scan['date'],
+					$cookie_n,
+					$unknown_n
+				)
+			);
+			?>
+			<?php if ( $policy_url ) : ?>
+				<a href="<?php echo esc_url( $policy_url ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'View Cookie Policy', 'universal-consent-privacy-framework' ); ?></a>
+			<?php endif; ?>
 		</p>
-		<p id="ucpf-cookie-lookup-status" class="description" aria-live="polite"></p>
-		<div class="ucpf-table-scroll">
-			<table class="widefat striped" id="ucpf-cookie-lookup-table" hidden>
-				<thead>
-					<tr>
-						<th><?php esc_html_e( 'Name', 'universal-consent-privacy-framework' ); ?></th>
-						<th><?php esc_html_e( 'Source', 'universal-consent-privacy-framework' ); ?></th>
-						<th><?php esc_html_e( 'Provider', 'universal-consent-privacy-framework' ); ?></th>
-						<th><?php esc_html_e( 'Category', 'universal-consent-privacy-framework' ); ?></th>
-						<th><?php esc_html_e( 'Purpose', 'universal-consent-privacy-framework' ); ?></th>
-						<th><?php esc_html_e( 'Actions', 'universal-consent-privacy-framework' ); ?></th>
-					</tr>
-				</thead>
-				<tbody></tbody>
-			</table>
-		</div>
-	</div>
-
-	<div class="ucpf-contribute" id="ucpf-contribute">
-		<h2><?php esc_html_e( 'Contribute cookie knowledge', 'universal-consent-privacy-framework' ); ?></h2>
-		<p class="description"><?php esc_html_e( 'Help grow the public UCPF catalog. Download a scrubbed, anonymized pack (generalized cookie patterns — never values, site URL, first-party hosts, or property-specific ids like _ga_XXXX). WordPress does not upload anything. You attach the file on GitHub yourself.', 'universal-consent-privacy-framework' ); ?></p>
-		<p>
-			<label for="ucpf-contribute-consent">
-				<input type="checkbox" id="ucpf-contribute-consent" value="1" />
-				<?php esc_html_e( 'I confirm this pack has no cookie values, emails, auth tokens, or client domains I am not allowed to share, and I offer it under GPL-2.0-or-later.', 'universal-consent-privacy-framework' ); ?>
-			</label>
-		</p>
-		<p class="ucpf-contribute__actions">
-			<button type="button" class="button button-primary" id="ucpf-contribute-download" disabled><?php esc_html_e( 'Download contribution pack', 'universal-consent-privacy-framework' ); ?></button>
-			<button type="button" class="button" id="ucpf-contribute-github" disabled><?php esc_html_e( 'Open GitHub issue', 'universal-consent-privacy-framework' ); ?></button>
-		</p>
-		<p id="ucpf-contribute-status" class="description" aria-live="polite"></p>
-	</div>
+	<?php endif; ?>
 
 	<div class="ucpf-scanner-picker" id="ucpf-scanner-picker">
 		<h2 class="ucpf-scanner-picker__title"><?php esc_html_e( '1. Pages to scan', 'universal-consent-privacy-framework' ); ?></h2>
-		<p class="description"><?php esc_html_e( 'Pick real front-end pages (forms, shop, landing pages). Your selection is remembered for the next scan on this site.', 'universal-consent-privacy-framework' ); ?></p>
+		<p class="description"><?php esc_html_e( 'Choose front-end pages (home, forms, shop). Blog category and tag archives are omitted. Selection is remembered.', 'universal-consent-privacy-framework' ); ?></p>
 		<p id="ucpf-scan-remembered" class="description ucpf-scan-remembered" hidden></p>
 
 		<p class="ucpf-scanner-toolbar">
@@ -124,34 +96,31 @@ $active_log      = ( ! empty( $active_progress['log'] ) && is_array( $active_pro
 	</div>
 
 	<div class="ucpf-scanner-coverage" id="ucpf-scanner-coverage"<?php echo $scanner_ready ? '' : ' hidden'; ?>>
-		<h2><?php esc_html_e( '2. Consent coverage (Playwright only)', 'universal-consent-privacy-framework' ); ?></h2>
+		<h2><?php esc_html_e( '2. Consent coverage', 'universal-consent-privacy-framework' ); ?></h2>
 		<p class="ucpf-scan-depth">
-			<label for="ucpf-scan-depth"><strong><?php esc_html_e( 'How many consent checks to run', 'universal-consent-privacy-framework' ); ?></strong></label>
+			<label for="ucpf-scan-depth"><strong><?php esc_html_e( 'How thorough', 'universal-consent-privacy-framework' ); ?></strong></label>
 			<select id="ucpf-scan-depth"<?php disabled( ! $scanner_ready ); ?>>
-				<option value="quick"><?php esc_html_e( 'Light — 2 consent sessions × selected pages (faster)', 'universal-consent-privacy-framework' ); ?></option>
-				<option value="standard" selected><?php esc_html_e( 'Standard — 6 sessions × selected pages (core + GPC / DNS)', 'universal-consent-privacy-framework' ); ?></option>
-				<option value="deep"><?php esc_html_e( 'Thorough — 10 sessions × selected pages (slowest, fullest checks)', 'universal-consent-privacy-framework' ); ?></option>
+				<option value="quick"><?php esc_html_e( 'Light — faster', 'universal-consent-privacy-framework' ); ?></option>
+				<option value="standard" selected><?php esc_html_e( 'Standard — recommended', 'universal-consent-privacy-framework' ); ?></option>
+				<option value="deep"><?php esc_html_e( 'Thorough — slowest, fullest checks', 'universal-consent-privacy-framework' ); ?></option>
 			</select>
 		</p>
-		<p class="description"><?php esc_html_e( 'Coverage is not a separate “scan type.” It only controls how many consent personas Playwright uses on the pages you selected. Each session re-walks those URLs. Speed ≈ pages × coverage — Light + fewer pages is fastest; Thorough is for compliance. Prefer lowering UCPF_SCANNER_SETTLE_MS / PAGE_GAP_MS over raising Chromium concurrency.', 'universal-consent-privacy-framework' ); ?></p>
+		<p class="description"><?php esc_html_e( 'More coverage = more consent personas on each selected page (Playwright only).', 'universal-consent-privacy-framework' ); ?></p>
 		<p id="ucpf-scan-selection-hint" class="description ucpf-scan-selection-hint" hidden></p>
 	</div>
 
 	<div class="ucpf-scanner-run" id="ucpf-scanner-run">
-		<h2><?php echo $scanner_ready ? esc_html__( '3. Run a scan', 'universal-consent-privacy-framework' ) : esc_html__( '2. Run a scan', 'universal-consent-privacy-framework' ); ?></h2>
+		<h2><?php echo $scanner_ready ? esc_html__( '3. Run scan', 'universal-consent-privacy-framework' ) : esc_html__( '2. Run scan', 'universal-consent-privacy-framework' ); ?></h2>
 
 		<?php if ( $scanner_ready ) : ?>
 			<div class="ucpf-scanner-run__primary">
-				<h3 class="ucpf-scanner-run__heading"><?php esc_html_e( 'Playwright scan (recommended)', 'universal-consent-privacy-framework' ); ?></h3>
-				<p class="description"><?php esc_html_e( 'Calls the Scanner API from Advanced Settings (self-hosted Playwright / Chromium). Uses the pages and consent coverage above. Progress and logs are saved on this WordPress site — you can leave this page and the scan keeps running; reopen Cookie Scanner (or any WP admin screen) to see status. Stop still works when you return.', 'universal-consent-privacy-framework' ); ?></p>
-				<p class="notice notice-warning inline"><strong><?php esc_html_e( 'Scanner API + plugin:', 'universal-consent-privacy-framework' ); ?></strong> <?php esc_html_e( 'Multi-page Playwright scans require Scanner API 1.5.3 or newer (GET /health version and features.exactPaths). Prefer 1.5.4+ (pathList recovery). Copy tools/ucpf-scanner and restart the Node process — updating this plugin zip does not update the scanner host. A 502 during restart is nginx with Node down; wait until /health works.', 'universal-consent-privacy-framework' ); ?></p>
-				<p>
-					<label><input type="checkbox" id="ucpf-playwright-merge-auth" value="1" /> <?php esc_html_e( 'Also capture logged-in cookies after Playwright (helper, homepage once) — optional inventory completeness', 'universal-consent-privacy-framework' ); ?></label>
-				</p>
-				<p class="description"><?php esc_html_e( 'Playwright stays guest-only for consent proof. When checked, WordPress merges one logged-in HTTP pass into the inventory after import (no WP login inside Chromium).', 'universal-consent-privacy-framework' ); ?></p>
+				<p class="description"><?php esc_html_e( 'Runs a real browser scan via your Scanner API. You can leave this page — progress is saved. Stop still works when you return.', 'universal-consent-privacy-framework' ); ?></p>
 				<p class="ucpf-scanner-run__actions">
-					<button type="button" class="button button-primary button-hero" id="ucpf-deep-scan"><?php esc_html_e( 'Run Playwright scan', 'universal-consent-privacy-framework' ); ?></button>
+					<button type="button" class="button button-primary button-hero" id="ucpf-deep-scan"><?php esc_html_e( 'Run scan', 'universal-consent-privacy-framework' ); ?></button>
 					<button type="button" class="button button-link-delete" id="ucpf-stop-scan"<?php echo $active_job ? '' : ' hidden'; ?>><?php esc_html_e( 'Stop scan', 'universal-consent-privacy-framework' ); ?></button>
+					<?php if ( $has_scan ) : ?>
+						<button type="button" class="button" id="ucpf-refresh-cookie-policy"><?php esc_html_e( 'Refresh Cookie Policy', 'universal-consent-privacy-framework' ); ?></button>
+					<?php endif; ?>
 				</p>
 			</div>
 		<?php else : ?>
@@ -161,12 +130,11 @@ $active_log      = ( ! empty( $active_progress['log'] ) && is_array( $active_pro
 					echo wp_kses(
 						sprintf(
 							/* translators: %s: Advanced Settings URL */
-							__( '<strong>Playwright scan needs the Scanner API.</strong> Set the Scanner API URL (and key) under <a href="%s">Advanced Settings</a>, or run the local CLI and import the report JSON below. Until then, use the WordPress helper scan.', 'universal-consent-privacy-framework' ),
+							__( 'For the best scan, set the Scanner API under <a href="%s">Advanced Settings</a>. Until then, use the helper scan below or import a report in Advanced tools.', 'universal-consent-privacy-framework' ),
 							esc_url( $advanced_url )
 						),
 						array(
-							'strong' => array(),
-							'a'      => array(
+							'a' => array(
 								'href' => array(),
 							),
 						)
@@ -174,53 +142,28 @@ $active_log      = ( ! empty( $active_progress['log'] ) && is_array( $active_pro
 					?>
 				</p>
 			</div>
+			<div class="ucpf-scanner-run__fallback">
+				<p>
+					<label><input type="checkbox" id="ucpf-scan-browser" value="1" checked /> <?php esc_html_e( 'Guest browser crawl', 'universal-consent-privacy-framework' ); ?></label>
+				</p>
+				<p>
+					<label><input type="checkbox" id="ucpf-scan-auth" value="1" /> <?php esc_html_e( 'Also scan homepage as logged-in (optional)', 'universal-consent-privacy-framework' ); ?></label>
+				</p>
+				<p class="ucpf-scanner-run__actions">
+					<button type="button" class="button button-primary" id="ucpf-run-scan"><?php esc_html_e( 'Run helper scan', 'universal-consent-privacy-framework' ); ?></button>
+					<?php if ( $has_scan ) : ?>
+						<button type="button" class="button" id="ucpf-refresh-cookie-policy"><?php esc_html_e( 'Refresh Cookie Policy', 'universal-consent-privacy-framework' ); ?></button>
+					<?php endif; ?>
+				</p>
+			</div>
 		<?php endif; ?>
-
-		<div class="ucpf-scanner-run__fallback">
-			<h3 class="ucpf-scanner-run__heading"><?php echo $scanner_ready ? esc_html__( 'WordPress helper (fallback)', 'universal-consent-privacy-framework' ) : esc_html__( 'WordPress helper scan', 'universal-consent-privacy-framework' ); ?></h3>
-			<p class="description"><?php esc_html_e( 'Runs in this admin browser (HTTP + limited iframe). Often misses HttpOnly cookies and many JS trackers. Prefer Playwright via the Scanner API or a local CLI import when available.', 'universal-consent-privacy-framework' ); ?></p>
-			<p>
-				<label><input type="checkbox" id="ucpf-scan-browser" value="1" checked /> <?php esc_html_e( 'Guest browser crawl (loads selected pages as a visitor)', 'universal-consent-privacy-framework' ); ?></label>
-			</p>
-			<p>
-				<label><input type="checkbox" id="ucpf-scan-auth" value="1" /> <?php esc_html_e( 'Also scan homepage as logged-in (admin session) — optional', 'universal-consent-privacy-framework' ); ?></label>
-			</p>
-			<p class="ucpf-scanner-run__actions">
-				<button type="button" class="button<?php echo $scanner_ready ? '' : ' button-primary'; ?>" id="ucpf-run-scan"><?php esc_html_e( 'Run WordPress helper scan', 'universal-consent-privacy-framework' ); ?></button>
-			</p>
-		</div>
-
-		<div class="ucpf-toolbar ucpf-scanner-run__utils" role="group" aria-label="<?php esc_attr_e( 'Scan utilities', 'universal-consent-privacy-framework' ); ?>">
-			<button type="button" class="button" id="ucpf-import-scan-json"><?php esc_html_e( 'Import scan JSON', 'universal-consent-privacy-framework' ); ?></button>
-			<button type="button" class="button" id="ucpf-export-scan"><?php esc_html_e( 'Export scan JSON for catalog', 'universal-consent-privacy-framework' ); ?></button>
-			<button type="button" class="button" id="ucpf-knowledge-export-toolbar"><?php esc_html_e( 'Export knowledge pack', 'universal-consent-privacy-framework' ); ?></button>
-			<?php if ( $has_scan ) : ?>
-				<button type="button" class="button" id="ucpf-refresh-cookie-policy"><?php esc_html_e( 'Refresh Cookie Policy now', 'universal-consent-privacy-framework' ); ?></button>
-			<?php endif; ?>
-			<button type="button" class="button" id="ucpf-live-capture"><?php esc_html_e( 'Admin tab only (debug)', 'universal-consent-privacy-framework' ); ?></button>
-		</div>
-	</div>
-	<div class="ucpf-import-box">
-		<label for="ucpf-import-scan-file"><strong><?php esc_html_e( 'Import Playwright report', 'universal-consent-privacy-framework' ); ?></strong></label>
-		<p class="description"><?php esc_html_e( 'Choose the report-….json file from your local scan (preferred), or paste JSON below. Import replaces the stored inventory and selects matched services.', 'universal-consent-privacy-framework' ); ?></p>
-		<p>
-			<input type="file" id="ucpf-import-scan-file" accept=".json,application/json" />
-		</p>
-		<textarea id="ucpf-import-scan-json-text" class="large-text code" rows="4" placeholder="<?php esc_attr_e( 'Or paste Playwright report JSON here, then click Import scan JSON', 'universal-consent-privacy-framework' ); ?>"></textarea>
 	</div>
 	<?php if ( ! $woo_active ) : ?>
-		<p class="description"><?php esc_html_e( 'WooCommerce is not active — shop/cart/checkout pages are not included.', 'universal-consent-privacy-framework' ); ?></p>
+		<p class="description"><?php esc_html_e( 'WooCommerce is not active — shop pages are not listed.', 'universal-consent-privacy-framework' ); ?></p>
 	<?php endif; ?>
-	<p class="description">
-		<?php if ( $auto_on ) : ?>
-			<?php esc_html_e( 'Auto-refresh Cookie Policy after scan is ON (Generated Pages). Inventory is stored on this site only.', 'universal-consent-privacy-framework' ); ?>
-		<?php else : ?>
-			<?php esc_html_e( 'Auto-refresh Cookie Policy after scan is OFF. Use “Refresh Cookie Policy now” or Generated Pages after scanning.', 'universal-consent-privacy-framework' ); ?>
-		<?php endif; ?>
-		<?php if ( $policy_url ) : ?>
-			<a href="<?php echo esc_url( $policy_url ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'View Cookie Policy', 'universal-consent-privacy-framework' ); ?></a>
-		<?php endif; ?>
-	</p>
+	<?php if ( $auto_on ) : ?>
+		<p class="description"><?php esc_html_e( 'Cookie Policy auto-refreshes after a successful scan.', 'universal-consent-privacy-framework' ); ?></p>
+	<?php endif; ?>
 	<div id="ucpf-scan-status" class="ucpf-wizard__status"<?php echo $active_job ? '' : ' hidden'; ?>><?php
 	if ( $active_job ) {
 		echo esc_html(
@@ -290,69 +233,18 @@ $active_log      = ( ! empty( $active_progress['log'] ) && is_array( $active_pro
 		$tx_providers = ! empty( $tx_meta['providers'] ) && is_array( $tx_meta['providers'] ) ? $tx_meta['providers'] : array();
 		?>
 		<div class="ucpf-infra-status" aria-label="<?php esc_attr_e( 'Infrastructure detection', 'universal-consent-privacy-framework' ); ?>">
-			<p class="ucpf-infra-status__row">
-				<span class="ucpf-infra-status__mark" aria-hidden="true"><?php echo $cf_ok ? '✓' : '—'; ?></span>
-				<strong><?php esc_html_e( 'Cloudflare proxy', 'universal-consent-privacy-framework' ); ?></strong>
-				<?php if ( $cf_ok ) : ?>
-					<span class="description">
-						<?php
-						echo esc_html(
-							$cf_signals
-								? sprintf(
-									/* translators: %s: comma-separated detection methods */
-									__( 'Detected (%s). Necessary security/CDN — disclose in privacy policy.', 'universal-consent-privacy-framework' ),
-									implode( ', ', array_map( 'strval', $cf_signals ) )
-								)
-								: __( 'Detected. Necessary security/CDN — disclose in privacy policy.', 'universal-consent-privacy-framework' )
-						);
-						?>
-					</span>
-				<?php else : ?>
-					<span class="description"><?php esc_html_e( 'Not detected on last scan (headers, cookies, NS, or challenge).', 'universal-consent-privacy-framework' ); ?></span>
-				<?php endif; ?>
-			</p>
-			<p class="ucpf-infra-status__row">
-				<span class="ucpf-infra-status__mark" aria-hidden="true"><?php echo $tx_ok ? '✓' : '—'; ?></span>
-				<strong><?php esc_html_e( 'Transactional email', 'universal-consent-privacy-framework' ); ?></strong>
-				<?php if ( $tx_ok ) : ?>
-					<span class="description">
-						<?php
-						if ( $tx_providers ) {
-							$labels = array();
-							foreach ( $tx_providers as $pk ) {
-								$svc = \UCPF\Script_Registry::instance()->get_service( $pk );
-								$labels[] = $svc ? $svc['name'] : $pk;
-							}
-							echo esc_html(
-								sprintf(
-									/* translators: %s: provider names */
-									__( 'Detected — %s (server-side delivery; not a visitor tracker).', 'universal-consent-privacy-framework' ),
-									implode( ', ', $labels )
-								)
-							);
-						} else {
-							esc_html_e( 'Detected (SMTP plugin / ESP). Server-side delivery; not a visitor tracker.', 'universal-consent-privacy-framework' );
-						}
-						?>
-					</span>
-				<?php else : ?>
-					<span class="description"><?php esc_html_e( 'No SMTP plugin / Gravity SMTP connector detected yet (WordPress-side — Playwright cannot see outbound email). Re-run helper or Playwright import after configuring SMTP.', 'universal-consent-privacy-framework' ); ?></span>
-				<?php endif; ?>
-			</p>
+			<span class="ucpf-infra-chip<?php echo $cf_ok ? ' is-on' : ''; ?>"><?php echo $cf_ok ? '✓' : '—'; ?> <?php esc_html_e( 'Cloudflare', 'universal-consent-privacy-framework' ); ?></span>
+			<span class="ucpf-infra-chip<?php echo $tx_ok ? ' is-on' : ''; ?>"><?php echo $tx_ok ? '✓' : '—'; ?> <?php esc_html_e( 'Transactional email', 'universal-consent-privacy-framework' ); ?><?php
+			if ( $tx_ok && $tx_providers ) {
+				$labels = array();
+				foreach ( $tx_providers as $pk ) {
+					$svc = \UCPF\Script_Registry::instance()->get_service( $pk );
+					$labels[] = $svc ? $svc['name'] : $pk;
+				}
+				echo ' · ' . esc_html( implode( ', ', $labels ) );
+			}
+			?></span>
 		</div>
-		<p>
-			<?php
-			echo esc_html(
-				sprintf(
-					/* translators: 1: datetime, 2: known count, 3: unknown count */
-					__( 'Last scan: %1$s — %2$d known cookie(s), %3$d unknown.', 'universal-consent-privacy-framework' ),
-					$last_scan['date'],
-					$cookie_n,
-					$unknown_n
-				)
-			);
-			?>
-		</p>
 
 		<?php if ( 0 === $cookie_n && 0 === $unknown_n ) : ?>
 			<div class="ucpf-scanner-empty">
@@ -387,11 +279,14 @@ $active_log      = ( ! empty( $active_progress['log'] ) && is_array( $active_pro
 						<a class="button" href="<?php echo esc_url( $advanced_url ); ?>"><?php esc_html_e( 'Set Scanner API (Advanced)', 'universal-consent-privacy-framework' ); ?></a>
 						<button type="button" class="button" id="ucpf-scroll-import"><?php esc_html_e( 'Import Playwright report', 'universal-consent-privacy-framework' ); ?></button>
 					<?php endif; ?>
-					<a class="button" href="#ucpf-cookie-review"><?php esc_html_e( 'Open Cookie review', 'universal-consent-privacy-framework' ); ?></a>
+					<a class="button" href="#ucpf-review-tab-known"><?php esc_html_e( 'Open Cookie review', 'universal-consent-privacy-framework' ); ?></a>
 				</p>
 			</div>
 		<?php endif; ?>
 
+		<?php if ( ! empty( $delta['has_previous'] ) || $score || $dark ) : ?>
+		<details class="ucpf-scanner-details" id="ucpf-scanner-tech-details">
+			<summary><?php esc_html_e( 'Technical score & verify history', 'universal-consent-privacy-framework' ); ?></summary>
 		<?php if ( ! empty( $delta['has_previous'] ) ) : ?>
 			<div class="ucpf-verify-delta" id="ucpf-verify-delta">
 				<h2><?php esc_html_e( 'Since last Playwright verify', 'universal-consent-privacy-framework' ); ?></h2>
@@ -499,6 +394,8 @@ $active_log      = ( ! empty( $active_progress['log'] ) && is_array( $active_pro
 			</div>
 				<?php endif; ?>
 			</div>
+		<?php endif; ?>
+		</details>
 		<?php endif; ?>
 
 		<?php if ( ! empty( $last_scan['findings_summary'] ) && is_array( $last_scan['findings_summary'] ) ) : ?>
@@ -697,7 +594,7 @@ $active_log      = ( ! empty( $active_progress['log'] ) && is_array( $active_pro
 							<?php elseif ( 'catalog_suggestion' === $rem['action'] ) : ?>
 								<a class="button button-small" href="#ucpf-catalog-suggestions"><?php esc_html_e( 'Add host override', 'universal-consent-privacy-framework' ); ?></a>
 							<?php else : ?>
-								<a class="button button-small" href="#ucpf-cookie-review"><?php esc_html_e( 'Cookie review', 'universal-consent-privacy-framework' ); ?></a>
+								<a class="button button-small" href="#ucpf-review-tab-known"><?php esc_html_e( 'Cookie review', 'universal-consent-privacy-framework' ); ?></a>
 							<?php endif; ?>
 						</td>
 					</tr>
@@ -911,9 +808,41 @@ $active_log      = ( ! empty( $active_progress['log'] ) && is_array( $active_pro
 		<?php endif; ?>
 
 		<?php
+		// Shared cookie review (known + unknown + service treatments) — same as wizard step 8.
+		$categories        = \UCPF\Consent_Manager::instance()->get_categories();
+		$services          = isset( $services ) && is_array( $services ) ? $services : \UCPF\Script_Registry::instance()->get_services();
+		$ucpf_review_mode  = 'scanner';
+		include UCPF_PLUGIN_DIR . 'admin/views/partials/cookie-review.php';
+
 		$catalog_suggestions = \UCPF\Catalog_Suggestions::compute();
 		$local_catalog       = \UCPF\Catalog_Suggestions::get_local_services();
+		if ( is_array( $catalog_suggestions ) ) {
+			$catalog_suggestions = array_values(
+				array_filter(
+					$catalog_suggestions,
+					static function ( $sug ) {
+						$host = isset( $sug['host'] ) ? (string) $sug['host'] : '';
+						$key  = sanitize_key( str_replace( '.', '_', $host ) );
+						return $host && ! \UCPF\Scan_Noise_Filter::should_omit_detected_service( $key )
+							&& ! \UCPF\Scan_Noise_Filter::should_omit_signal( $host );
+					}
+				)
+			);
+		}
+		if ( is_array( $local_catalog ) ) {
+			$local_catalog = array_values(
+				array_filter(
+					$local_catalog,
+					static function ( $svc ) {
+						$key = isset( $svc['key'] ) ? sanitize_key( (string) $svc['key'] ) : '';
+						return $key && ! \UCPF\Scan_Noise_Filter::should_omit_detected_service( $key );
+					}
+				)
+			);
+		}
 		?>
+		<details class="ucpf-scanner-details" id="ucpf-scanner-extra-lists">
+			<summary><?php esc_html_e( 'More inventory (hosts, storage, signals)', 'universal-consent-privacy-framework' ); ?></summary>
 		<div class="ucpf-card" style="margin:1.5rem 0;padding:1rem 1.25rem;">
 			<h2 style="margin-top:0;"><?php esc_html_e( 'Unknown host → catalog suggestions', 'universal-consent-privacy-framework' ); ?></h2>
 			<p class="description">
@@ -1034,14 +963,6 @@ $active_log      = ( ! empty( $active_progress['log'] ) && is_array( $active_pro
 		})();
 		</script>
 
-		<?php
-		// Shared cookie review (known + unknown + service treatments) — same as wizard step 8.
-		$categories        = \UCPF\Consent_Manager::instance()->get_categories();
-		$services          = isset( $services ) && is_array( $services ) ? $services : \UCPF\Script_Registry::instance()->get_services();
-		$ucpf_review_mode  = 'scanner';
-		include UCPF_PLUGIN_DIR . 'admin/views/partials/cookie-review.php';
-		?>
-
 		<?php if ( ! empty( $last_scan['storage'] ) && is_array( $last_scan['storage'] ) ) : ?>
 			<h2><?php esc_html_e( 'Storage keys', 'universal-consent-privacy-framework' ); ?></h2>
 			<div class="ucpf-table-scroll">
@@ -1086,12 +1007,23 @@ $active_log      = ( ! empty( $active_progress['log'] ) && is_array( $active_pro
 						<th class="ucpf-cell-name"><?php esc_html_e( 'URL / host', 'universal-consent-privacy-framework' ); ?></th>
 					</tr></thead>
 					<tbody>
-					<?php foreach ( array_slice( $signals[ $sig_key ], 0, 40 ) as $sig ) : ?>
+					<?php
+					$sig_rows = 0;
+					foreach ( $signals[ $sig_key ] as $sig ) :
+						$sig_url = ! empty( $sig['url'] ) ? (string) $sig['url'] : ( isset( $sig['host'] ) ? (string) $sig['host'] : '' );
+						if ( $sig_url && \UCPF\Scan_Noise_Filter::should_omit_signal( $sig_url ) ) {
+							continue;
+						}
+						if ( $sig_rows >= 40 ) {
+							break;
+						}
+						++$sig_rows;
+						?>
 						<tr>
 							<td><?php echo esc_html( isset( $sig['provider'] ) ? $sig['provider'] : '' ); ?></td>
 							<td class="ucpf-cell-cat"><?php echo esc_html( isset( $sig['category'] ) ? $sig['category'] : '' ); ?></td>
 							<td class="ucpf-cell-type"><?php echo esc_html( isset( $sig['importance'] ) ? $sig['importance'] : '' ); ?></td>
-							<td class="ucpf-cell-name"><code><?php echo esc_html( ! empty( $sig['url'] ) ? $sig['url'] : ( isset( $sig['host'] ) ? $sig['host'] : '' ) ); ?></code></td>
+							<td class="ucpf-cell-name"><code><?php echo esc_html( $sig_url ); ?></code></td>
 						</tr>
 					<?php endforeach; ?>
 					</tbody>
@@ -1113,8 +1045,18 @@ $active_log      = ( ! empty( $active_progress['log'] ) && is_array( $active_pro
 				</tr></thead>
 				<tbody>
 				<?php foreach ( $last_scan['results'] as $row ) : ?>
+					<?php
+					$svc_key = isset( $row['service'] ) ? sanitize_key( (string) $row['service'] ) : ( isset( $row['service_key'] ) ? sanitize_key( (string) $row['service_key'] ) : '' );
+					if ( $svc_key && \UCPF\Scan_Noise_Filter::should_omit_detected_service( $svc_key ) ) {
+						continue;
+					}
+					$svc_name = isset( $row['service_name'] ) ? (string) $row['service_name'] : '';
+					if ( $svc_name && \UCPF\Scan_Noise_Filter::should_omit_detected_service( sanitize_key( $svc_name ) ) ) {
+						continue;
+					}
+					?>
 					<tr>
-						<td><?php echo esc_html( $row['service_name'] ); ?></td>
+						<td><?php echo esc_html( $svc_name ); ?></td>
 						<td class="ucpf-cell-name"><code><?php echo esc_html( $row['pattern'] ); ?></code></td>
 						<td class="ucpf-cell-type"><?php echo esc_html( $row['confidence'] ); ?></td>
 						<td class="ucpf-cell-type"><?php echo esc_html( isset( $row['context'] ) ? $row['context'] : '' ); ?></td>
@@ -1125,5 +1067,92 @@ $active_log      = ( ! empty( $active_progress['log'] ) && is_array( $active_pro
 			</table>
 			</div>
 		<?php endif; ?>
+		</details>
 	<?php endif; ?>
+
+	<details class="ucpf-scanner-advanced" id="ucpf-scanner-advanced">
+		<summary><?php esc_html_e( 'Advanced tools', 'universal-consent-privacy-framework' ); ?></summary>
+
+		<div class="ucpf-cookie-lookup" id="ucpf-cookie-lookup">
+			<h2><?php esc_html_e( 'Cookie lookup', 'universal-consent-privacy-framework' ); ?></h2>
+			<p class="description"><?php esc_html_e( 'Search the local vendor catalog, this site’s knowledge log, and the Open Cookie Database snapshot.', 'universal-consent-privacy-framework' ); ?></p>
+			<p class="ucpf-cookie-lookup__row">
+				<label class="screen-reader-text" for="ucpf-cookie-lookup-q"><?php esc_html_e( 'Cookie name', 'universal-consent-privacy-framework' ); ?></label>
+				<input type="search" class="regular-text" id="ucpf-cookie-lookup-q" placeholder="<?php esc_attr_e( 'e.g. _ga, sbjs_session', 'universal-consent-privacy-framework' ); ?>" />
+				<button type="button" class="button button-primary" id="ucpf-cookie-lookup-go"><?php esc_html_e( 'Search', 'universal-consent-privacy-framework' ); ?></button>
+				<button type="button" class="button" id="ucpf-knowledge-export"><?php esc_html_e( 'Export knowledge pack', 'universal-consent-privacy-framework' ); ?></button>
+				<button type="button" class="button" id="ucpf-knowledge-import"><?php esc_html_e( 'Import knowledge pack', 'universal-consent-privacy-framework' ); ?></button>
+				<input type="file" id="ucpf-knowledge-import-file" accept="application/json,.json" hidden />
+			</p>
+			<p id="ucpf-cookie-lookup-status" class="description" aria-live="polite"></p>
+			<div class="ucpf-table-scroll">
+				<table class="widefat striped" id="ucpf-cookie-lookup-table" hidden>
+					<thead>
+						<tr>
+							<th><?php esc_html_e( 'Name', 'universal-consent-privacy-framework' ); ?></th>
+							<th><?php esc_html_e( 'Source', 'universal-consent-privacy-framework' ); ?></th>
+							<th><?php esc_html_e( 'Provider', 'universal-consent-privacy-framework' ); ?></th>
+							<th><?php esc_html_e( 'Category', 'universal-consent-privacy-framework' ); ?></th>
+							<th><?php esc_html_e( 'Purpose', 'universal-consent-privacy-framework' ); ?></th>
+							<th><?php esc_html_e( 'Actions', 'universal-consent-privacy-framework' ); ?></th>
+						</tr>
+					</thead>
+					<tbody></tbody>
+				</table>
+			</div>
+		</div>
+
+		<div class="ucpf-contribute" id="ucpf-contribute">
+			<h2><?php esc_html_e( 'Contribute cookie knowledge', 'universal-consent-privacy-framework' ); ?></h2>
+			<p class="description"><?php esc_html_e( 'Download a scrubbed pack for GitHub. WordPress does not upload anything.', 'universal-consent-privacy-framework' ); ?></p>
+			<p>
+				<label for="ucpf-contribute-consent">
+					<input type="checkbox" id="ucpf-contribute-consent" value="1" />
+					<?php esc_html_e( 'I confirm this pack has no cookie values, emails, or auth tokens, and I offer it under GPL-2.0-or-later.', 'universal-consent-privacy-framework' ); ?>
+				</label>
+			</p>
+			<p class="ucpf-contribute__actions">
+				<button type="button" class="button button-primary" id="ucpf-contribute-download" disabled><?php esc_html_e( 'Download contribution pack', 'universal-consent-privacy-framework' ); ?></button>
+				<button type="button" class="button" id="ucpf-contribute-github" disabled><?php esc_html_e( 'Open GitHub issue', 'universal-consent-privacy-framework' ); ?></button>
+			</p>
+			<p id="ucpf-contribute-status" class="description" aria-live="polite"></p>
+		</div>
+
+		<?php if ( $scanner_ready ) : ?>
+			<div class="ucpf-scanner-run__fallback">
+				<h2><?php esc_html_e( 'WordPress helper (fallback)', 'universal-consent-privacy-framework' ); ?></h2>
+				<p class="description"><?php esc_html_e( 'Lighter in-browser scan. Prefer Playwright for consent proof.', 'universal-consent-privacy-framework' ); ?></p>
+				<p>
+					<label><input type="checkbox" id="ucpf-scan-browser" value="1" checked /> <?php esc_html_e( 'Guest browser crawl', 'universal-consent-privacy-framework' ); ?></label>
+				</p>
+				<p>
+					<label><input type="checkbox" id="ucpf-scan-auth" value="1" /> <?php esc_html_e( 'Also scan homepage as logged-in (optional)', 'universal-consent-privacy-framework' ); ?></label>
+				</p>
+				<p>
+					<label><input type="checkbox" id="ucpf-playwright-merge-auth" value="1" /> <?php esc_html_e( 'After Playwright, merge one logged-in homepage pass', 'universal-consent-privacy-framework' ); ?></label>
+				</p>
+				<p class="ucpf-scanner-run__actions">
+					<button type="button" class="button" id="ucpf-run-scan"><?php esc_html_e( 'Run helper scan', 'universal-consent-privacy-framework' ); ?></button>
+				</p>
+			</div>
+		<?php endif; ?>
+
+		<div class="ucpf-toolbar ucpf-scanner-run__utils" role="group" aria-label="<?php esc_attr_e( 'Scan utilities', 'universal-consent-privacy-framework' ); ?>">
+			<button type="button" class="button" id="ucpf-import-scan-json"><?php esc_html_e( 'Import scan JSON', 'universal-consent-privacy-framework' ); ?></button>
+			<button type="button" class="button" id="ucpf-export-scan"><?php esc_html_e( 'Export scan JSON', 'universal-consent-privacy-framework' ); ?></button>
+			<button type="button" class="button" id="ucpf-knowledge-export-toolbar"><?php esc_html_e( 'Export knowledge pack', 'universal-consent-privacy-framework' ); ?></button>
+			<button type="button" class="button" id="ucpf-live-capture"><?php esc_html_e( 'Admin tab only (debug)', 'universal-consent-privacy-framework' ); ?></button>
+		</div>
+		<div class="ucpf-import-box">
+			<label for="ucpf-import-scan-file"><strong><?php esc_html_e( 'Import Playwright report', 'universal-consent-privacy-framework' ); ?></strong></label>
+			<p class="description"><?php esc_html_e( 'Upload or paste a report JSON to replace the stored inventory.', 'universal-consent-privacy-framework' ); ?></p>
+			<p>
+				<input type="file" id="ucpf-import-scan-file" accept=".json,application/json" />
+			</p>
+			<textarea id="ucpf-import-scan-json-text" class="large-text code" rows="4" placeholder="<?php esc_attr_e( 'Or paste Playwright report JSON here, then click Import scan JSON', 'universal-consent-privacy-framework' ); ?>"></textarea>
+		</div>
+		<p class="description">
+			<a href="<?php echo esc_url( $advanced_url ); ?>"><?php esc_html_e( 'Scanner API settings', 'universal-consent-privacy-framework' ); ?></a>
+		</p>
+	</details>
 </div>

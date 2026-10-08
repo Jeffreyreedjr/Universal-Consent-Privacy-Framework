@@ -594,6 +594,25 @@ class Plugin {
 				echo Integrations\Google_Consent_Mode::instance()->build_update_script( $cookie['categories'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON from wp_json_encode.
 				echo "\n";
 			}
+			// Tell WP Consent API / Site Kit the CMP model before their wait_for_update window.
+			$ctype = Jurisdiction::instance()->get_consent_type();
+			echo 'window.wp_consent_type=' . wp_json_encode( $ctype ) . ";\n";
+			echo "try{document.dispatchEvent(new CustomEvent('wp_consent_type_defined'));}catch(e){}\n";
+			// First paint (no UCPF cookie yet): push denied WP categories so Site Kit Consent Mode
+			// updates inside wait_for_update — Site Kit's own defaults are EU-region only.
+			if ( empty( $cookie ) && 'optin' === $ctype ) {
+				echo "try{document.dispatchEvent(new CustomEvent('wp_listen_for_consent_change',{detail:{functional:'allow',preferences:'deny',statistics:'deny',marketing:'deny'}}));}catch(e2){}\n";
+			}
+			echo "</script>\n";
+		} else {
+			// Even with GCM off, publish consent type so WP Consent API does not treat all categories as allowed.
+			$ctype = Jurisdiction::instance()->get_consent_type();
+			echo '<script id="ucpf-wp-consent-type" data-cfasync="false" data-no-optimize="1" data-no-defer="1">';
+			echo 'window.wp_consent_type=' . wp_json_encode( $ctype ) . ';';
+			echo "try{document.dispatchEvent(new CustomEvent('wp_consent_type_defined'));}catch(e){}";
+			if ( ! Consent_Manager::instance()->read_cookie() && 'optin' === $ctype ) {
+				echo "try{document.dispatchEvent(new CustomEvent('wp_listen_for_consent_change',{detail:{functional:'allow',preferences:'deny',statistics:'deny',marketing:'deny'}}));}catch(e2){}";
+			}
 			echo "</script>\n";
 		}
 
@@ -616,12 +635,13 @@ class Plugin {
 		echo 'window.__ucpfConsentType=' . wp_json_encode( Jurisdiction::instance()->get_consent_type() ) . ";\n";
 		echo 'window.__ucpfCategoryDefaults=' . wp_json_encode( $defaults ) . ";\n";
 		echo 'window.__ucpfGateExtra=' . wp_json_encode( $extras ) . ";\n";
-		// Cloudflare injects Web Analytics as type=module at </body> after origin HTML.
-		// Install a sync MO in this inline boot (before gate.js) so the beacon is parked
-		// before the module fetch starts. Proxy/CDN/challenge hosts stay untouched.
-		echo '(function(){try{var N=["static.cloudflareinsights.com","cloudflareinsights.com","/cdn-cgi/rum"];'
-			. 'function hit(u){u=String(u||"").toLowerCase();for(var i=0;i<N.length;i++){if(u.indexOf(N[i])!==-1)return!0}return!1}'
-			// Mirror network-gate categoryAllowed("analytics") so Accept reload does not re-park the beacon.
+		// Early sync MO: park Analytics beacons/tags injected after this boot (CF module
+		// beacon at </body>, Site Kit google_gtagjs, late GTM). Proxy/CDN/challenge hosts
+		// stay untouched. Mirrors network-gate categoryAllowed("analytics").
+		echo '(function(){try{'
+			. 'var CF=["static.cloudflareinsights.com","cloudflareinsights.com","/cdn-cgi/rum"];'
+			. 'var GA=["googletagmanager.com/gtag","googletagmanager.com/gtm.js","google-analytics.com/analytics.js","google-analytics.com/ga.js","google-analytics.com/g/collect"];'
+			. 'function hitList(u,list){u=String(u||"").toLowerCase();for(var i=0;i<list.length;i++){if(u.indexOf(list[i])!==-1)return!0}return!1}'
 			. 'function analyticsAllowed(){try{if(window.__ucpfDiscover)return!0;'
 			. 'if(window.__ucpfPrivacy&&window.__ucpfPrivacy.analytics===!1)return!1;'
 			. 'if(window.UCPF&&typeof window.UCPF.hasConsent==="function")return!!window.UCPF.hasConsent("analytics");'
@@ -630,15 +650,18 @@ class Plugin {
 			. 'var t=String(window.__ucpfConsentType||"optin").toLowerCase();if(t==="optin"||t==="opt-in")return!1;'
 			. 'var d=window.__ucpfCategoryDefaults||null;if(d&&Object.prototype.hasOwnProperty.call(d,"analytics"))return!!d.analytics;'
 			. 'if(t==="optout"||t==="opt-out")return!(window.__ucpfPrivacy&&window.__ucpfPrivacy.analytics===!1)}catch(eA){}return!1}'
-			. 'function park(n){if(!n||n.tagName!=="SCRIPT")return;var s=n.getAttribute("src")||n.src||"";if(!hit(s))return;'
+			. 'function park(n,svc){if(!n||n.tagName!=="SCRIPT")return;var s=n.getAttribute("src")||n.src||"";if(!s)return;'
 			. 'if(analyticsAllowed())return;'
 			. 'var t=String(n.getAttribute("type")||"").toLowerCase();if(t==="module"||t==="importmap")n.setAttribute("data-ucpf-original-type",t);'
 			. 'var ig=n.getAttribute("integrity");if(ig){n.setAttribute("data-ucpf-integrity",ig);n.removeAttribute("integrity")}'
-			. 'n.setAttribute("data-src",s);n.setAttribute("data-ucpf-category","analytics");n.setAttribute("data-ucpf-service","cloudflare_web_analytics");'
+			. 'n.setAttribute("data-src",s);n.setAttribute("data-ucpf-category","analytics");n.setAttribute("data-ucpf-service",svc);'
 			. 'n.setAttribute("data-ucpf-gated","1");try{n.type="text/plain"}catch(e){}try{n.removeAttribute("src")}catch(e2){}try{n.src=""}catch(e3){}}'
+			. 'function parkNode(n){if(!n||n.tagName!=="SCRIPT")return;var s=n.getAttribute("src")||n.src||"";'
+			. 'if(hitList(s,CF))park(n,"cloudflare_web_analytics");'
+			. 'else if(hitList(s,GA))park(n,s.indexOf("gtm.js")!==-1?"google_tag_manager":"google_analytics_4")}'
 			. 'if(window.MutationObserver){new MutationObserver(function(ms){for(var i=0;i<ms.length;i++){var ns=ms[i].addedNodes||[];'
-			. 'for(var j=0;j<ns.length;j++){var n=ns[j];park(n);if(n&&n.querySelectorAll){var qs=n.querySelectorAll("script[src]");'
-			. 'for(var k=0;k<qs.length;k++)park(qs[k])}}}}).observe(document.documentElement,{childList:!0,subtree:!0})}'
+			. 'for(var j=0;j<ns.length;j++){var n=ns[j];parkNode(n);if(n&&n.querySelectorAll){var qs=n.querySelectorAll("script[src]");'
+			. 'for(var k=0;k<qs.length;k++)parkNode(qs[k])}}}}).observe(document.documentElement,{childList:!0,subtree:!0})}'
 			. '}catch(eBoot){}})();' . "\n";
 		echo "</script>\n";
 

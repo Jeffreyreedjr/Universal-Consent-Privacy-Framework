@@ -365,6 +365,30 @@ class Migration {
 	 */
 	private static function normalize_smart_slider_service() {
 		self::force_services_necessary( array( 'smart_slider' ) );
+
+		// Drop site-local path stubs created from false Smart Slider "consent leaks".
+		$local   = Catalog_Suggestions::get_local_services();
+		$kept    = array();
+		$changed = false;
+		foreach ( $local as $svc ) {
+			if ( ! is_array( $svc ) || empty( $svc['key'] ) ) {
+				continue;
+			}
+			$key = sanitize_key( (string) $svc['key'] );
+			if ( Scan_Noise_Filter::should_omit_detected_service( $key ) ) {
+				$changed = true;
+				continue;
+			}
+			$blob = strtolower( $key . ' ' . (string) ( $svc['name'] ?? '' ) . ' ' . wp_json_encode( $svc['script_patterns'] ?? array() ) );
+			if ( preg_match( '/smart.?slider|nextend|n2\.min|smartslider-frontend|ss-simple|w-arrow-image/', $blob ) ) {
+				$changed = true;
+				continue;
+			}
+			$kept[] = $svc;
+		}
+		if ( $changed ) {
+			Catalog_Suggestions::save_local_services( $kept );
+		}
 	}
 
 	/**

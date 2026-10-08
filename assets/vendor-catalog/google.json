@@ -123,12 +123,16 @@
       "provider": "Google",
       "category": "marketing",
       "treatment": "consent",
-      "description": "Advertising and conversion tracking.",
+      "description": "Google Ads conversion and remarketing tags (including gtag AW- IDs for PPC, YouTube, and Performance Max).",
       "privacy_url": "https://policies.google.com/privacy",
       "script_patterns": [
         "googleadservices.com",
         "doubleclick.net",
-        "googlesyndication.com"
+        "googlesyndication.com",
+        "googleads.g.doubleclick.net",
+        "adservice.google.com",
+        "gtag/js?id=AW-",
+        "www.googleadservices.com/pagead"
       ],
       "cookie_patterns": ["_gcl_*", "IDE", "NID", "test_cookie"],
       "cookies": [

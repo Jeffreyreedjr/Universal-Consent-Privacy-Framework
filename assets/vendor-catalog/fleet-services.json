@@ -147,8 +147,8 @@
       "provider": "Salesforce Pardot",
       "category": "marketing",
       "treatment": "consent",
-      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
-      "privacy_url": "",
+      "description": "Salesforce Pardot marketing automation. Cookie visitor_id is matched only on pardot.com hosts — the same name on woobox.com belongs to Woobox.",
+      "privacy_url": "https://www.salesforce.com/company/privacy/",
       "script_patterns": [
         "pardot.com",
         "pi.pardot.com",
@@ -157,8 +157,21 @@
       "cookie_patterns": [
         "visitor_id"
       ],
-      "cookies": [],
-      "iframe_patterns": [],
+      "cookies": [
+        {
+          "name": "visitor_id",
+          "pattern": "visitor_id",
+          "purpose": "Tracks visitors for Salesforce Pardot marketing automation (pardot.com hosts only).",
+          "retention": "varies",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": [
+        "pardot.com",
+        "pi.pardot.com"
+      ],
       "default_blocking": true
     },
     {
@@ -757,16 +770,154 @@
       "provider": "Ticket Tailor",
       "category": "functional",
       "treatment": "consent",
-      "description": "Fleet fingerprint stub — expand patterns as evidence is collected. Not a compliance guarantee.",
-      "privacy_url": "",
+      "description": "Ticket Tailor event ticketing checkout, queue, and asset CDN embeds.",
+      "privacy_url": "https://www.tickettailor.com/privacy-policy/",
       "script_patterns": [
         "tickettailor.com",
+        "www.tickettailor.com",
+        "tickettailorassets.com",
+        "app.tickettailorassets.com",
+        "uploads.tickettailorassets.com"
+      ],
+      "cookie_patterns": [
+        "TT_SessionID",
+        "__checkout_queue_session",
+        "__checkout_queue_position",
+        "AWSALB",
+        "AWSALBCORS"
+      ],
+      "cookies": [
+        {
+          "name": "TT_SessionID",
+          "pattern": "TT_SessionID",
+          "purpose": "Maintains Ticket Tailor checkout / box-office session state.",
+          "retention": "Session",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "__checkout_queue_session",
+          "pattern": "__checkout_queue_session",
+          "purpose": "Tracks the visitor’s place in the Ticket Tailor checkout waiting-room session.",
+          "retention": "Session",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "__checkout_queue_position",
+          "pattern": "__checkout_queue_position",
+          "purpose": "Stores queue position while waiting to enter Ticket Tailor checkout.",
+          "retention": "Session",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "AWSALB",
+          "pattern": "AWSALB",
+          "purpose": "AWS Application Load Balancer stickiness for Ticket Tailor servers (load balancing).",
+          "retention": "Session / short-lived",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "AWSALBCORS",
+          "pattern": "AWSALBCORS",
+          "purpose": "AWS ALB stickiness variant for CORS requests during Ticket Tailor checkout.",
+          "retention": "Session / short-lived",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": [
+        "tickettailor.com",
         "www.tickettailor.com"
+      ],
+      "default_blocking": true
+    },
+    {
+      "key": "woobox",
+      "name": "Woobox",
+      "provider": "Woobox",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Woobox contests, giveaways, and offer-tab embeds (visit / view cookies on woobox.com).",
+      "privacy_url": "https://woobox.com/privacy",
+      "script_patterns": [
+        "woobox.com",
+        "www.woobox.com",
+        "offertabs.s3.amazonaws.com"
+      ],
+      "cookie_patterns": [
+        "visitor_id",
+        "ci_session",
+        "*_visit",
+        "*_pastviews"
+      ],
+      "cookies": [
+        {
+          "name": "visitor_id",
+          "pattern": "visitor_id",
+          "purpose": "Identifies returning Woobox contest / offer participants.",
+          "retention": "1 year",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "ci_session",
+          "pattern": "ci_session",
+          "purpose": "CodeIgniter session for Woobox logged-in / contest state.",
+          "retention": "Session",
+          "category": "preferences",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "*_visit",
+          "pattern": "*_visit",
+          "purpose": "Per-campaign Woobox visit marker for contest embeds.",
+          "retention": "varies",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "*_pastviews",
+          "pattern": "*_pastviews",
+          "purpose": "Per-campaign Woobox past-views counter for contest embeds.",
+          "retention": "varies",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": [
+        "woobox.com"
+      ],
+      "default_blocking": true
+    },
+    {
+      "key": "forever_digital_media",
+      "name": "Forever Digital Media",
+      "provider": "Forever Digital Media",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Third-party digital media / registration embeds observed on event sites.",
+      "privacy_url": "",
+      "script_patterns": [
+        "foreverdigitalmedia.com",
+        "registration.iba.media"
       ],
       "cookie_patterns": [],
       "cookies": [],
       "iframe_patterns": [
-        "tickettailor.com"
+        "foreverdigitalmedia.com",
+        "registration.iba.media"
       ],
       "default_blocking": true
     },

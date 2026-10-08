@@ -21,7 +21,12 @@ Services with `treatment: consent` and `default_blocking: true` feed the early *
 
 Current catalog defaults (keep categories aligned when adding vendors):
 
-- **YouTube** (`maps.json`): service + player cookies (`YSC`, `VISITOR_*`, `__Secure-Y*`) → `marketing` / `consent`, `default_blocking: true`
+- **YouTube** (`maps.json`): service + player cookies (`YSC`, `VISITOR_*`, `__Secure-Y*`, `__Secure-BUCKET`) → `marketing` / `consent`, `default_blocking: true`
+- **Vimeo** (`maps.json`): `vuid`, `__cf_ob` → `functional` / `consent`
+- **Ticket Tailor** (`fleet-services.json`): checkout/queue cookies (`TT_SessionID`, `__checkout_queue_*`, `AWSALB`/`AWSALBCORS`) + `tickettailorassets.com` → `functional` / `consent`
+- **Woobox** (`fleet-services.json`): contest embeds (`visitor_id`, `ci_session`, `*_visit`, `*_pastviews`) on `woobox.com` — do not confuse with Pardot’s same-named `visitor_id` on `pardot.com` (domain-aware match)
+- **Google Docs / Drive** (`media-embeds.json`): `COMPASS`, `GFE_RTT` → `functional` / `consent`
+- **Do not catalog as trackers:** Gravity SMTP, bare `www.google.com`, Smush `assetcdn.net`, Chrome extension IDs
 - **Mapbox** (`maps.json`): `api` / `events` / `tiles.mapbox.com` → `functional` / `consent`, `default_blocking: true` (local Leaflet library is necessary / not gated; tiles gate via Mapbox/OSM)
 - **PayPal checkout cookies** (`l7_az`, `sc_f`, `KHcl0EuY7AKSMgfvHl7J5E7hPtK`) → `necessary` / `necessary` (payment facility); PayPal **scripts/iframes** stay `functional` / `consent` + blocked until consent. PayPal often uses `disableSetCookie` — inventory may show SDK/hosts without classic Set-Cookie.
 - **Braintree** hosted fields / tokenization → `functional` / `consent` (used by Gravity Forms PayPal Checkout / PPCP).
@@ -32,6 +37,12 @@ Current catalog defaults (keep categories aligned when adding vendors):
 - **Matomo** (`fleet-services.json`): `_pk_id*`, `_pk_ref*`, `_pk_ses*`, `_pk_cvar*`, `_pk_hsr*` → `analytics` / `consent`
 - **Cookie Law Info / CookieYes leftovers** (`core.json`): `cli_user_preference`, `viewed_cookie_policy`, `cookielawinfo-checkbox-*` → `preferences` / `necessary` (disclosure; plugins stay in `exclude_slugs`)
 - **Magnite `c`** → `marketing` / `consent` (host-context required for short name)
+- **Amazon Ads** (`marketing.json`): `amazon-adsystem.com` remarketing/conversion pixels → `marketing` / `consent`
+- **Website Visitor ID / Semcasting / AdTini** (`semcasting_wvid`): IP/device-level advertising signals (often cookie-less) → `marketing` / `consent` — cookie-less does not mean consent-less
+- **Google Ads `AW-` gtag** (`google.json`): conversion/remarketing → `marketing` (not Analytics), including `gtag/js?id=AW-`
+- **MNTN** (`marketing.json`): `guid`, `tt` on `mountain.com` / `steelhouse.com` → `marketing` / `consent` (host context required)
+- **Akamai** (`core.json`): `rt` (mPulse / cache) → `necessary` / `necessary` (first-party RT allowed; `requires_host_context: false`)
+- **StreamYard** (`media-embeds.json`): `jwt`, `jwtOnAir` → `functional` / `consent`; `csrfToken` → `security` / `necessary` (host context on `streamyard.com`)
 
 ## Public Cookie Policy display
 

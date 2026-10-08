@@ -378,12 +378,33 @@ class Scan_Noise_Filter {
 			'cookielawinfo',
 			'customfacebookfeedsmashballoon',
 			'gravityformsrecaptcha',
+			'gravitysmtp',
+			'wwwgooglecom',
+			'www_google_com',
+			'local_www_google_com',
+			'local_google_com',
+			'local_gravitysmtp',
+			'local_csp_withgoogle_com',
+			'cspwithgooglecom',
+			'csp_withgoogle_com',
 		);
 		$omit = in_array( $key, $exact, true );
 
 		if ( ! $omit ) {
-			foreach ( array( 'complianz', 'cookiebot', 'cookieyes', 'cookie-law', 'cookienotice' ) as $needle ) {
+			foreach ( array( 'complianz', 'cookiebot', 'cookieyes', 'cookie-law', 'cookienotice', 'gravitysmtp' ) as $needle ) {
 				if ( false !== strpos( $key, str_replace( '-', '', $needle ) ) || false !== strpos( $key, $needle ) ) {
+					$omit = true;
+					break;
+				}
+			}
+		}
+		// sanitize_key garbage / chrome extension ids / Smush CDN stubs / Smart Slider path stubs.
+		if ( ! $omit && ( preg_match( '/^[a-f0-9]{32}$/', $key ) || ( 0 === strpos( $key, 'local_' ) && false !== strpos( $key, 'assetcdn' ) ) ) ) {
+			$omit = true;
+		}
+		if ( ! $omit && 0 === strpos( $key, 'local_' ) ) {
+			foreach ( array( 'smartslider', 'smart_slider', 'n2_min', 'n2min', 'nextend', 'ss_simple', 'w_arrow_image' ) as $needle ) {
+				if ( false !== strpos( $key, $needle ) ) {
 					$omit = true;
 					break;
 				}

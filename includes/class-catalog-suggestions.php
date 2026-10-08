@@ -36,6 +36,11 @@ class Catalog_Suggestions {
 				'gravatar.com',
 				'gstatic.com',
 				'googleusercontent.com',
+				'www.google.com',
+				'google.com',
+				'csp.withgoogle.com',
+				'assetcdn.net',
+				'gravitysmtp',
 				'w.org',
 				'wordpress.org',
 				'example.invalid',
@@ -81,6 +86,17 @@ class Catalog_Suggestions {
 				'calendly.com'         => 'calendly',
 				'cloudflareinsights.com' => 'cloudflare_web_analytics',
 				'doubleclick.net'      => 'google_ads',
+				'googleadservices.com' => 'google_ads',
+				'googlesyndication.com'=> 'google_ads',
+				'amazon-adsystem.com'  => 'amazon_ads',
+				'semcasting.com'       => 'semcasting_wvid',
+				'adtini.com'           => 'semcasting_wvid',
+				'mountain.com'         => 'mntn',
+				'steelhouse.com'       => 'mntn',
+				'streamyard.com'       => 'streamyard',
+				'akamaihd.net'         => 'akamai',
+				'akamaized.net'        => 'akamai',
+				'go-mpulse.net'        => 'akamai',
 				'googletagmanager.com' => 'google_tag_manager',
 				'google-analytics.com' => 'google_analytics_4',
 				'ctctcdn.com'          => 'constant_contact',
@@ -103,7 +119,7 @@ class Catalog_Suggestions {
 	 */
 	public static function guess_category( $host ) {
 		$h = strtolower( (string) $host );
-		if ( preg_match( '/facebook|fbcdn|meta\.com|tiktok|linkedin|snapchat|doubleclick|googlesyndication|googleadservices|bing\.com|pinterest|twitter|ads-twitter|taboola|outbrain|criteo|klaviyo|mailchimp|ads\./', $h ) ) {
+		if ( preg_match( '/facebook|fbcdn|meta\.com|tiktok|linkedin|snapchat|doubleclick|googlesyndication|googleadservices|amazon-adsystem|semcasting|adtini|mountain\.com|steelhouse|bidr\.io|adsrvr|groundtruth|xad\.com|bing\.com|pinterest|twitter|ads-twitter|taboola|outbrain|criteo|klaviyo|mailchimp|ads\./', $h ) ) {
 			return 'marketing';
 		}
 		if ( preg_match( '/google-analytics|googletagmanager|analytics\.|hotjar|clarity|mixpanel|segment\.|fullstory|heap|matomo|plausible|umami/', $h ) ) {

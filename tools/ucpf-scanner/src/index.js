@@ -31,6 +31,7 @@ import {
   canCancelJob,
   estimatedWaitHint,
   fingerprintKey,
+  reclaimStaleJobs,
 } from './store.js';
 import { getPersistMode } from './persist.js';
 import { runPrivacyScan } from './scanner.js';
@@ -285,6 +286,12 @@ async function executeJob(job) {
 
 app.get('/health', (_req, res) => {
   const node = getNodeInfo();
+  // Opportunistic heal on health checks (WordPress polls this often).
+  try {
+    reclaimStaleJobs();
+  } catch {
+    /* ignore */
+  }
   res.json({
     ok: true,
     service: 'ucpf-scanner',
@@ -651,6 +658,22 @@ async function main() {
   );
 
   drainQueue();
+  // Hung Chromium / slot desync used to leave WordPress at "Queued — position 1 of 1" forever.
+  const staleTimer = setInterval(() => {
+    try {
+      const result = reclaimStaleJobs();
+      if (result.reclaimed.length || result.resetSlots) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `UCPF scanner reclaim: failed=${result.reclaimed.length} reset_slots=${result.resetSlots} queue=${getQueueLength()} active=${getActiveCount()}`
+        );
+      }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('UCPF scanner reclaim failed:', err && err.message ? err.message : err);
+    }
+  }, 60000);
+  staleTimer.unref?.();
 
   app.listen(config.port, config.host, () => {
     // eslint-disable-next-line no-console

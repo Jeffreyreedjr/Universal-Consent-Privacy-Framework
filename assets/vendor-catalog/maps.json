@@ -21,7 +21,7 @@
         "youtube-feed",
         "sb-youtube.js"
       ],
-      "cookie_patterns": ["VISITOR_INFO1_LIVE", "YSC", "PREF", "VISITOR_PRIVACY_METADATA", "__Secure-YNID", "__Secure-ROLLOUT_TOKEN", "__Secure-YEC"],
+      "cookie_patterns": ["VISITOR_INFO1_LIVE", "YSC", "PREF", "VISITOR_PRIVACY_METADATA", "__Secure-YNID", "__Secure-ROLLOUT_TOKEN", "__Secure-YEC", "__Secure-BUCKET"],
       "cookies": [
         {
           "name": "VISITOR_INFO1_LIVE",
@@ -76,9 +76,18 @@
           "category": "marketing",
           "treatment": "consent",
           "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "__Secure-BUCKET",
+          "pattern": "__Secure-BUCKET",
+          "purpose": "YouTube player A/B / experiment bucket for embedded video experiences.",
+          "retention": "Session / short-lived",
+          "category": "marketing",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
         }
       ],
-      "iframe_patterns": ["youtube.com/embed", "youtube-nocookie.com/embed"],
+      "iframe_patterns": ["youtube.com/embed", "youtube-nocookie.com/embed", "youtube-nocookie.com"],
       "default_blocking": true
     },
     {
@@ -96,15 +105,25 @@
         "f.vimeocdn.com",
         "i.vimeocdn.com",
         "arclight.vimeo.com",
+        "vod-adaptive-ak.vimeocdn.com",
         "gtm4wp-vimeo"
       ],
-      "cookie_patterns": ["vuid"],
+      "cookie_patterns": ["vuid", "__cf_ob"],
       "cookies": [
         {
           "name": "vuid",
           "pattern": "vuid",
           "purpose": "Collects data about Vimeo video visits.",
           "retention": "2 years",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "__cf_ob",
+          "pattern": "__cf_ob",
+          "purpose": "Cloudflare / Vimeo player edge cookie observed with embedded Vimeo playback.",
+          "retention": "Session / short-lived",
           "category": "functional",
           "treatment": "consent",
           "contexts": ["guest", "logged_in"]

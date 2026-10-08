@@ -191,6 +191,39 @@
       "default_blocking": true
     },
     {
+      "key": "akamai",
+      "name": "Akamai",
+      "provider": "Akamai",
+      "category": "necessary",
+      "treatment": "necessary",
+      "description": "Akamai CDN, cache, and mPulse real-user monitoring cookies used to deliver and optimize site response times.",
+      "privacy_url": "https://www.akamai.com/privacy",
+      "script_patterns": [
+        "akamai.com",
+        "akamaihd.net",
+        "akamaized.net",
+        "go-mpulse.net",
+        "edgesuite.net",
+        "edgekey.net",
+        "akamaitechnologies.com"
+      ],
+      "cookie_patterns": ["rt"],
+      "cookies": [
+        {
+          "name": "rt",
+          "pattern": "rt",
+          "purpose": "Necessary for the Akamai cache / mPulse function. Helps measure page loading times and optimize response time between the visitor and the website. Contains session information that supports Akamai cache functionality.",
+          "retention": "Session / short-lived",
+          "category": "necessary",
+          "treatment": "necessary",
+          "contexts": ["guest", "logged_in"],
+          "requires_host_context": false
+        }
+      ],
+      "iframe_patterns": ["akamaihd.net", "akamaized.net", "go-mpulse.net"],
+      "default_blocking": false
+    },
+    {
       "key": "defender",
       "name": "Defender Security",
       "provider": "WPMU DEV",

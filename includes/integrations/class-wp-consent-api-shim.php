@@ -34,6 +34,9 @@ class Wp_Consent_Api_Shim {
 	/**
 	 * Category mapping UCPF => WP Consent API.
 	 *
+	 * WP `functional` = essential/necessary (always allow). UCPF `functional` (Embeds)
+	 * is gated by UCPF itself and must NOT overwrite WP `preferences`.
+	 *
 	 * @var array
 	 */
 	private $category_map = array(
@@ -41,7 +44,6 @@ class Wp_Consent_Api_Shim {
 		'preferences' => 'preferences',
 		'analytics'   => 'statistics',
 		'marketing'   => 'marketing',
-		'functional'  => 'preferences',
 		'security'    => 'security',
 	);
 
@@ -67,7 +69,12 @@ class Wp_Consent_Api_Shim {
 			$this->register_shim_functions();
 		}
 
-		add_filter( 'wp_get_consent_type', array( $this, 'filter_consent_type' ) );
+		// Declare UCPF as a WP Consent API–compatible CMP (Site Kit / Woo / etc.).
+		$basename = defined( 'UCPF_PLUGIN_FILE' ) ? plugin_basename( UCPF_PLUGIN_FILE ) : 'universal-consent-privacy-framework/universal-consent-privacy-framework.php';
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WP Consent API registration contract.
+		add_filter( 'wp_consent_api_registered_' . $basename, '__return_true' );
+
+		add_filter( 'wp_get_consent_type', array( $this, 'filter_consent_type' ), 20 );
 		add_filter( 'wp_consent_categories', array( $this, 'add_security_category' ) );
 	}
 
@@ -129,14 +136,19 @@ class Wp_Consent_Api_Shim {
 	/**
 	 * Filter consent type for CMP producer role.
 	 *
-	 * @param string $type Current type.
+	 * WP Consent API: if consent_type is false/empty, every category returns true
+	 * (cookies allowed). UCPF must always publish optin/optout as the active CMP.
+	 *
+	 * @param string|false $type Current type.
 	 * @return string
 	 */
 	public function filter_consent_type( $type ) {
-		if ( ! empty( $type ) ) {
-			return $type;
+		$ucpf = $this->get_consent_type();
+		if ( in_array( $type, array( 'optin', 'optout' ), true ) ) {
+			// Prefer UCPF jurisdiction when another plugin left a stale value.
+			return $ucpf;
 		}
-		return $this->get_consent_type();
+		return $ucpf;
 	}
 
 	/**
@@ -168,11 +180,14 @@ class Wp_Consent_Api_Shim {
 	 * @param array $services   UCPF services.
 	 */
 	public function sync_from_ucpf( array $categories, array $services = array() ) {
+		// WP functional = essential — always allow (not UCPF Embeds).
+		$this->set_wp_consent( 'functional', 'allow' );
+
 		foreach ( $this->category_map as $ucpf => $wp ) {
-			$allowed = ! empty( $categories[ $ucpf ] );
-			if ( 'necessary' === $ucpf ) {
-				$allowed = true;
+			if ( 'necessary' === $ucpf || 'functional' === $wp ) {
+				continue;
 			}
+			$allowed = ! empty( $categories[ $ucpf ] );
 
 			if ( Settings::get( 'anonymous_analytics_only' ) && 'analytics' === $ucpf ) {
 				if ( $allowed ) {
@@ -261,11 +276,13 @@ class Wp_Consent_Api_Shim {
 	 * @return array
 	 */
 	public function get_js_sync_map( array $categories, array $services = array() ) {
-		$map = array();
-		foreach ( $this->category_map as $ucpf => $wp ) {
-			$map[ $wp ] = ! empty( $categories[ $ucpf ] ) ? 'allow' : 'deny';
-		}
-		$map['functional'] = 'allow';
+		$map = array(
+			'functional'  => 'allow',
+			'preferences' => ! empty( $categories['preferences'] ) ? 'allow' : 'deny',
+			'statistics'  => ! empty( $categories['analytics'] ) ? 'allow' : 'deny',
+			'marketing'   => ! empty( $categories['marketing'] ) ? 'allow' : 'deny',
+			'security'    => ! empty( $categories['security'] ) || ! empty( $categories['necessary'] ) ? 'allow' : 'deny',
+		);
 		return array(
 			'categories' => $map,
 			'services'   => $services,

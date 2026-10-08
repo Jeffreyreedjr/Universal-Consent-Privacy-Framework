@@ -82,6 +82,16 @@ export const config = {
   /** Directory for durable job/queue SQLite (or JSON fallback). */
   dataDir: process.env.UCPF_SCANNER_DATA_DIR || defaultDataDir,
   headless: process.env.UCPF_SCANNER_HEADED !== '1',
+  /**
+   * Fail / reclaim running jobs with no progress update for this long (ms).
+   * Prevents a hung Chromium from clogging the queue forever (position 1 of 1 at 0%).
+   * Default: browser budget + 2 minutes (min 10 minutes).
+   */
+  staleJobMs: Math.max(
+    600000,
+    Number(process.env.UCPF_SCANNER_STALE_JOB_MS || 0) ||
+      Number(process.env.UCPF_SCANNER_BROWSER_TIMEOUT_MS || 1800000) + 120000
+  ),
 };
 
 /** Effective admin keys: explicit list, else first configured API key. */

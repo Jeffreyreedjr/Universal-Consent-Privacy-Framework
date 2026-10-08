@@ -742,7 +742,6 @@ class Rest_Api {
 					'product_categories' => __( 'Product categories', 'universal-consent-privacy-framework' ),
 					'pages'              => __( 'Pages', 'universal-consent-privacy-framework' ),
 					'posts'              => __( 'Posts', 'universal-consent-privacy-framework' ),
-					'categories'         => __( 'Blog categories', 'universal-consent-privacy-framework' ),
 					'other'              => __( 'Other / discovered', 'universal-consent-privacy-framework' ),
 				),
 				'count'            => count( $urls ),

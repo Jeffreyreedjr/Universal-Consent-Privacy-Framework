@@ -710,7 +710,11 @@
       u.indexOf('bidswitch.net') !== -1 ||
       u.indexOf('pubmatic.com') !== -1 ||
       u.indexOf('xad.com') !== -1 ||
-      u.indexOf('groundtruth.com') !== -1
+      u.indexOf('groundtruth.com') !== -1 ||
+      u.indexOf('amazon-adsystem.com') !== -1 ||
+      u.indexOf('semcasting.com') !== -1 ||
+      u.indexOf('adtini.com') !== -1 ||
+      (u.indexOf('googletagmanager.com/gtag') !== -1 && u.indexOf('id=AW-') !== -1)
     ) {
       return 'marketing';
     }

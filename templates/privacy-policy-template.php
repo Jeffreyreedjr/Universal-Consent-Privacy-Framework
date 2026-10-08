@@ -88,10 +88,11 @@ $phone             = isset( $contact_phone ) ? $contact_phone : '';
 
 	<h2><?php esc_html_e( 'Cookies and tracking technologies', 'universal-consent-privacy-framework' ); ?></h2>
 	<p><?php esc_html_e( 'This website may use cookies, pixels, scripts, tags, server logs, local storage, session storage, and similar technologies. These help the website function, remember preferences, secure sessions, prevent fraud, analyze traffic, and measure performance. Where allowed, they may also support advertising or marketing.', 'universal-consent-privacy-framework' ); ?></p>
+	<p><?php esc_html_e( 'When advertising tags or demand-side platforms are used, they may collect or receive interaction data such as page views, timestamps, browser or device type, and IP address. That data can support conversion measurement, audiences, and retargeting across sites or apps where those partners operate. Some advertising technologies rely on cookies; others use similar identifiers or IP or device-level signals without a classic cookie. Tracking can occur without cookies. Where required, Marketing consent still applies before those optional advertising technologies run.', 'universal-consent-privacy-framework' ); ?></p>
 	<ul>
 		<li><?php esc_html_e( 'Strictly necessary. Security, login sessions, form protection, cart or checkout when applicable, consent storage, load balancing, and bot protection.', 'universal-consent-privacy-framework' ); ?></li>
 		<li><?php esc_html_e( 'Analytics and statistics. Understand how visitors use the site, including pages, duration, and interactions, so we can improve content and performance.', 'universal-consent-privacy-framework' ); ?></li>
-		<li><?php esc_html_e( 'Marketing and advertising. Measure ad performance, conversions, audiences, or retargeting where used and permitted.', 'universal-consent-privacy-framework' ); ?></li>
+		<li><?php esc_html_e( 'Marketing and advertising. Measure ad performance, conversions, audiences, or retargeting with ad platforms and demand-side partners where used and permitted.', 'universal-consent-privacy-framework' ); ?></li>
 		<li><?php esc_html_e( 'Functional and preferences. Embeds, maps, videos, chat, accessibility tools, saved preferences, and similar enhancements.', 'universal-consent-privacy-framework' ); ?></li>
 	</ul>
 	<?php if ( $cookie_policy_url ) : ?>

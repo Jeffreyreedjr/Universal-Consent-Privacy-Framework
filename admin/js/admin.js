@@ -471,7 +471,6 @@
     'product_categories',
     'pages',
     'posts',
-    'categories',
     'other',
   ];
 
@@ -2450,27 +2449,39 @@
     });
   });
 
-  $('#ucpf-export-registry').on('click', function () {
-    restGet('registry/export').then(function (data) {
-      var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      var a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'ucpf-registry-export.json';
-      a.click();
-    });
-  });
+  /**
+   * Hostname slug for export filenames (avoids Downloads collisions across fleet sites).
+   * Pack JSON bodies stay anonymized; only the download name includes the host.
+   *
+   * @return {string}
+   */
+  function exportSiteSlug() {
+    var raw = (ucpfAdmin && ucpfAdmin.homeUrl) ? String(ucpfAdmin.homeUrl) : '';
+    var host = '';
+    try {
+      host = new URL(raw || window.location.origin).hostname || '';
+    } catch (e) {
+      host = '';
+    }
+    if (!host) {
+      try {
+        host = window.location.hostname || '';
+      } catch (e2) {
+        host = '';
+      }
+    }
+    host = String(host).toLowerCase().replace(/^www\./, '');
+    host = host.replace(/[^a-z0-9.\-]+/g, '-').replace(/^-+|-+$/g, '');
+    return host || 'site';
+  }
 
-  $('#ucpf-export-scan').on('click', function () {
-    restGet('scan/export').then(function (data) {
-      var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      var a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'ucpf-scan-export.json';
-      a.click();
-    }).catch(function (err) {
-      alert((err && err.message) ? err.message : 'Export failed');
-    });
-  });
+  /**
+   * @param {string} prefix e.g. ucpf-knowledge-export
+   * @return {string}
+   */
+  function exportFilename(prefix) {
+    return String(prefix || 'ucpf-export') + '-' + exportSiteSlug() + '.json';
+  }
 
   function downloadJson(filename, data) {
     var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -2480,10 +2491,24 @@
     a.click();
   }
 
+  $('#ucpf-export-registry').on('click', function () {
+    restGet('registry/export').then(function (data) {
+      downloadJson(exportFilename('ucpf-registry-export'), data);
+    });
+  });
+
+  $('#ucpf-export-scan').on('click', function () {
+    restGet('scan/export').then(function (data) {
+      downloadJson(exportFilename('ucpf-scan-export'), data);
+    }).catch(function (err) {
+      alert((err && err.message) ? err.message : 'Export failed');
+    });
+  });
+
   function exportKnowledgePack() {
     restGet('knowledge/export').then(function (data) {
       var n = (data && data.knowledge_count) ? data.knowledge_count : ((data && data.cookies) ? data.cookies.length : 0);
-      downloadJson('ucpf-knowledge-export.json', data);
+      downloadJson(exportFilename('ucpf-knowledge-export'), data);
       if (window.console && console.info) {
         console.info('UCPF knowledge export:', n, 'cookie(s)');
       }
@@ -2506,14 +2531,15 @@
       return;
     }
     var status = $('#ucpf-contribute-status');
+    var contribName = exportFilename('ucpf-knowledge-contribution');
     status.text('Preparing pack…');
     restGet('knowledge/contribute').then(function (data) {
       var n = (data && data.cookie_count) ? data.cookie_count : 0;
-      downloadJson('ucpf-knowledge-contribution.json', data);
+      downloadJson(contribName, data);
       status.text(
         n
-          ? ('Downloaded ' + n + ' cookie(s). Next: Open GitHub issue and attach the file.')
-          : 'Pack downloaded (empty or fully scrubbed). Add reviews first, or open an issue describing the cookies.'
+          ? ('Downloaded ' + n + ' cookie(s) as ' + contribName + '. Next: Open GitHub issue and attach the file.')
+          : ('Pack downloaded as ' + contribName + ' (empty or fully scrubbed). Add reviews first, or open an issue describing the cookies.')
       );
     }).catch(function (err) {
       status.text((err && err.message) ? err.message : 'Contribution pack failed');
@@ -2530,7 +2556,7 @@
       return;
     }
     window.open(url, '_blank', 'noopener,noreferrer');
-    $('#ucpf-contribute-status').text('GitHub opened — attach ucpf-knowledge-contribution.json to the issue.');
+    $('#ucpf-contribute-status').text('GitHub opened — attach ' + exportFilename('ucpf-knowledge-contribution') + ' to the issue.');
   });
 
   $('#ucpf-knowledge-import').on('click', function () {
@@ -3181,6 +3207,104 @@
       ucpfGtmPrepareSubmit($(this));
     });
   });
+
+  function activateCookieReviewTab(tab, opts) {
+    var $root = $('#ucpf-cookie-review');
+    if (!$root.length || $root.attr('data-ucpf-review-mode') !== 'scanner') {
+      return;
+    }
+    var id = String(tab || $root.attr('data-ucpf-default-tab') || 'known');
+    if (id !== 'attention' && id !== 'known' && id !== 'services') {
+      id = 'known';
+    }
+    $root.find('.ucpf-cookie-review-tabs .nav-tab').each(function () {
+      var $tab = $(this);
+      var active = $tab.attr('data-ucpf-review-tab') === id;
+      $tab.toggleClass('nav-tab-active', active).attr('aria-selected', active ? 'true' : 'false');
+    });
+    $root.find('.ucpf-review-tab-panel').each(function () {
+      var $panel = $(this);
+      var show = $panel.attr('data-ucpf-review-tab') === id;
+      $panel.prop('hidden', !show);
+    });
+    if (opts && opts.updateHash !== false) {
+      var hash = '#ucpf-review-tab-' + id;
+      if (opts.hash) {
+        hash = opts.hash;
+      }
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState(null, '', hash);
+      } else {
+        window.location.hash = hash;
+      }
+    }
+    if (opts && opts.scrollTarget) {
+      var $target = $(opts.scrollTarget);
+      if ($target.length) {
+        $target[0].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+  }
+
+  function syncCookieReviewTabFromHash() {
+    var $root = $('#ucpf-cookie-review');
+    if (!$root.length || $root.attr('data-ucpf-review-mode') !== 'scanner') {
+      return;
+    }
+    var hash = String(window.location.hash || '');
+    if (hash.indexOf('#ucpf-service-') === 0 || hash === '#ucpf-service-treatments') {
+      activateCookieReviewTab('services', {
+        updateHash: false,
+        scrollTarget: hash === '#ucpf-service-treatments' ? '#ucpf-review-tab-services' : hash
+      });
+      return;
+    }
+    if (hash === '#ucpf-review-tab-known' || hash === '#ucpf-cookie-review') {
+      activateCookieReviewTab(hash === '#ucpf-cookie-review' ? ($root.attr('data-ucpf-default-tab') || 'known') : 'known', { updateHash: false });
+      return;
+    }
+    if (hash === '#ucpf-review-tab-attention') {
+      activateCookieReviewTab('attention', { updateHash: false });
+      return;
+    }
+    if (hash === '#ucpf-review-tab-services') {
+      activateCookieReviewTab('services', { updateHash: false });
+      return;
+    }
+    activateCookieReviewTab($root.attr('data-ucpf-default-tab') || 'known', { updateHash: false });
+  }
+
+  $(document).on('click', '.ucpf-cookie-review-tabs .nav-tab', function (e) {
+    e.preventDefault();
+    activateCookieReviewTab($(this).attr('data-ucpf-review-tab') || 'known');
+  });
+
+  $(document).on('click', 'a[href="#ucpf-cookie-review"], a[href^="#ucpf-review-tab-"], a[href="#ucpf-service-treatments"], a[href^="#ucpf-service-"]', function () {
+    var href = String($(this).attr('href') || '');
+    window.setTimeout(function () {
+      if (href.indexOf('#ucpf-service-') === 0 || href === '#ucpf-service-treatments') {
+        activateCookieReviewTab('services', {
+          updateHash: false,
+          scrollTarget: href === '#ucpf-service-treatments' ? '#ucpf-review-tab-services' : href
+        });
+        return;
+      }
+      if (href === '#ucpf-review-tab-known') {
+        activateCookieReviewTab('known', { updateHash: false });
+        return;
+      }
+      if (href === '#ucpf-review-tab-services') {
+        activateCookieReviewTab('services', { updateHash: false });
+        return;
+      }
+      if (href === '#ucpf-review-tab-attention' || href === '#ucpf-cookie-review') {
+        syncCookieReviewTabFromHash();
+      }
+    }, 0);
+  });
+
+  syncCookieReviewTabFromHash();
+  $(window).on('hashchange', syncCookieReviewTabFromHash);
 
   wrapWideTables();
   if (window.MutationObserver) {

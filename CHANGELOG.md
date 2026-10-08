@@ -4,6 +4,32 @@ All notable changes to Universal Consent & Privacy Framework are documented here
 
 ## [Unreleased]
 
+### Added
+- **Ads / DSP catalog coverage:** Amazon Ads (`amazon-adsystem.com`) and Website Visitor ID / Semcasting / AdTini (`semcasting_wvid`) as Marketing services with network-gate patterns; refresh Beeswax/Yahoo privacy URLs; Google Ads Integrations template for `AW-` IDs.
+- **Marketing disclosure voice:** Preferences Marketing description plus Cookie/Privacy Policy prose cover pixels, DSPs, page-view/IP/device signals, and that cookie-less advertising tech still needs Marketing consent where the CMP applies.
+- **MNTN / Akamai / StreamYard cookies:** Catalog `guid`+`tt` (MNTN, Marketing), `rt` (Akamai, Essential), `jwt`/`jwtOnAir` (StreamYard embeds) and `csrfToken` (StreamYard CSRF, Security); cookie-level `requires_host_context` so short/ambiguous names do not misclassify.
+
+### Fixed
+- **Shared scanner queue stuck at 0% / position 1 of 1:** Reclaim hung `running` jobs with no progress and heal Chromium slot desync so waiting jobs can drain after a clogged restart (no new WordPress integration required — use Emergency reset for an immediate clear).
+- **Site Kit / gtag pre-consent leak:** Google Site Kit prints `google_gtagjs` HTML directly (bypassing `script_loader_tag`), so Integrations-managed GA4/GT tags still loaded `gtag/js` before consent. Always-on HTML park for gtag/GTM + Site Kit inline config, handle-based soft-defer, and early MutationObserver coverage for `googletagmanager.com` / `google-analytics.com`.
+- **Site Kit Consent Mode bridge:** Register UCPF with `wp_consent_api_registered_{plugin}`; publish `wp_consent_type` early; sync denied WP Consent API categories on first visit (banner) within Site Kit’s `wait_for_update`; map WP `functional` = essential (not UCPF Embeds).
+- **Site Kit gtag when blocker off / CF HTML cache:** Always-on Google/Site Kit park no longer depends on `blocker_enabled`; always rewrite gtag in origin HTML (CDN-safe) so one fleet site cannot keep a live `google_gtagjs` tag.
+- **Google Ads `AW-` misclassified as Analytics:** Park/restore and network-gate treat `gtag/js?id=AW-` and Google Ads hosts as Marketing (`google_ads`); GTM/GA4 managed loaders skip `AW-` IDs.
+
+### Changed
+- **Cookie Scanner review tabs:** Known cookies and Service treatments move to their own tabs (Needs attention / Known cookies / Service treatments) so the main scanner page is not a long scroll wall. Wizard cookie review stays stacked.
+
+## [0.1.41-alpha] — 2026-10-08
+
+### Changed
+- **Cookie Scanner UX:** Primary flow is pick pages → run scan → review results. Lookup, contribute, import/export, helper options, and deep inventory tables move under Advanced / collapsed details. Blog category/tag archives and bot paths (e.g. imunify-bot-check) omitted from the picker; Service treatments lists only site-relevant services; SMTP/CDN/Google host noise and Smart Slider false leaks filtered from suggestions and consent-leak tables.
+
+### Added
+- **Catalog hardening (Ticket Tailor / Woobox / embeds):** Expand `ticket_tailor` cookies + asset CDN patterns; add `woobox` and `forever_digital_media`; YouTube `__Secure-BUCKET`, Vimeo `__cf_ob`, Google Docs `COMPASS` / `GFE_RTT`. Cookie match prefers domain-aligned services so Woobox `visitor_id` is not labeled Pardot.
+- **Cookie Policy consent disclosure:** Always seed `ucpf_consent` / `ucpf_dns` into policy inventory; document `ucpf_consent_backup` and (when enabled) server-side consent records with retention days.
+- **Site-named exports:** Knowledge / contribution / scan / registry downloads use `ucpf-*-{hostname}.json` so fleet Downloads no longer collide as `(9)/(10)/(11)`.
+- **Agency registry sample:** Merged scrubbed knowledge packs from 7mmaltoona, 7mmstatecollege, macandcheesefestpa, and spookypa into `docs/examples/agency-registry/registry.json`.
+
 ### Fixed
 - **Mailchimp Woo pixel pre-consent leak:** Hummingbird Asset Optimization rewrites pixel/SMS scripts to `/hummingbird-assets/{hash}.js`, so URL catalog patterns never matched and `window.mcPixel` initialized before consent. Soft-defer now parks by WP handle (`mailchimp-woocommerce*`) even when the src is hashed; `script_loader_tag` runs at priority `99999` after optimizer rewrites; always-on HTML OB also parks Mailchimp/chimpstatic tags by `id` as a belt-and-suspenders pass.
 - **YouTube mislabeled as functional:** Site-local knowledge / Cookie Review overrides could stamp `youtube` (and related trackers) as Embeds-only; canonical heal restores marketing/analytics categories. Removed YouTube patterns from `media_embed_extra` so scan labels stop stealing YT cookies into functional.
@@ -21,6 +47,7 @@ All notable changes to Universal Consent & Privacy Framework are documented here
 - **Elementor CSS + stale page HTML:** After Elementor CSS clear, purge origin HTML page caches (Hummingbird Page Cache, Rocket, LiteSpeed, W3TC, etc. — not Autoptimize `clearall`). Heal the current document’s missing `post-{id}.css` without consuming the per-request heal cap. Prevents clean URLs looking unstyled until Accept All (`?_ucpf=` cache bypass). Ops: purge HB page cache and confirm View Source has `elementor-post-{ID}-css` without consent.
 - **PayPal / Gravity Forms embeds:** Network gate classifies all PayPal + Braintree payment hosts as Embeds (`functional`) so they no longer fall through to Marketing. PHP soft-defers `gform_paypal_sdk` / `paypal.com/sdk`. Post-consent GF PPCP / PayPal Buttons reinit + Embeds overlay for GF payment wrappers (Woo checkout path unchanged). Catalog adds Braintree; maps `gravityformsppcp`; scanner detects PPCP/SDK hosts even when PayPal uses `disableSetCookie`. Optimizer exclusions append PayPal/GF/Braintree needles only.
 - **Optimizer fleet hardening:** Auto-exclude jQuery / Migrate, Elementor frontend, The Plus, and Mailchimp Woo pixel/SMS from Hummingbird delay/minify and Autoptimize / WP Rocket / LiteSpeed exclude lists; stamp matching script tags with `data-no-optimize` / `data-no-defer` / `data-cfasync="false"`. Clears Hummingbird AO (minify) cache on UCPF asset bust so combined bundles that caused `jQuery(...).ready is not a function` are rebuilt. Calendly cancel pre-consent remains expected Functional gating.
+- **Elementor sticky / nav race (CF Rocket Loader):** Protecting only `elementor(-pro)/assets/js` left Pro libs (`jquery.sticky`, smartmenus) and `wp-i18n` / `wp-hooks` without `data-cfasync="false"`. Rocket Loader ran stamped handlers first → `wp is not defined` / `this.$element.sticky is not a function` and missing sticky headers (gsvymca.org). Now also stamp `elementor(-pro)/assets/lib`, `e-sticky`, `wp-i18n`, and `wp-hooks`.
 - **GTM containers UI:** Multi-container rows use full integration-card width (card layout) so Label/Container IDs are readable without cramped horizontal scroll.
 - **Woo product PayPal duplicate overlays:** Guard only `.ppc-button-wrapper` (not `.ppcp-messages`); dedupe sibling PayPal panels under the same add-to-cart widget.
 

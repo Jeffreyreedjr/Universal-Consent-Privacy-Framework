@@ -95,7 +95,7 @@ class Consent_Manager {
 			),
 			'marketing'   => array(
 				'label'       => __( 'Marketing', 'universal-consent-privacy-framework' ),
-				'description' => __( 'Advertising, remarketing, and personalization.', 'universal-consent-privacy-framework' ),
+				'description' => __( 'Advertising measurement, conversions, audiences, and retargeting. May use cookies, pixels, tags, or similar identifiers (including IP or device-level signals) with ad platforms and demand-side partners.', 'universal-consent-privacy-framework' ),
 				'required'    => false,
 				'default'     => false,
 			),

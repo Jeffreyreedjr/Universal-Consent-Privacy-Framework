@@ -3,7 +3,7 @@
  * Plugin Name:       Universal Consent & Privacy Framework (Alpha)
  * Plugin URI:        https://github.com/Jeffreyreedjr/Universal-Consent-Privacy-Framework
  * Description:       Alpha release. Standardizes privacy, cookie consent, GDPR-style consent handling, script blocking, privacy pages, and a developer API for registering services. Not production-certified.
- * Version:           0.1.40-alpha
+ * Version:           0.1.41-alpha
  * Requires at least: 6.3
  * Requires PHP:      7.4
  * Author:            Jeffrey Reed Jr.
@@ -56,7 +56,7 @@ if ( ! ucpf_install_is_complete() ) {
 	return;
 }
 
-define( 'UCPF_VERSION', '0.1.40-alpha' );
+define( 'UCPF_VERSION', '0.1.41-alpha' );
 define( 'UCPF_PLUGIN_FILE', __FILE__ );
 define( 'UCPF_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'UCPF_PLUGIN_URL', plugin_dir_url( __FILE__ ) );

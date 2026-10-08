@@ -1014,7 +1014,9 @@ class Privacy_Scan_Importer {
 		$aliases = array(
 			'google_analytics_4'       => array( 'google analytics', 'ga4', 'google tag', 'gt-', 'googletagmanager.com/gtag', 'google-analytics.com', 'analytics.google.com', 'g/collect' ),
 			'google_tag_manager'       => array( 'google tag manager', 'gtm-', 'googletagmanager.com/gtm', 'gtm.js', 'googletagmanager.com' ),
-			'google_ads'               => array( 'google ads', 'google advertising', 'doubleclick', 'googleads.g.doubleclick.net', 'static.doubleclick.net' ),
+			'google_ads'               => array( 'google ads', 'google advertising', 'doubleclick', 'googleads.g.doubleclick.net', 'static.doubleclick.net', 'googleadservices.com', 'gtag/js?id=AW-' ),
+			'amazon_ads'               => array( 'amazon ads', 'amazon advertising', 'amazon-adsystem.com' ),
+			'semcasting_wvid'          => array( 'semcasting', 'adtini', 'website visitor id', 'wvid', 'semcasting.com', 'adtini.com' ),
 			'youtube'                  => array( 'youtube', 'youtu.be', 'youtube.com', 'ytimg.com', 'i.ytimg.com', 'ysc', 'visitor_info1_live' ),
 			'mailchimp'                => array( 'mailchimp forms', 'chimpstatic.com', 'list-manage.com', 'mailchimp-for-woocommerce', 'mailchimp-for-wp' ),
 			'mailchimp_transactional'  => array( 'mailchimp transactional', 'mandrill', 'mandrillapp.com', 'smtp.mandrillapp.com', 'gravitysmtp mailchimp' ),

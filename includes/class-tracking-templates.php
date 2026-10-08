@@ -43,9 +43,16 @@ class Tracking_Templates {
 				'label'            => __( 'Google Tag Manager', 'universal-consent-privacy-framework' ),
 				'id_label'         => __( 'Container / Tag ID', 'universal-consent-privacy-framework' ),
 				'placeholder'      => 'GTM-XXXXXXX or GT-XXXXXXXX',
-				'help'             => __( 'Add each Google container or tag ID to load after consent: GTM-… (Tag Manager container) and/or GT-… (Google Tag). Duplicate IDs are saved once.', 'universal-consent-privacy-framework' ) . ' ' . $id_note,
+				'help'             => __( 'Add each Google container or tag ID to load after consent: GTM-… (Tag Manager container) and/or GT-… (Google Tag). Duplicate IDs are saved once. Put Google Ads conversion IDs (AW-…) under Google Ads (Marketing), not here.', 'universal-consent-privacy-framework' ) . ' ' . $id_note,
 				'category'         => 'analytics',
 				'multi_containers' => true,
+			),
+			'google_ads'         => array(
+				'label'       => __( 'Google Ads', 'universal-consent-privacy-framework' ),
+				'id_label'    => __( 'Conversion ID', 'universal-consent-privacy-framework' ),
+				'placeholder' => 'AW-XXXXXXXXXX',
+				'help'        => __( 'Google Ads conversion / remarketing ID (AW-…). Loads only after Marketing consent — not Analytics. Use for PPC, YouTube, and Performance Max tags managed here.', 'universal-consent-privacy-framework' ) . ' ' . $id_note,
+				'category'    => 'marketing',
 			),
 			'meta_pixel'         => array(
 				'label'       => __( 'Meta Pixel', 'universal-consent-privacy-framework' ),
@@ -243,7 +250,42 @@ class Tracking_Templates {
 	 */
 	public static function is_gtag_id( $id ) {
 		$id = strtoupper( (string) $id );
+		// Analytics / Google Tag only — AW- Ads IDs are marketing (see is_google_ads_id).
 		return 0 === strpos( $id, 'GT-' ) || 0 === strpos( $id, 'G-' );
+	}
+
+	/**
+	 * Whether an ID is a Google Ads conversion / remarketing ID (AW-…).
+	 *
+	 * @param string $id Normalized ID.
+	 * @return bool
+	 */
+	public static function is_google_ads_id( $id ) {
+		$id = strtoupper( (string) $id );
+		return 0 === strpos( $id, 'AW-' );
+	}
+
+	/**
+	 * Whether a gtag/script URL is a Google Ads (AW-) load.
+	 *
+	 * @param string $src Script URL.
+	 * @return bool
+	 */
+	public static function is_google_ads_src( $src ) {
+		$src = (string) $src;
+		if ( '' === $src ) {
+			return false;
+		}
+		if ( preg_match( '/[?&]id=AW-/i', $src ) ) {
+			return true;
+		}
+		$src_l = strtolower( $src );
+		return (
+			false !== strpos( $src_l, 'googleadservices.com' ) ||
+			false !== strpos( $src_l, 'googlesyndication.com' ) ||
+			false !== strpos( $src_l, 'googleads.g.doubleclick.net' ) ||
+			false !== strpos( $src_l, 'adservice.google.com' )
+		);
 	}
 
 	/**
@@ -608,7 +650,7 @@ class Tracking_Templates {
 			$service_ids = array();
 		}
 		$slice = array();
-		foreach ( array( 'google_analytics_4', 'google_tag_manager' ) as $key ) {
+		foreach ( array( 'google_analytics_4', 'google_tag_manager', 'google_ads' ) as $key ) {
 			if ( empty( $service_ids[ $key ] ) || ! is_array( $service_ids[ $key ] ) ) {
 				continue;
 			}

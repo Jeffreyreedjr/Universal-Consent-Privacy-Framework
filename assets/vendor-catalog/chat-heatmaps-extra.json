@@ -178,7 +178,10 @@
         "js.hs-scripts.com",
         "js.hs-analytics.net",
         "js.hscollectedforms.net",
-        "js.hsforms.net"
+        "js.hsforms.net",
+        "amazon-adsystem.com",
+        "semcasting.com",
+        "adtini.com"
       ],
       "cookie_patterns": ["_gcl_*", "_fbp", "_fbc", "_uetsid", "_uetvid", "personalization_id", "muc_ads"],
       "cookies": [],

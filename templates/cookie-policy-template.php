@@ -35,11 +35,28 @@ $contact_email      = isset( $contact_email ) ? $contact_email : '';
 			)
 		);
 	?></p>
-	<p><?php esc_html_e( 'Cookies are small text files stored on your device. Similar technologies include localStorage, pixels, and embedded scripts. Essential cookies keep the site secure and working. Optional cookies such as analytics, marketing, and embeds load only after you give consent through our Cookie Settings banner.', 'universal-consent-privacy-framework' ); ?></p>
-	<p><?php esc_html_e( 'The inventory below comes from a privacy scan of this site. It lists cookies and related technologies we observed, with category and purpose where known. Re-scan and refresh this page after major site changes so the list stays current. This is a technical disclosure, not a legal compliance guarantee.', 'universal-consent-privacy-framework' ); ?></p>
+	<p><?php esc_html_e( 'Cookies are small text files stored on your device. Similar technologies include localStorage, pixels, tags, and embedded scripts. Essential cookies keep the site secure and working — including ucpf_consent (and ucpf_dns when you opt out of sale or sharing). Optional cookies such as analytics, marketing, and embeds load only after you give consent through our Cookie Settings banner.', 'universal-consent-privacy-framework' ); ?></p>
+	<p><?php esc_html_e( 'Advertising and marketing tags may send page-view and technical data (such as IP address, browser type, and timestamps) to ad platforms and demand-side partners for measurement, audiences, or retargeting. Some partners use cookies; others use similar identifiers or device-level signals without storing a classic cookie. Where this site’s consent controls apply, those marketing technologies still require Marketing consent — cookie-less does not mean consent-less.', 'universal-consent-privacy-framework' ); ?></p>
+	<p><?php esc_html_e( 'The inventory below comes from a privacy scan of this site plus our service catalog. It lists cookies and related technologies we observed or that this site’s consent tools always use, with category and purpose where known. Re-scan and refresh this page after major site changes so the list stays current. This is a technical disclosure, not a legal compliance guarantee.', 'universal-consent-privacy-framework' ); ?></p>
 
 	<h2><?php esc_html_e( 'Managing your cookie choices', 'universal-consent-privacy-framework' ); ?></h2>
-	<p><?php esc_html_e( 'You can Accept All, Reject All (essential only), or Customize categories at any time with Cookie Settings on this site. Rejecting optional cookies, or pressing Escape on the banner, keeps only essential technologies active.', 'universal-consent-privacy-framework' ); ?></p>
+	<p><?php esc_html_e( 'You can Accept All, Reject All (essential only), or Customize categories at any time with Cookie Settings on this site. Rejecting optional cookies, or pressing Escape on the banner, keeps only essential technologies active. Your choice may also be mirrored in browser storage (ucpf_consent_backup) so it survives mid-session cookie clears — that backup is not a third-party tracker.', 'universal-consent-privacy-framework' ); ?></p>
+	<?php if ( class_exists( '\UCPF\Settings' ) && \UCPF\Settings::get( 'consent_logging' ) ) : ?>
+		<?php
+		$ucpf_log_days = (int) \UCPF\Settings::get( 'log_retention_days', 360 );
+		$ucpf_log_days = max( 1, $ucpf_log_days );
+		?>
+		<h2><?php esc_html_e( 'Consent records', 'universal-consent-privacy-framework' ); ?></h2>
+		<p><?php
+			echo esc_html(
+				sprintf(
+					/* translators: %d: retention days */
+					__( 'When you save a choice in Cookie Settings, this site may store a proof-of-consent record on our servers (timestamp, action, and category selections — not the contents of other cookies). These records help demonstrate consent and are retained for about %d days, then removed. They are not advertising cookies and do not track browsing across other websites.', 'universal-consent-privacy-framework' ),
+					$ucpf_log_days
+				)
+			);
+		?></p>
+	<?php endif; ?>
 
 	<h2><?php esc_html_e( 'Privacy rights and Do Not Sell or Share', 'universal-consent-privacy-framework' ); ?></h2>
 	<p><?php esc_html_e( 'Depending on where you live, you may have rights to access, correct, delete, or restrict use of personal information. You may also withdraw consent for optional cookies and opt out of certain advertising, sale, or sharing of personal information as those terms are defined under US state privacy laws such as CCPA / CPRA.', 'universal-consent-privacy-framework' ); ?></p>

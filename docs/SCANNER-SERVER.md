@@ -224,6 +224,24 @@ The scanner is **dummy-proof for shared hosts**:
 3. WordPress **never auto cancel-all** on busy — that used to kill every tenant’s job.
 4. Jobs persist under `UCPF_SCANNER_DATA_DIR` (SQLite on Node 22+, else JSON) so a restart re-queues work.
 5. `cancel-all` requires an **admin key** (`UCPF_SCANNER_ADMIN_KEYS` or the first API key).
+6. Stuck **“Queued — position 1 of 1” at 0%** after restart: usually a hung/persisted job or Chromium slot desync — not a missing WordPress integration. Clear with **Advanced → Emergency: reset all scanner jobs**, or on the host:
+
+```bash
+curl -s http://127.0.0.1:3847/health
+curl -s -H "X-UCPF-Scanner-Key: YOUR_KEY" http://127.0.0.1:3847/v1/scans
+curl -s -X POST -H "X-UCPF-Scanner-Key: ADMIN_KEY" -H "Content-Type: application/json" \
+  -d '{"reset_slots":true}' http://127.0.0.1:3847/v1/scans/cancel-all
+```
+
+Nuclear (stops Node, wipes durable queue, restarts):
+
+```bash
+# stop npm/systemd unit first, then:
+rm -f data/jobs.sqlite data/jobs.json data/*.db
+npm start
+```
+
+The scanner process also reclaims stale `running` jobs and heals slot counters on a 60s timer / `/health` (deploy updated `tools/ucpf-scanner` and restart Node).
 
 ### Sizing cheat sheet
 

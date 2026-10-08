@@ -4,7 +4,7 @@ Tags: privacy, gdpr, cookies, consent, cookie banner
 Requires at least: 6.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.40-alpha
+Stable tag: 0.1.41-alpha
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -97,6 +97,13 @@ Created and developed by Jeffrey Reed Jr.
 Cookie descriptions may fall back to a bundled offline snapshot of the Open Cookie Database (https://github.com/jkwakman/Open-Cookie-Database). Attribution to jkwakman/Open-Cookie-Database. The snapshot is local only (no runtime phone-home to cookiedatabase.org) and is not a compliance guarantee.
 
 == Changelog ==
+
+= 0.1.41-alpha =
+
+* Changed: Cookie Scanner UX — pick pages → scan → review first; advanced tools collapsed; blog category/tag and bot paths omitted from picker; Service treatments limited to site-relevant services
+* Fix: SMTP/CDN/Google host noise and Smart Slider false consent leaks filtered from scanner suggestions and leak tables
+* Added: Catalog hardening (Ticket Tailor, Woobox, embeds); site-named export filenames; Cookie Policy consent disclosure seeds
+* Fix: Mailchimp Woo hashed-asset pixel pre-consent; YouTube category heal; Elementor sticky/CF Rocket Loader race; form Security overlays; CF Web Analytics parking
 
 = 0.1.40-alpha =
 

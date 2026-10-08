@@ -56,8 +56,27 @@
       "description": "Google Docs, Sheets, Slides, and Drive preview embeds.",
       "privacy_url": "https://policies.google.com/privacy",
       "script_patterns": ["docs.google.com", "drive.google.com"],
-      "cookie_patterns": [],
-      "cookies": [],
+      "cookie_patterns": ["COMPASS", "GFE_RTT"],
+      "cookies": [
+        {
+          "name": "COMPASS",
+          "pattern": "COMPASS",
+          "purpose": "Google Docs / Drive embed session and conversion-related state.",
+          "retention": "Session / short-lived",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "GFE_RTT",
+          "pattern": "GFE_RTT",
+          "purpose": "Google Front End round-trip timing for Docs / Drive embed delivery.",
+          "retention": "Session / short-lived",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
       "iframe_patterns": ["docs.google.com", "drive.google.com"],
       "default_blocking": true
     },
@@ -81,6 +100,56 @@
       "cookie_patterns": [],
       "cookies": [],
       "iframe_patterns": ["zoom.us"],
+      "default_blocking": true
+    },
+    {
+      "key": "streamyard",
+      "name": "StreamYard",
+      "provider": "StreamYard",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "StreamYard live streaming / On Air embeds and studio authentication cookies.",
+      "privacy_url": "https://streamyard.com/privacy",
+      "script_patterns": [
+        "streamyard.com",
+        "www.streamyard.com",
+        "cdn.streamyard.com",
+        "api.streamyard.com"
+      ],
+      "cookie_patterns": ["jwt", "jwtOnAir", "csrfToken"],
+      "cookies": [
+        {
+          "name": "jwt",
+          "pattern": "jwt",
+          "purpose": "StreamYard authentication cookie used on its service. The name suggests it supports authentication; StreamYard’s public inventory does not always state its exact purpose.",
+          "retention": "Session / short-lived",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"],
+          "requires_host_context": true
+        },
+        {
+          "name": "jwtOnAir",
+          "pattern": "jwtOnAir",
+          "purpose": "StreamYard On Air authentication cookie. StreamYard lists this cookie; its published inventory may mark the purpose as pending. Name suggests an On Air authentication function.",
+          "retention": "Session / short-lived",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"],
+          "requires_host_context": true
+        },
+        {
+          "name": "csrfToken",
+          "pattern": "csrfToken",
+          "purpose": "StreamYard cross-site request forgery (CSRF) protection cookie.",
+          "retention": "Session",
+          "category": "security",
+          "treatment": "necessary",
+          "contexts": ["guest", "logged_in"],
+          "requires_host_context": true
+        }
+      ],
+      "iframe_patterns": ["streamyard.com"],
       "default_blocking": true
     }
   ]

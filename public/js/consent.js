@@ -748,14 +748,29 @@
     } catch (eStub) {}
   }
 
+  function declareWpConsentType() {
+    if (!config) {
+      return;
+    }
+    var next = config.consentType === 'optout' ? 'optout' : 'optin';
+    if (window.wp_consent_type === next) {
+      return;
+    }
+    window.wp_consent_type = next;
+    softStubWooOrderAttribution();
+    try {
+      document.dispatchEvent(new CustomEvent('wp_consent_type_defined'));
+    } catch (eType) { /* ignore */ }
+  }
+
   function syncWpConsent(categories, services) {
     categories = categories || {};
     softStubWooOrderAttribution();
+    declareWpConsentType();
 
-    // Map UCPF categories onto WP Consent API cookies. Embeds = UCPF "functional".
-    // Never force functional=allow — that left wp_consent_functional=allow after Reject
-    // and let WP Consent API consumers (Site Kit, Woo, etc.) treat Embeds as granted.
-    writeWpConsentCookie('functional', !!categories.functional);
+    // WP Consent API: `functional` = essential/necessary (always allow).
+    // UCPF Embeds (`categories.functional`) are gated by UCPF — do not map onto WP functional.
+    writeWpConsentCookie('functional', true);
     writeWpConsentCookie('preferences', !!categories.preferences);
     writeWpConsentCookie('statistics', !!categories.analytics);
     writeWpConsentCookie('marketing', !!categories.marketing);
@@ -766,14 +781,13 @@
     try {
       if (typeof window.wp_set_consent === 'function') {
         var map = {
-          functional: categories.functional,
-          preferences: categories.preferences,
-          statistics: categories.analytics,
-          marketing: categories.marketing,
-          security: categories.security,
+          functional: true,
+          preferences: !!categories.preferences,
+          statistics: !!categories.analytics,
+          marketing: !!categories.marketing,
+          security: categories.security === undefined ? true : !!categories.security,
         };
         Object.keys(map).forEach(function (key) {
-          if (map[key] === undefined) return;
           try {
             window.wp_set_consent(key, map[key] ? 'allow' : 'deny');
           } catch (eSet) {}
@@ -786,12 +800,8 @@
           } catch (eSvc) {}
         });
       }
-      if (window.wp_consent_type === undefined && config) {
-        window.wp_consent_type = (config.consentType === 'optout') ? 'optout' : 'optin';
-        softStubWooOrderAttribution();
-        document.dispatchEvent(new CustomEvent('wp_consent_type_defined'));
-      }
       softStubWooOrderAttribution();
+      // Site Kit Consent Mode listens for this within wait_for_update (500ms).
       document.dispatchEvent(new CustomEvent('wp_listen_for_consent_change', {
         detail: {
           functional: 'allow',
@@ -1492,6 +1502,10 @@
         // Loader already listens to ucpf:consent:changed — avoid a second sync scanPlaceholders.
         return;
       }
+      // First visit (banner): still publish optin + denied WP/Site Kit signals within
+      // Consent Mode wait_for_update — otherwise Site Kit region defaults leave US open.
+      syncWpConsent(defaultRejected(), {});
+      syncGtagConsent(defaultRejected());
       showBanner();
     }
     revealUi();

@@ -66,6 +66,11 @@ class Script_Registry {
 		$canonical = array(
 			'youtube'                        => 'marketing',
 			'google_ads'                     => 'marketing',
+			'amazon_ads'                     => 'marketing',
+			'semcasting_wvid'                => 'marketing',
+			'mntn'                           => 'marketing',
+			'akamai'                         => 'necessary',
+			'streamyard'                     => 'functional',
 			'google_analytics_4'             => 'analytics',
 			'google_tag_manager'             => 'analytics',
 			'mailchimp'                      => 'marketing',
@@ -525,7 +530,7 @@ class Script_Registry {
 			if ( ! in_array( $treatment, array( 'necessary', 'consent', 'ignore' ), true ) ) {
 				$treatment = ( 'necessary' === $cookie_category ) ? 'necessary' : 'consent';
 			}
-			$out[] = array(
+			$row = array(
 				'name'      => $name,
 				'pattern'   => isset( $cookie['pattern'] ) ? sanitize_text_field( $cookie['pattern'] ) : $name,
 				'purpose'   => isset( $cookie['purpose'] ) ? sanitize_text_field( $cookie['purpose'] ) : '',
@@ -534,6 +539,10 @@ class Script_Registry {
 				'treatment' => $treatment,
 				'contexts'  => isset( $cookie['contexts'] ) ? array_map( 'sanitize_key', (array) $cookie['contexts'] ) : array(),
 			);
+			if ( array_key_exists( 'requires_host_context', $cookie ) ) {
+				$row['requires_host_context'] = (bool) $cookie['requires_host_context'];
+			}
+			$out[] = $row;
 		}
 		return $out;
 	}
@@ -759,19 +768,50 @@ class Script_Registry {
 		$cookie_name = (string) $cookie_name;
 		$domain      = (string) $domain;
 		$ucpf        = null;
+		$candidates  = array();
 		foreach ( $this->get_all_cookies() as $cookie ) {
 			$pattern = isset( $cookie['pattern'] ) ? $cookie['pattern'] : $cookie['name'];
 			if ( ! $this->cookie_name_matches( $cookie_name, $pattern ) ) {
 				continue;
 			}
-			if ( $this->pattern_needs_host_context( $pattern ) ) {
-				$svc = ! empty( $cookie['service'] ) ? $this->get_service( $cookie['service'] ) : null;
+			$svc = ! empty( $cookie['service'] ) ? $this->get_service( $cookie['service'] ) : null;
+			// Short / ambiguous patterns (or explicit requires_host_context) need host match.
+			if ( $this->cookie_needs_host_context( $cookie ) ) {
 				if ( ! $this->cookie_domain_matches_service( $domain, $svc ) ) {
 					continue;
 				}
 			}
-			$ucpf = $cookie;
-			break;
+			// When a cookie domain is known, prefer services whose hosts match
+			// (e.g. visitor_id on .woobox.com → Woobox, not Pardot).
+			if ( '' !== trim( $domain ) && is_array( $svc ) && $this->service_has_host_needles( $svc ) ) {
+				if ( ! $this->cookie_domain_matches_service( $domain, $svc ) ) {
+					// Keep as fallback only if nothing domain-aligned matches.
+					$candidates[] = array(
+						'cookie'  => $cookie,
+						'aligned' => false,
+					);
+					continue;
+				}
+				$candidates[] = array(
+					'cookie'  => $cookie,
+					'aligned' => true,
+				);
+				continue;
+			}
+			$candidates[] = array(
+				'cookie'  => $cookie,
+				'aligned' => '' === trim( $domain ),
+			);
+		}
+
+		foreach ( $candidates as $row ) {
+			if ( ! empty( $row['aligned'] ) ) {
+				$ucpf = $row['cookie'];
+				break;
+			}
+		}
+		if ( ! $ucpf && $candidates ) {
+			$ucpf = $candidates[0]['cookie'];
 		}
 
 		$knowledge = Cookie_Knowledge::match_cookie( $cookie_name );
@@ -821,6 +861,52 @@ class Script_Registry {
 		$base = str_replace( '*', '', (string) $pattern );
 		$min  = (int) apply_filters( 'ucpf_cookie_pattern_host_context_max_len', 2 );
 		return strlen( $base ) <= max( 1, $min );
+	}
+
+	/**
+	 * Whether a catalog cookie row requires a matching cookie domain.
+	 *
+	 * Honors optional `requires_host_context` on the cookie object; otherwise
+	 * falls back to short-pattern heuristics (e.g. Magnite `c`, MNTN `tt`).
+	 *
+	 * @param array $cookie Cookie definition (pattern/name + optional flag).
+	 * @return bool
+	 */
+	public function cookie_needs_host_context( array $cookie ) {
+		if ( array_key_exists( 'requires_host_context', $cookie ) ) {
+			return (bool) $cookie['requires_host_context'];
+		}
+		$pattern = isset( $cookie['pattern'] ) ? $cookie['pattern'] : ( isset( $cookie['name'] ) ? $cookie['name'] : '' );
+		return $this->pattern_needs_host_context( $pattern );
+	}
+
+	/**
+	 * Whether a service lists host-like script/iframe patterns (for domain disambiguation).
+	 *
+	 * @param array $service Service definition.
+	 * @return bool
+	 */
+	public function service_has_host_needles( $service ) {
+		if ( ! is_array( $service ) ) {
+			return false;
+		}
+		$needles = array_merge(
+			isset( $service['script_patterns'] ) ? (array) $service['script_patterns'] : array(),
+			isset( $service['iframe_patterns'] ) ? (array) $service['iframe_patterns'] : array()
+		);
+		foreach ( $needles as $needle ) {
+			$needle = strtolower( (string) $needle );
+			if ( '' === $needle || false === strpos( $needle, '.' ) ) {
+				continue;
+			}
+			$host = preg_replace( '#^https?://#', '', $needle );
+			$host = explode( '/', $host )[0];
+			$host = ltrim( $host, '.' );
+			if ( strlen( $host ) >= 4 && false !== strpos( $host, '.' ) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**

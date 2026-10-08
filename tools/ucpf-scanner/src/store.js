@@ -553,3 +553,75 @@ export function estimatedWaitHint(position) {
   const mins = Math.max(1, Math.round((waves * avgMs) / 60000));
   return `~${mins} min (estimate)`;
 }
+
+function countJobsWithStatus(statuses) {
+  let n = 0;
+  for (const job of jobs.values()) {
+    if (statuses.includes(job.status)) n += 1;
+  }
+  return n;
+}
+
+/**
+ * Reclaim hung running jobs and heal activeCount desync so the wait queue can drain.
+ * Call periodically from the HTTP process.
+ *
+ * @returns {{ reclaimed: string[], resetSlots: boolean, drained: boolean }}
+ */
+export function reclaimStaleJobs() {
+  const now = Date.now();
+  const staleMs = Math.max(60000, config.staleJobMs || 600000);
+  const reclaimed = [];
+
+  for (const [id, job] of jobs.entries()) {
+    if (job.status !== 'running' && job.status !== 'cancelling') {
+      continue;
+    }
+    const updated = Date.parse(job.updated_at || job.created_at || '') || 0;
+    const age = updated ? now - updated : staleMs + 1;
+    if (age < staleMs) {
+      continue;
+    }
+    requestCancel(id);
+    updateJob(id, {
+      status: 'failed',
+      error:
+        'Scan stuck with no progress — reclaimed so the shared queue can continue. Retry the scan from WordPress.',
+      progress: {
+        ...(job.progress || {}),
+        phase: 'failed',
+        percent: 0,
+        message: 'Timed out (no progress) — job reclaimed',
+        queue_position: 0,
+      },
+    });
+    clearJobRuntime(id);
+    reclaimed.push(id);
+  }
+
+  let resetSlots = false;
+  const runningNow = countJobsWithStatus(['running', 'cancelling']);
+  // Slot counter drifted (crash / missed endScan) — free Chromium capacity.
+  if (runningNow === 0 && activeCount > 0) {
+    activeCount = 0;
+    resetSlots = true;
+  }
+  // More slots held than live running jobs.
+  if (runningNow > 0 && activeCount > runningNow) {
+    activeCount = runningNow;
+    resetSlots = true;
+  }
+
+  let drained = false;
+  if (reclaimed.length || resetSlots || (waitQueue.length > 0 && activeCount < config.maxConcurrentScans)) {
+    try {
+      drainQueue();
+      drained = true;
+    } catch {
+      /* ignore */
+    }
+    schedulePersist();
+  }
+
+  return { reclaimed, resetSlots, drained };
+}

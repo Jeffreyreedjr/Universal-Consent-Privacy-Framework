@@ -62,10 +62,21 @@
     "googlesitekit-consent-mode",
     "google-site-kit/dist/assets/js/googlesitekit-consent-mode",
     "example.invalid",
-    "about:blank"
+    "about:blank",
+    "/smart-slider-3/",
+    "/smart-slider-3-pro/",
+    "/nextend-smart-slider3/",
+    "/nextend-smart-slider3-pro/",
+    "smartslider-frontend",
+    "n2.min.js",
+    "ss-simple.min.js",
+    "w-arrow-image.min.js"
   ],
   "leak_ignore_providers": [
-    { "provider": "Cloudflare Web Analytics", "reason": "CF edge analytics on proxied sites — traffic already hits Cloudflare before the banner" }
+    { "provider": "Cloudflare Web Analytics", "reason": "CF edge analytics on proxied sites — traffic already hits Cloudflare before the banner" },
+    { "provider": "Smart Slider 3", "reason": "Layout chrome — never gated; false consent leak" },
+    { "provider": "nextend smart slider3 pro", "reason": "Layout chrome — never gated; false consent leak" },
+    { "provider": "nextend", "reason": "Smart Slider / Nextend layout assets" }
   ],
   "storage_omit": [
     { "key": "wpEmojiSettingsSupports", "reason": "WP emoji capability probe" }

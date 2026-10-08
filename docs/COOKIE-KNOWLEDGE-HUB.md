@@ -41,7 +41,7 @@ Community mode never activates unless Remote registry is also enabled.
 ## Workflow (300-site friendly)
 
 1. Scan a site → Cookie Review / Cookie Lookup → knowledge entries accumulate locally.
-2. **Cookie Scanner → Export knowledge pack** (`GET /ucpf/v1/knowledge/export`). Cookies are grouped by provider when possible.
+2. **Cookie Scanner → Export knowledge pack** (`GET /ucpf/v1/knowledge/export`). Cookies are grouped by provider when possible. The download is named `ucpf-knowledge-export-{hostname}.json` (scan/registry/contribution exports use the same host suffix) so fleet Downloads do not overwrite each other.
 3. Collect exports from many sites, then merge:
 
 ```powershell

@@ -1,8 +1,233 @@
 {
   "schema": "ucpf-registry-catalog/1.0",
-  "updated_at": "2026-07-28T00:00:00.0000000Z",
-  "note": "Sample agency cookie knowledge hub. Metadata only — never executable code. Remote entries are never auto-necessary. Not a legal determination. Publish this file (or a merge output) and paste the raw URL under Advanced → Agency knowledge hub.",
+  "updated_at": "2026-10-07T19:18:51.000000Z",
+  "note": "Agency cookie knowledge hub merged from fleet knowledge packs (7mmaltoona, 7mmstatecollege, macandcheesefestpa, spookypa). Metadata only \u2014 never executable code. Prefer assets/vendor-catalog for shipping Ticket Tailor / Woobox / etc. Remote entries are never auto-necessary. Not a legal determination.",
   "services": [
+    {
+      "key": "knowledge_amazon_web_services",
+      "name": "Amazon Web Services",
+      "provider": "Amazon Web Services",
+      "category": "preferences",
+      "treatment": "consent",
+      "description": "Merged from site knowledge exports (metadata only).",
+      "script_patterns": [],
+      "cookie_patterns": [
+        "AWSALBCORS",
+        "AWSALB"
+      ],
+      "cookies": [
+        {
+          "name": "AWSALBCORS",
+          "pattern": "AWSALBCORS",
+          "purpose": "For continued stickiness support with CORS use cases after the Chromium update, we are creating additional stickiness cookies for each of these duration-based stickiness features named AWSALBCORS (ALB).",
+          "retention": "Session",
+          "category": "preferences",
+          "treatment": "consent",
+          "provider": "Amazon Web Services",
+          "source": "knowledge"
+        },
+        {
+          "name": "AWSALB",
+          "pattern": "AWSALB",
+          "purpose": "These cookies enable us to allocate server traffic to make the user experience as smooth as possible. A so-called load balancer is used to determine which server currently has the best availability. The information generated cannot identify you as an individual.",
+          "retention": "Session",
+          "category": "preferences",
+          "treatment": "consent",
+          "provider": "Amazon Web Services",
+          "source": "knowledge"
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "knowledge_cloudflare",
+      "name": "Cloudflare",
+      "provider": "Cloudflare",
+      "category": "preferences",
+      "treatment": "consent",
+      "description": "Anonymized cookies from last scan + Cookie Review (metadata only; no site URL or first-party hosts).",
+      "script_patterns": [],
+      "cookie_patterns": [
+        "cf_clearance",
+        "__cf_bm"
+      ],
+      "cookies": [
+        {
+          "name": "cf_clearance",
+          "pattern": "cf_clearance",
+          "purpose": "Clearance after Cloudflare challenge.",
+          "retention": "varies",
+          "category": "preferences",
+          "treatment": "consent",
+          "provider": "Cloudflare",
+          "source": "knowledge"
+        },
+        {
+          "name": "__cf_bm",
+          "pattern": "__cf_bm",
+          "purpose": "Cloudflare bot management.",
+          "retention": "30 minutes",
+          "category": "preferences",
+          "treatment": "consent",
+          "provider": "Cloudflare",
+          "source": "knowledge"
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "knowledge_codeigniter",
+      "name": "CodeIgniter",
+      "provider": "CodeIgniter",
+      "category": "preferences",
+      "treatment": "consent",
+      "description": "Anonymized cookies from last scan + Cookie Review (metadata only; no site URL or first-party hosts).",
+      "script_patterns": [],
+      "cookie_patterns": [
+        "ci_session"
+      ],
+      "cookies": [
+        {
+          "name": "ci_session",
+          "pattern": "ci_session",
+          "purpose": "Cookie to track the users logged in state and access level to restricted pages.",
+          "retention": "session",
+          "category": "preferences",
+          "treatment": "consent",
+          "provider": "CodeIgniter",
+          "source": "knowledge"
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "knowledge_google",
+      "name": "Google",
+      "provider": "Google",
+      "category": "analytics",
+      "treatment": "consent",
+      "description": "Anonymized cookies from last scan + Cookie Review (metadata only; no site URL or first-party hosts).",
+      "script_patterns": [],
+      "cookie_patterns": [
+        "_ga_*",
+        "_ga",
+        "YSC",
+        "VISITOR_INFO1_LIVE",
+        "VISITOR_PRIVACY_METADATA",
+        "__Secure-YNID",
+        "__Secure-ROLLOUT_TOKEN",
+        "__Secure-YEC",
+        "NID",
+        "COMPASS"
+      ],
+      "cookies": [
+        {
+          "name": "_ga",
+          "pattern": "_ga",
+          "purpose": "Distinguishes users for analytics.",
+          "retention": "2 years",
+          "category": "analytics",
+          "treatment": "consent",
+          "provider": "Google",
+          "source": "knowledge"
+        },
+        {
+          "name": "COMPASS",
+          "pattern": "COMPASS",
+          "purpose": "This cookie is used to collect website statistics and track conversion rates and Google ad personalisation",
+          "retention": "2 days",
+          "category": "marketing",
+          "treatment": "consent",
+          "provider": "Google",
+          "source": "knowledge"
+        },
+        {
+          "name": "_ga_*",
+          "pattern": "_ga_*",
+          "purpose": "Persists GA4 session state.",
+          "retention": "2 years",
+          "category": "analytics",
+          "treatment": "consent",
+          "provider": "Google",
+          "source": "knowledge"
+        },
+        {
+          "name": "__Secure-YNID",
+          "pattern": "__Secure-YNID",
+          "purpose": "YouTube player preferences, secure login aids, and spam detection.",
+          "retention": "months",
+          "category": "marketing",
+          "treatment": "consent",
+          "provider": "Google",
+          "source": "knowledge"
+        },
+        {
+          "name": "__Secure-ROLLOUT_TOKEN",
+          "pattern": "__Secure-ROLLOUT_TOKEN",
+          "purpose": "Registers a unique ID for YouTube video view statistics / feature rollout.",
+          "retention": "months",
+          "category": "marketing",
+          "treatment": "consent",
+          "provider": "Google",
+          "source": "knowledge"
+        },
+        {
+          "name": "__Secure-YEC",
+          "pattern": "__Secure-YEC",
+          "purpose": "YouTube embed / experiment cookie set with embedded players.",
+          "retention": "months",
+          "category": "marketing",
+          "treatment": "consent",
+          "provider": "Google",
+          "source": "knowledge"
+        },
+        {
+          "name": "VISITOR_PRIVACY_METADATA",
+          "pattern": "VISITOR_PRIVACY_METADATA",
+          "purpose": "YouTube visitor privacy metadata for embedded players.",
+          "retention": "months",
+          "category": "marketing",
+          "treatment": "consent",
+          "provider": "Google",
+          "source": "knowledge"
+        },
+        {
+          "name": "VISITOR_INFO1_LIVE",
+          "pattern": "VISITOR_INFO1_LIVE",
+          "purpose": "Estimates user bandwidth on YouTube pages.",
+          "retention": "6 months",
+          "category": "marketing",
+          "treatment": "consent",
+          "provider": "Google",
+          "source": "knowledge"
+        },
+        {
+          "name": "NID",
+          "pattern": "NID",
+          "purpose": "Advertising and conversion tracking.",
+          "retention": "1 year",
+          "category": "marketing",
+          "treatment": "consent",
+          "provider": "Google",
+          "source": "knowledge"
+        },
+        {
+          "name": "YSC",
+          "pattern": "YSC",
+          "purpose": "Registers a unique ID for statistics of which YouTube videos the user has seen.",
+          "retention": "Session",
+          "category": "marketing",
+          "treatment": "consent",
+          "provider": "Google",
+          "source": "knowledge"
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
     {
       "key": "knowledge_google_analytics",
       "name": "Google Analytics",
@@ -10,8 +235,15 @@
       "category": "analytics",
       "treatment": "consent",
       "description": "Example hub service built from scrubbed site exports.",
-      "script_patterns": ["google-analytics.com", "googletagmanager.com/gtag"],
-      "cookie_patterns": ["_ga", "_ga_*", "_gid"],
+      "script_patterns": [
+        "google-analytics.com",
+        "googletagmanager.com/gtag"
+      ],
+      "cookie_patterns": [
+        "_ga",
+        "_ga_*",
+        "_gid"
+      ],
       "cookies": [
         {
           "name": "_ga",
@@ -31,6 +263,415 @@
           "category": "analytics",
           "treatment": "consent",
           "provider": "Google Analytics",
+          "source": "knowledge"
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "knowledge_salesforce_pardot",
+      "name": "Salesforce Pardot",
+      "provider": "Salesforce Pardot",
+      "category": "marketing",
+      "treatment": "consent",
+      "description": "Merged from site knowledge exports (metadata only).",
+      "script_patterns": [],
+      "cookie_patterns": [
+        "visitor_id"
+      ],
+      "cookies": [
+        {
+          "name": "visitor_id",
+          "pattern": "visitor_id",
+          "purpose": "Fleet fingerprint stub \u00e2\u20ac\u201d expand patterns as evidence is collected. Not a compliance guarantee.",
+          "retention": "1 year",
+          "category": "marketing",
+          "treatment": "consent",
+          "provider": "Salesforce Pardot",
+          "source": "knowledge"
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "knowledge_site_knowledge",
+      "name": "Site knowledge",
+      "provider": "Site knowledge",
+      "category": "analytics",
+      "treatment": "consent",
+      "description": "Merged from site knowledge exports (metadata only).",
+      "script_patterns": [],
+      "cookie_patterns": [
+        "__checkout_queue_session",
+        "TT_SessionID",
+        "__cf_ob",
+        "__checkout_queue_position",
+        "chq8be_pastviews",
+        "chq8be_visit",
+        "wizzuu_pastviews",
+        "wizzuu_visit",
+        "__Secure-BUCKET",
+        "GFE_RTT"
+      ],
+      "cookies": [
+        {
+          "name": "chq8be_pastviews",
+          "pattern": "chq8be_pastviews",
+          "purpose": "",
+          "retention": "",
+          "category": "analytics",
+          "treatment": "consent",
+          "provider": "",
+          "source": "knowledge"
+        },
+        {
+          "name": "TT_SessionID",
+          "pattern": "TT_SessionID",
+          "purpose": "",
+          "retention": "",
+          "category": "analytics",
+          "treatment": "consent",
+          "provider": "",
+          "source": "knowledge"
+        },
+        {
+          "name": "__cf_ob",
+          "pattern": "__cf_ob",
+          "purpose": "",
+          "retention": "",
+          "category": "analytics",
+          "treatment": "consent",
+          "provider": "",
+          "source": "knowledge"
+        },
+        {
+          "name": "GFE_RTT",
+          "pattern": "GFE_RTT",
+          "purpose": "",
+          "retention": "",
+          "category": "analytics",
+          "treatment": "consent",
+          "provider": "",
+          "source": "knowledge"
+        },
+        {
+          "name": "wizzuu_visit",
+          "pattern": "wizzuu_visit",
+          "purpose": "",
+          "retention": "",
+          "category": "analytics",
+          "treatment": "consent",
+          "provider": "",
+          "source": "knowledge"
+        },
+        {
+          "name": "wizzuu_pastviews",
+          "pattern": "wizzuu_pastviews",
+          "purpose": "",
+          "retention": "",
+          "category": "analytics",
+          "treatment": "consent",
+          "provider": "",
+          "source": "knowledge"
+        },
+        {
+          "name": "__checkout_queue_session",
+          "pattern": "__checkout_queue_session",
+          "purpose": "",
+          "retention": "",
+          "category": "analytics",
+          "treatment": "consent",
+          "provider": "",
+          "source": "knowledge"
+        },
+        {
+          "name": "chq8be_visit",
+          "pattern": "chq8be_visit",
+          "purpose": "",
+          "retention": "",
+          "category": "analytics",
+          "treatment": "consent",
+          "provider": "",
+          "source": "knowledge"
+        },
+        {
+          "name": "__Secure-BUCKET",
+          "pattern": "__Secure-BUCKET",
+          "purpose": "",
+          "retention": "",
+          "category": "analytics",
+          "treatment": "consent",
+          "provider": "",
+          "source": "knowledge"
+        },
+        {
+          "name": "__checkout_queue_position",
+          "pattern": "__checkout_queue_position",
+          "purpose": "",
+          "retention": "",
+          "category": "analytics",
+          "treatment": "consent",
+          "provider": "",
+          "source": "knowledge"
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "knowledge_universal_consent_privacy_framework",
+      "name": "Universal Consent & Privacy Framework",
+      "provider": "Universal Consent & Privacy Framework",
+      "category": "preferences",
+      "treatment": "consent",
+      "description": "Merged from site knowledge exports (metadata only).",
+      "script_patterns": [],
+      "cookie_patterns": [
+        "ucpf_consent",
+        "ucpf_dns"
+      ],
+      "cookies": [
+        {
+          "name": "ucpf_consent",
+          "pattern": "ucpf_consent",
+          "purpose": "Stores consent preferences and policy version.",
+          "retention": "Configurable (default 180 days)",
+          "category": "preferences",
+          "treatment": "consent",
+          "provider": "Universal Consent & Privacy Framework",
+          "source": "knowledge"
+        },
+        {
+          "name": "ucpf_dns",
+          "pattern": "ucpf_dns",
+          "purpose": "Stores Do Not Sell / Share or GPC-style opt-out choice.",
+          "retention": "Configurable",
+          "category": "preferences",
+          "treatment": "consent",
+          "provider": "Universal Consent & Privacy Framework",
+          "source": "knowledge"
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "knowledge_various",
+      "name": "Various",
+      "provider": "Various",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Anonymized cookies from last scan + Cookie Review (metadata only; no site URL or first-party hosts).",
+      "script_patterns": [],
+      "cookie_patterns": [
+        "vuid"
+      ],
+      "cookies": [
+        {
+          "name": "vuid",
+          "pattern": "vuid",
+          "purpose": "Additional third-party media / podcast / document embeds.",
+          "retention": "1 minute",
+          "category": "functional",
+          "treatment": "consent",
+          "provider": "Various",
+          "source": "knowledge"
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "knowledge_wordpress",
+      "name": "WordPress",
+      "provider": "WordPress",
+      "category": "preferences",
+      "treatment": "consent",
+      "description": "Anonymized cookies from last scan + Cookie Review (metadata only; no site URL or first-party hosts).",
+      "script_patterns": [],
+      "cookie_patterns": [
+        "wp_consent_preferences",
+        "wp_consent_statistics",
+        "wp_consent_marketing",
+        "wp_consent_security",
+        "wp_consent_functional"
+      ],
+      "cookies": [
+        {
+          "name": "wp_consent_preferences",
+          "pattern": "wp_consent_preferences",
+          "purpose": "Stores allow/deny for a WP Consent API category.",
+          "retention": "Session / short-lived",
+          "category": "preferences",
+          "treatment": "consent",
+          "provider": "WordPress",
+          "source": "knowledge"
+        },
+        {
+          "name": "wp_consent_statistics",
+          "pattern": "wp_consent_statistics",
+          "purpose": "Stores allow/deny for a WP Consent API category.",
+          "retention": "Session / short-lived",
+          "category": "preferences",
+          "treatment": "consent",
+          "provider": "WordPress",
+          "source": "knowledge"
+        },
+        {
+          "name": "wp_consent_functional",
+          "pattern": "wp_consent_functional",
+          "purpose": "Stores allow/deny for a WP Consent API category.",
+          "retention": "Session / short-lived",
+          "category": "preferences",
+          "treatment": "consent",
+          "provider": "WordPress",
+          "source": "knowledge"
+        },
+        {
+          "name": "wp_consent_marketing",
+          "pattern": "wp_consent_marketing",
+          "purpose": "Stores allow/deny for a WP Consent API category.",
+          "retention": "Session / short-lived",
+          "category": "preferences",
+          "treatment": "consent",
+          "provider": "WordPress",
+          "source": "knowledge"
+        },
+        {
+          "name": "wp_consent_security",
+          "pattern": "wp_consent_security",
+          "purpose": "Stores allow/deny for a WP Consent API category.",
+          "retention": "Session / short-lived",
+          "category": "preferences",
+          "treatment": "consent",
+          "provider": "WordPress",
+          "source": "knowledge"
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": true
+    },
+    {
+      "key": "ucpf_site_knowledge_cookies",
+      "name": "Site knowledge cookies",
+      "provider": "Site knowledge cookies",
+      "category": "analytics",
+      "treatment": "consent",
+      "description": "Anonymized cookies from last scan + Cookie Review (metadata only; no site URL or first-party hosts).",
+      "script_patterns": [],
+      "cookie_patterns": [
+        "__checkout_queue_session",
+        "TT_SessionID",
+        "__cf_ob",
+        "__checkout_queue_position",
+        "chq8be_pastviews",
+        "chq8be_visit",
+        "wizzuu_pastviews",
+        "wizzuu_visit",
+        "__Secure-BUCKET",
+        "GFE_RTT"
+      ],
+      "cookies": [
+        {
+          "name": "chq8be_pastviews",
+          "pattern": "chq8be_pastviews",
+          "purpose": "",
+          "retention": "",
+          "category": "analytics",
+          "treatment": "consent",
+          "provider": "",
+          "source": "knowledge"
+        },
+        {
+          "name": "TT_SessionID",
+          "pattern": "TT_SessionID",
+          "purpose": "",
+          "retention": "",
+          "category": "analytics",
+          "treatment": "consent",
+          "provider": "",
+          "source": "knowledge"
+        },
+        {
+          "name": "__cf_ob",
+          "pattern": "__cf_ob",
+          "purpose": "",
+          "retention": "",
+          "category": "analytics",
+          "treatment": "consent",
+          "provider": "",
+          "source": "knowledge"
+        },
+        {
+          "name": "GFE_RTT",
+          "pattern": "GFE_RTT",
+          "purpose": "",
+          "retention": "",
+          "category": "analytics",
+          "treatment": "consent",
+          "provider": "",
+          "source": "knowledge"
+        },
+        {
+          "name": "wizzuu_visit",
+          "pattern": "wizzuu_visit",
+          "purpose": "",
+          "retention": "",
+          "category": "analytics",
+          "treatment": "consent",
+          "provider": "",
+          "source": "knowledge"
+        },
+        {
+          "name": "wizzuu_pastviews",
+          "pattern": "wizzuu_pastviews",
+          "purpose": "",
+          "retention": "",
+          "category": "analytics",
+          "treatment": "consent",
+          "provider": "",
+          "source": "knowledge"
+        },
+        {
+          "name": "__checkout_queue_session",
+          "pattern": "__checkout_queue_session",
+          "purpose": "",
+          "retention": "",
+          "category": "analytics",
+          "treatment": "consent",
+          "provider": "",
+          "source": "knowledge"
+        },
+        {
+          "name": "chq8be_visit",
+          "pattern": "chq8be_visit",
+          "purpose": "",
+          "retention": "",
+          "category": "analytics",
+          "treatment": "consent",
+          "provider": "",
+          "source": "knowledge"
+        },
+        {
+          "name": "__Secure-BUCKET",
+          "pattern": "__Secure-BUCKET",
+          "purpose": "",
+          "retention": "",
+          "category": "analytics",
+          "treatment": "consent",
+          "provider": "",
+          "source": "knowledge"
+        },
+        {
+          "name": "__checkout_queue_position",
+          "pattern": "__checkout_queue_position",
+          "purpose": "",
+          "retention": "",
+          "category": "analytics",
+          "treatment": "consent",
+          "provider": "",
           "source": "knowledge"
         }
       ],

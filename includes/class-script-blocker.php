@@ -40,6 +40,14 @@ class Script_Blocker {
 		// Always inject managed tags after consent when enabled in Integrations.
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_managed_services' ), 999 );
 
+		// Always-on cheap HTML park (Site Kit gtag, CF beacon, YT/Vimeo) — must NOT depend on
+		// blocker_enabled. One fleet site had blocker off and Site Kit kept firing gtag live.
+		if ( ! ( defined( 'UCPF_DISABLE_OUTPUT_BUFFER' ) && UCPF_DISABLE_OUTPUT_BUFFER ) ) {
+			add_action( 'template_redirect', array( $this, 'start_output_buffer' ), 1 );
+		}
+		// Always park Google/Site Kit handles even when full catalog blocker is off.
+		add_filter( 'script_loader_tag', array( $this, 'filter_google_script_tag' ), 99998, 3 );
+
 		if ( ! Settings::get( 'blocker_enabled', true ) ) {
 			return;
 		}
@@ -48,19 +56,6 @@ class Script_Blocker {
 		// for handle-based park (Mailchimp pixel → /hummingbird-assets/{hash}.js).
 		add_filter( 'script_loader_tag', array( $this, 'filter_script_tag' ), 99999, 3 );
 		add_filter( 'style_loader_tag', array( $this, 'filter_style_tag' ), 20, 4 );
-
-		// Output-buffer HTML rewriting is dangerous on Elementor/large pages (CPU → 502).
-		// Full OB only when explicitly opted in; safe iframe mode is a narrower rewrite.
-		// CF Web Analytics (Elementor Custom Code type=module beacon) always gets a
-		// cheap dedicated rewrite — MutationObserver is too late for module fetch+rum.
-		$ob_full = Settings::get( 'output_buffer_blocking' )
-			&& ! ( defined( 'UCPF_DISABLE_OUTPUT_BUFFER' ) && UCPF_DISABLE_OUTPUT_BUFFER );
-		$ob_safe = Settings::get( 'output_buffer_safe_iframes' )
-			&& ! ( defined( 'UCPF_DISABLE_OUTPUT_BUFFER' ) && UCPF_DISABLE_OUTPUT_BUFFER );
-		$ob_cf   = ! ( defined( 'UCPF_DISABLE_OUTPUT_BUFFER' ) && UCPF_DISABLE_OUTPUT_BUFFER );
-		if ( $ob_full || $ob_safe || $ob_cf ) {
-			add_action( 'template_redirect', array( $this, 'start_output_buffer' ), 1 );
-		}
 	}
 
 	/**
@@ -213,6 +208,10 @@ class Script_Blocker {
 				$parts = $this->build_gtm_loader_parts( Tracking_Templates::gtm_containers_from_row( $config ) );
 				break;
 
+			case 'google_ads':
+				$parts = $this->build_google_ads_loader_parts( $id );
+				break;
+
 			case 'meta_pixel':
 				if ( $id ) {
 					$parts[] = array(
@@ -315,6 +314,10 @@ class Script_Blocker {
 				}
 				continue;
 			}
+			// AW- Ads IDs are Marketing — never load via Analytics GTM/gtag path.
+			if ( Tracking_Templates::is_google_ads_id( $cid ) ) {
+				continue;
+			}
 			if ( Tracking_Templates::is_gtag_id( $cid ) && ! in_array( $cid, $gtag_ids, true ) ) {
 				$gtag_ids[] = $cid;
 			}
@@ -337,6 +340,33 @@ class Script_Blocker {
 	}
 
 	/**
+	 * Google Ads (AW-) loader parts — Marketing category only.
+	 *
+	 * @param string $conversion_id AW-….
+	 * @return array<int, array{src?:string,code?:string,part_id?:string}>
+	 */
+	private function build_google_ads_loader_parts( $conversion_id ) {
+		$id = strtoupper( trim( (string) $conversion_id ) );
+		if ( ! Tracking_Templates::is_google_ads_id( $id ) ) {
+			// Allow pasted URL / loose value containing AW-.
+			if ( preg_match( '/AW-[A-Z0-9]+/i', (string) $conversion_id, $m ) ) {
+				$id = strtoupper( $m[0] );
+			}
+		}
+		if ( ! Tracking_Templates::is_google_ads_id( $id ) ) {
+			return array();
+		}
+		$config_js = "window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','" . esc_js( $id ) . "');";
+		return array(
+			array(
+				'src'     => 'https://www.googletagmanager.com/gtag/js?id=' . rawurlencode( $id ),
+				'code'    => $config_js,
+				'part_id' => 'google_ads:' . $id,
+			),
+		);
+	}
+
+	/**
 	 * GA4 + Google Tag (GT-) loader parts.
 	 *
 	 * @param string $measurement_id G-….
@@ -349,6 +379,10 @@ class Script_Blocker {
 		foreach ( array( $measurement_id, $tag_id ) as $raw ) {
 			$raw = trim( (string) $raw );
 			if ( '' === $raw || in_array( $raw, $ids, true ) ) {
+				continue;
+			}
+			// AW- belongs under Google Ads (Marketing), not GA4 Analytics.
+			if ( Tracking_Templates::is_google_ads_id( $raw ) ) {
 				continue;
 			}
 			$ids[] = $raw;
@@ -428,6 +462,30 @@ class Script_Blocker {
 				}
 				break;
 
+			case 'google_ads':
+				$parts  = $this->build_google_ads_loader_parts( $id );
+				$handle = null;
+				foreach ( $parts as $part ) {
+					if ( ! empty( $part['src'] ) ) {
+						$handle = 'ucpf-google-ads-' . md5( $part['src'] );
+						wp_enqueue_script(
+							$handle,
+							$part['src'],
+							array(),
+							UCPF_VERSION,
+							array( 'in_footer' => true, 'strategy' => 'defer' )
+						);
+						if ( ! empty( $part['code'] ) ) {
+							wp_add_inline_script( $handle, $part['code'], 'after' );
+						}
+					} elseif ( ! empty( $part['code'] ) && $handle ) {
+						wp_add_inline_script( $handle, $part['code'], 'after' );
+					} elseif ( ! empty( $part['code'] ) ) {
+						wp_add_inline_script( 'ucpf-consent', $part['code'], 'after' );
+					}
+				}
+				break;
+
 			case 'meta_pixel':
 				if ( $id ) {
 					wp_add_inline_script(
@@ -492,6 +550,83 @@ class Script_Blocker {
 	}
 
 	/**
+	 * Always park Google / Site Kit gtag handles (runs even when catalog blocker is off).
+	 *
+	 * @param string $tag    Script tag.
+	 * @param string $handle Handle.
+	 * @param string $src    Source.
+	 * @return string
+	 */
+	public function filter_google_script_tag( $tag, $handle, $src ) {
+		if ( is_admin() || empty( $src ) ) {
+			return $tag;
+		}
+		$parked = $this->maybe_park_google_tag( $tag, $handle, $src );
+		return $parked ? $parked : $tag;
+	}
+
+	/**
+	 * Build a parked script tag for Google analytics/gtag/gtm when Analytics is not allowed.
+	 *
+	 * @param string $tag    Original tag.
+	 * @param string $handle Handle.
+	 * @param string $src    Source URL.
+	 * @return string|null Parked tag or null to leave unchanged.
+	 */
+	private function maybe_park_google_tag( $tag, $handle, $src ) {
+		$src_l    = strtolower( (string) $src );
+		$handle_l = strtolower( (string) $handle );
+		if (
+			false !== strpos( $src_l, 'google-site-kit' ) &&
+			false !== strpos( $src_l, 'consent-mode' )
+		) {
+			return null;
+		}
+		if (
+			0 !== strpos( $handle_l, 'google_gtagjs' ) &&
+			false === strpos( $src_l, 'googletagmanager.com/gtag' ) &&
+			false === strpos( $src_l, 'googletagmanager.com/gtm.js' ) &&
+			false === strpos( $src_l, 'google-analytics.com/analytics.js' ) &&
+			false === strpos( $src_l, 'google-analytics.com/ga.js' )
+		) {
+			return null;
+		}
+		// CDN-safe: always park in HTML; JS loader restores when the category is allowed.
+		// Skipping park when PHP sees a consent cookie poisons shared CF HTML caches.
+		// AW- / Google Ads hosts → Marketing; GTM container → Analytics; else GA4 Analytics.
+		if ( Tracking_Templates::is_google_ads_src( $src ) ) {
+			$category = 'marketing';
+			$svc_key  = 'google_ads';
+		} elseif ( false !== strpos( $src_l, '/gtm.js' ) || false !== strpos( $src_l, 'googletagmanager.com/gtm' ) ) {
+			$category = 'analytics';
+			$svc_key  = 'google_tag_manager';
+		} else {
+			$category = 'analytics';
+			$svc_key  = 'google_analytics_4';
+		}
+		$orig_type = '';
+		if ( preg_match( '/\btype\s*=\s*([\'"])(.*?)\1/i', (string) $tag, $tm ) ) {
+			$ot = strtolower( trim( (string) $tm[2] ) );
+			if ( 'module' === $ot || 'importmap' === $ot ) {
+				$orig_type = $ot;
+			}
+		}
+		$out = sprintf(
+			'<%1$s type="text/plain" data-ucpf-category="%2$s" data-ucpf-service="%3$s" data-src="%4$s" id="%5$s" data-ucpf-gated="1"',
+			'script',
+			esc_attr( $category ),
+			esc_attr( $svc_key ),
+			esc_url( $src ),
+			esc_attr( $handle )
+		);
+		if ( '' !== $orig_type ) {
+			$out .= ' data-ucpf-original-type="' . esc_attr( $orig_type ) . '"';
+		}
+		$out .= '></' . 'script>' . "\n";
+		return $out;
+	}
+
+	/**
 	 * Soft-defer known blocked script tags (keep placeholders for JS loader).
 	 *
 	 * @param string $tag    Script tag.
@@ -518,6 +653,11 @@ class Script_Blocker {
 			false !== strpos( $src_l, 'consent-mode' )
 		) {
 			return $tag;
+		}
+
+		$parked = $this->maybe_park_google_tag( $tag, $handle, $src );
+		if ( $parked ) {
+			return $parked;
 		}
 
 		$match = $this->match_blocked_asset( $src );
@@ -951,6 +1091,7 @@ class Script_Blocker {
 		// Elementor HTML / custom-code CF Web Analytics embeds (also when full OB skipped scripts).
 		$html = self::soft_defer_video_iframes_inplace( $html );
 		$html = self::soft_defer_cloudflare_web_analytics( $html );
+		$html = self::soft_defer_google_tags( $html );
 		$html = self::soft_defer_optimizer_escaped_trackers( $html );
 		return $html;
 	}
@@ -1008,8 +1149,133 @@ class Script_Blocker {
 		}
 
 		$html = self::soft_defer_cloudflare_web_analytics( $html );
+		$html = self::soft_defer_google_tags( $html );
 		$html = self::soft_defer_optimizer_escaped_trackers( $html );
 		return $html;
+	}
+
+	/**
+	 * Always park Google gtag/GTM + Site Kit config snippets when Analytics is not allowed.
+	 *
+	 * Site Kit prints `google_gtagjs` HTML directly (comments in source) so script_loader_tag
+	 * alone is not enough — same always-on OB pattern as Cloudflare Web Analytics.
+	 *
+	 * @param string $html HTML.
+	 * @return string
+	 */
+	private static function soft_defer_google_tags( $html ) {
+		if ( ! is_string( $html ) || '' === $html ) {
+			return $html;
+		}
+		$looks_google = (
+			false !== stripos( $html, 'googletagmanager.com' ) ||
+			false !== stripos( $html, 'google-analytics.com' ) ||
+			false !== stripos( $html, 'google_gtagjs' ) ||
+			false !== stripos( $html, 'googlesitekit' )
+		);
+		if ( ! $looks_google ) {
+			return $html;
+		}
+		// Always park in origin HTML (do not skip when PHP sees Analytics consent).
+		// Shared Cloudflare HTML cache otherwise freezes a consented render for everyone.
+
+		// External gtag.js / gtm.js / analytics.js.
+		$replaced = preg_replace_callback(
+			'#<script([^>]*(?:googletagmanager\.com/(?:gtag|gtm\.js)|google-analytics\.com/(?:analytics|ga)\.js)[^>]*)>(.*?)</script>#is',
+			static function ( $m ) {
+				$attrs = $m[1];
+				$body  = $m[2];
+				if ( preg_match( '/\bdata-ucpf-gated\s*=/i', $attrs ) || preg_match( '/\btype\s*=\s*[\'"]text\/plain[\'"]/i', $attrs ) ) {
+					return $m[0];
+				}
+				// Never park UCPF / Site Kit consent-mode bootstrap only (no src).
+				$id = '';
+				if ( preg_match( '/\bid\s*=\s*([\'"])(.*?)\1/i', $attrs, $im ) ) {
+					$id = strtolower( (string) $im[2] );
+				}
+				if ( false !== strpos( $id, 'consent-mode' ) || 0 === strpos( $id, 'ucpf-' ) ) {
+					return $m[0];
+				}
+				$src = '';
+				if ( preg_match( '/\bsrc\s*=\s*([\'"])(.*?)\1/i', $attrs, $sm ) ) {
+					$src = $sm[2];
+				}
+				$src_l = strtolower( $src );
+				if ( Tracking_Templates::is_google_ads_src( $src ) ) {
+					$category = 'marketing';
+					$svc_key  = 'google_ads';
+				} elseif ( false !== strpos( $src_l, 'gtm.js' ) || false !== strpos( $src_l, '/gtm?' ) ) {
+					$category = 'analytics';
+					$svc_key  = 'google_tag_manager';
+				} else {
+					$category = 'analytics';
+					$svc_key  = 'google_analytics_4';
+				}
+				$orig_type = '';
+				if ( preg_match( '/\btype\s*=\s*([\'"])(.*?)\1/i', $attrs, $tm ) ) {
+					$ot = strtolower( trim( (string) $tm[2] ) );
+					if ( 'module' === $ot || 'importmap' === $ot ) {
+						$orig_type = $ot;
+					}
+				}
+				$out  = '<script type="text/plain" data-ucpf-category="' . esc_attr( $category ) . '" data-ucpf-service="' . esc_attr( $svc_key ) . '" data-ucpf-gated="1"';
+				$out .= ' data-src="' . esc_url( $src ) . '"';
+				if ( '' !== $orig_type ) {
+					$out .= ' data-ucpf-original-type="' . esc_attr( $orig_type ) . '"';
+				}
+				foreach ( array( 'id', 'async', 'defer', 'crossorigin', 'integrity', 'nonce', 'nomodule', 'referrerpolicy' ) as $keep ) {
+					if ( preg_match( '/\b' . preg_quote( $keep, '/' ) . '\s*=\s*([\'"])(.*?)\1/i', $attrs, $km ) ) {
+						$out .= ' ' . $keep . '="' . esc_attr( $km[2] ) . '"';
+					} elseif ( preg_match( '/\b' . preg_quote( $keep, '/' ) . '\b(?!\s*=)/i', $attrs ) ) {
+						$out .= ' ' . $keep;
+					}
+				}
+				$out .= '>';
+				$out .= $src ? '' : $body;
+				$out .= '</script>';
+				return $out;
+			},
+			$html,
+			40
+		);
+		if ( is_string( $replaced ) ) {
+			$html = $replaced;
+		}
+
+		// Site Kit inline config (id=google_gtagjs-*-after, etc.) — park so gtag("config")
+		// cannot queue measurement before consent (external file may be disk-cached).
+		$replaced = preg_replace_callback(
+			'#<script([^>]*\bid\s*=\s*[\'"]google_gtagjs[^\'"]*[\'"][^>]*)>(.*?)</script>#is',
+			static function ( $m ) {
+				$attrs = $m[1];
+				$body  = $m[2];
+				if ( preg_match( '/\bdata-ucpf-gated\s*=/i', $attrs ) || preg_match( '/\btype\s*=\s*[\'"]text\/plain[\'"]/i', $attrs ) ) {
+					return $m[0];
+				}
+				if ( preg_match( '/\bsrc\s*=/i', $attrs ) ) {
+					return $m[0]; // External tags handled above.
+				}
+				$id = '';
+				if ( preg_match( '/\bid\s*=\s*([\'"])(.*?)\1/i', $attrs, $im ) ) {
+					$id = strtolower( (string) $im[2] );
+				}
+				// Keep Site Kit consent-mode defaults live.
+				if ( false !== strpos( $id, 'consent-mode' ) ) {
+					return $m[0];
+				}
+				$out  = '<script type="text/plain" data-ucpf-category="analytics" data-ucpf-service="google_analytics_4" data-ucpf-gated="1"';
+				foreach ( array( 'id', 'nonce' ) as $keep ) {
+					if ( preg_match( '/\b' . preg_quote( $keep, '/' ) . '\s*=\s*([\'"])(.*?)\1/i', $attrs, $km ) ) {
+						$out .= ' ' . $keep . '="' . esc_attr( $km[2] ) . '"';
+					}
+				}
+				$out .= '>' . $body . '</script>';
+				return $out;
+			},
+			$html,
+			20
+		);
+		return is_string( $replaced ) ? $replaced : $html;
 	}
 
 	/**

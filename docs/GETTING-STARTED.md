@@ -40,7 +40,7 @@ Do **not** minify, combine, defer, or delay UCPF assets. The consent gate must l
 UCPF also fleet-excludes **layout-critical** scripts that break when combined/delayed (Hummingbird canary: `jQuery(...).ready is not a function` when The Plus + Mailchimp Woo pixel land in one AO file):
 
 - jQuery / jQuery Migrate (`jquery-core`, `jquery-migrate`, `jquery.min.js`, …)
-- Elementor frontend (`elementor-frontend`, `elementor-pro-frontend`, `elementor/assets/js`)
+- Elementor frontend (`elementor-frontend`, `elementor-pro-frontend`, `elementor/assets/js`, `elementor(-pro)/assets/lib`, `e-sticky`, `wp-i18n`, `wp-hooks`)
 - The Plus Addons (`the-plus-addons`, `theplus`, `pt-plus`, …)
 - Mailchimp for WooCommerce pixel / SMS (`mailchimp-woocommerce-pixel`, `mailchimp-woocommerce_sms`, …)
 
