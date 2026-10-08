@@ -216,6 +216,10 @@ async function waitForJobSettle(id, waitMs = 20000) {
  * @param {object} job
  */
 async function executeJob(job) {
+  if (!job || !job.id) {
+    endScan();
+    return;
+  }
   const id = job.id;
   const safeUrl = job.url;
   const paths = Array.isArray(job.paths) ? job.paths : ['/'];
@@ -647,9 +651,7 @@ app.delete('/v1/scans/:id', requireAuth, rateLimit, async (req, res) => {
 });
 
 async function main() {
-  setRunHandler((job) => {
-    executeJob(job);
-  });
+  setRunHandler((job) => executeJob(job));
 
   const restored = await initStore();
   // eslint-disable-next-line no-console

@@ -43,10 +43,33 @@ export function getQueuePosition(jobId) {
   return idx < 0 ? 0 : idx + 1;
 }
 
+function countJobsWithStatus(statuses) {
+  let n = 0;
+  for (const job of jobs.values()) {
+    if (statuses.includes(job.status)) n += 1;
+  }
+  return n;
+}
+
+/**
+ * Snap activeCount down when it exceeds real running/cancelling jobs.
+ * Prevents a leaked counter from wedging the queue at "position 1 of 1" forever
+ * after a successful scan (common fleet failure mode).
+ */
+export function healSlots() {
+  const running = countJobsWithStatus(['running', 'cancelling']);
+  if (activeCount > running) {
+    activeCount = running;
+    return true;
+  }
+  return false;
+}
+
 /**
  * Atomically claim a Chromium slot. Returns false if at capacity.
  */
 export function tryBeginScan() {
+  healSlots();
   if (activeCount >= config.maxConcurrentScans) {
     return false;
   }
@@ -61,6 +84,8 @@ export function beginScan() {
 
 export function endScan() {
   activeCount = Math.max(0, activeCount - 1);
+  // Snap again — executeJob may have already marked the job terminal.
+  healSlots();
   schedulePersist();
   // Drain next waiter after slot frees.
   setImmediate(() => {
@@ -74,10 +99,12 @@ export function endScan() {
 
 export function resetActiveCount() {
   activeCount = 0;
+  healSlots();
   schedulePersist();
 }
 
 export function canStartScan() {
+  healSlots();
   return activeCount < config.maxConcurrentScans;
 }
 
@@ -123,6 +150,7 @@ export function canAcceptJobForKey(keyFp) {
  * @returns {{ accepted: boolean, started: boolean, position: number, error?: string, code?: number, retryAfter?: number, hint?: string }}
  */
 export function enqueueJob(job) {
+  healSlots();
   const keyFp = job.key_fp || fingerprintKey('');
   const perKey = canAcceptJobForKey(keyFp);
   if (!perKey.ok) {
@@ -153,7 +181,19 @@ export function enqueueJob(job) {
     putJob(job.id, job);
     schedulePersist();
     if (runHandler) {
-      setImmediate(() => runHandler(job));
+      dispatchRun(job);
+    } else {
+      // Slot was claimed — must release or the queue wedges after the next enqueue.
+      updateJob(job.id, {
+        status: 'failed',
+        error: 'Scanner worker not ready',
+        progress: {
+          phase: 'failed',
+          message: 'Scanner worker not ready',
+          queue_position: 0,
+        },
+      });
+      endScan();
     }
     return { accepted: true, started: true, position: 0 };
   }
@@ -225,6 +265,7 @@ function refreshQueuePositions() {
  * Start waiting jobs until slots / per-key caps are full.
  */
 export function drainQueue() {
+  healSlots();
   while (waitQueue.length > 0) {
     const nextId = waitQueue[0];
     const job = jobs.get(nextId);
@@ -256,16 +297,26 @@ export function drainQueue() {
         if (!alt || alt.status !== 'queued') continue;
         const altFp = alt.key_fp || '';
         if (countForKey(altFp, ['running', 'cancelling']) >= config.maxRunningPerKey) continue;
-        if (!tryBeginScan()) return;
+        if (!tryBeginScan()) {
+          refreshQueuePositions();
+          schedulePersist();
+          return;
+        }
         waitQueue.splice(i, 1);
         startQueuedJob(alt);
         swapped = true;
         break;
       }
-      if (!swapped) return;
+      if (!swapped) {
+        refreshQueuePositions();
+        schedulePersist();
+        return;
+      }
       continue;
     }
     if (!tryBeginScan()) {
+      refreshQueuePositions();
+      schedulePersist();
       return;
     }
     waitQueue.shift();
@@ -273,6 +324,44 @@ export function drainQueue() {
   }
   refreshQueuePositions();
   schedulePersist();
+}
+
+/**
+ * Invoke runHandler; if the worker never reaches executeJob's finally, release the slot.
+ * @param {object} job
+ */
+function dispatchRun(job) {
+  const id = job && job.id;
+  setImmediate(() => {
+    const failAndRelease = (message) => {
+      const cur = id ? jobs.get(id) : null;
+      if (!cur || (cur.status !== 'running' && cur.status !== 'cancelling')) {
+        return;
+      }
+      updateJob(id, {
+        status: 'failed',
+        error: message,
+        progress: {
+          ...(cur.progress || {}),
+          phase: 'failed',
+          message,
+          queue_position: 0,
+        },
+      });
+      clearJobRuntime(id);
+      endScan();
+    };
+    try {
+      const fresh = id ? jobs.get(id) : null;
+      const result = runHandler(fresh || job);
+      if (result && typeof result.then === 'function') {
+        // executeJob normally ends the slot in finally. Recover only if still marked running.
+        result.catch(() => failAndRelease('Scanner worker crashed before finish'));
+      }
+    } catch {
+      failAndRelease('Scanner worker crashed before finish');
+    }
+  });
 }
 
 function startQueuedJob(job) {
@@ -287,8 +376,18 @@ function startQueuedJob(job) {
   });
   schedulePersist();
   if (runHandler) {
-    const fresh = jobs.get(job.id);
-    setImmediate(() => runHandler(fresh || job));
+    dispatchRun(job);
+  } else {
+    updateJob(job.id, {
+      status: 'failed',
+      error: 'Scanner worker not ready',
+      progress: {
+        phase: 'failed',
+        message: 'Scanner worker not ready',
+        queue_position: 0,
+      },
+    });
+    endScan();
   }
 }
 
@@ -554,14 +653,6 @@ export function estimatedWaitHint(position) {
   return `~${mins} min (estimate)`;
 }
 
-function countJobsWithStatus(statuses) {
-  let n = 0;
-  for (const job of jobs.values()) {
-    if (statuses.includes(job.status)) n += 1;
-  }
-  return n;
-}
-
 /**
  * Reclaim hung running jobs and heal activeCount desync so the wait queue can drain.
  * Call periodically from the HTTP process.
@@ -571,6 +662,8 @@ function countJobsWithStatus(statuses) {
 export function reclaimStaleJobs() {
   const now = Date.now();
   const staleMs = Math.max(60000, config.staleJobMs || 600000);
+  /** Jobs stuck in "starting" never launched Chromium — reclaim faster (3 min). */
+  const startingStaleMs = Math.min(staleMs, 180000);
   const reclaimed = [];
 
   for (const [id, job] of jobs.entries()) {
@@ -579,7 +672,10 @@ export function reclaimStaleJobs() {
     }
     const updated = Date.parse(job.updated_at || job.created_at || '') || 0;
     const age = updated ? now - updated : staleMs + 1;
-    if (age < staleMs) {
+    const phase = job.progress && job.progress.phase ? String(job.progress.phase) : '';
+    const limit =
+      phase === 'starting' || phase === '' || phase === 'queued' ? startingStaleMs : staleMs;
+    if (age < limit) {
       continue;
     }
     requestCancel(id);
@@ -599,18 +695,7 @@ export function reclaimStaleJobs() {
     reclaimed.push(id);
   }
 
-  let resetSlots = false;
-  const runningNow = countJobsWithStatus(['running', 'cancelling']);
-  // Slot counter drifted (crash / missed endScan) — free Chromium capacity.
-  if (runningNow === 0 && activeCount > 0) {
-    activeCount = 0;
-    resetSlots = true;
-  }
-  // More slots held than live running jobs.
-  if (runningNow > 0 && activeCount > runningNow) {
-    activeCount = runningNow;
-    resetSlots = true;
-  }
+  const resetSlots = healSlots();
 
   let drained = false;
   if (reclaimed.length || resetSlots || (waitQueue.length > 0 && activeCount < config.maxConcurrentScans)) {

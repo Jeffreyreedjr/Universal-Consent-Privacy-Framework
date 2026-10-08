@@ -11,6 +11,7 @@ All notable changes to Universal Consent & Privacy Framework are documented here
 
 ### Fixed
 - **Shared scanner queue stuck at 0% / position 1 of 1:** Reclaim hung `running` jobs with no progress and heal Chromium slot desync so waiting jobs can drain after a clogged restart (no new WordPress integration required — use Emergency reset for an immediate clear).
+- **Scanner queue wedges after first successful scan:** `activeCount` could stay elevated after a finished job so the next enqueue sat at “Queued — position 1 of N” forever. Heal slots on enqueue/drain/end, always release the slot if the worker never starts, and reclaim jobs stuck in `starting` after 3 minutes.
 - **Site Kit / gtag pre-consent leak:** Google Site Kit prints `google_gtagjs` HTML directly (bypassing `script_loader_tag`), so Integrations-managed GA4/GT tags still loaded `gtag/js` before consent. Always-on HTML park for gtag/GTM + Site Kit inline config, handle-based soft-defer, and early MutationObserver coverage for `googletagmanager.com` / `google-analytics.com`.
 - **Site Kit Consent Mode bridge:** Register UCPF with `wp_consent_api_registered_{plugin}`; publish `wp_consent_type` early; sync denied WP Consent API categories on first visit (banner) within Site Kit’s `wait_for_update`; map WP `functional` = essential (not UCPF Embeds).
 - **Site Kit gtag when blocker off / CF HTML cache:** Always-on Google/Site Kit park no longer depends on `blocker_enabled`; always rewrite gtag in origin HTML (CDN-safe) so one fleet site cannot keep a live `google_gtagjs` tag.
