@@ -225,12 +225,16 @@ export function enqueueJob(job) {
     };
   }
 
+  const waitingOnKey = runningForKey >= config.maxRunningPerKey;
   job.status = 'queued';
   job.progress = {
     ...(job.progress || {}),
     phase: 'queued',
-    message: 'Queued — waiting for a Chromium slot…',
+    message: waitingOnKey
+      ? `Queued — waiting for another scan on this API key (max ${config.maxRunningPerKey} running per key)…`
+      : 'Queued — waiting for a Chromium slot…',
     queue_position: waitQueue.length + 1,
+    waiting_on_api_key: waitingOnKey,
   };
   putJob(job.id, job, { skipPurge: true });
   waitQueue.push(job.id);
@@ -249,13 +253,20 @@ function refreshQueuePositions() {
   waitQueue.forEach((id, i) => {
     const job = jobs.get(id);
     if (!job || job.status !== 'queued') return;
+    const keyFp = job.key_fp || '';
+    const runningForKey = countForKey(keyFp, ['running', 'cancelling']);
+    const waitingOnKey = runningForKey >= config.maxRunningPerKey;
+    const msg = waitingOnKey
+      ? `Queued — position ${i + 1} of ${waitQueue.length} (waiting for another scan on this API key; per-key limit ${config.maxRunningPerKey})`
+      : `Queued — position ${i + 1} of ${waitQueue.length}`;
     updateJob(id, {
       progress: {
         ...(job.progress || {}),
         phase: 'queued',
-        message: `Queued — position ${i + 1} of ${waitQueue.length}`,
+        message: msg,
         queue_position: i + 1,
         queue_length: waitQueue.length,
+        waiting_on_api_key: waitingOnKey,
       },
     });
   });
