@@ -11,6 +11,24 @@ import { chromium } from 'playwright';
 import { URL } from 'node:url';
 import { config } from './config.js';
 import { assertSafePublicUrl } from './ssrf.js';
+
+/**
+ * Abort navigations / subresource loads to private or blocked hosts (redirect SSRF).
+ * @param {import('playwright').BrowserContext} context
+ */
+async function installSsrfRouteGuard(context) {
+  await context.route('**/*', async (route) => {
+    const reqUrl = route.request().url();
+    if (/^(data:|blob:|about:)/i.test(reqUrl)) {
+      return route.continue();
+    }
+    const check = await assertSafePublicUrl(reqUrl);
+    if (!check.ok) {
+      return route.abort('blockedbyclient');
+    }
+    return route.continue();
+  });
+}
 import { classifyValue, toUcpfCategory } from './classify.js';
 import {
   filterCookieInventory,
@@ -302,6 +320,7 @@ export async function runPrivacyScan(input) {
           process.env.UCPF_SCANNER_UA ||
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
       });
+      await installSsrfRouteGuard(bypassCtx);
       try {
         if (!checkCancel()) {
           sessions._sw_bypass = await serviceWorkerBypassPass(
@@ -508,6 +527,7 @@ async function runSession(browser, opts) {
   }
 
   const context = await browser.newContext(contextOpts);
+  await installSsrfRouteGuard(context);
 
   if (profile.dns === true && opts.baseHost) {
     const dnsPayload = {
@@ -651,6 +671,19 @@ async function runSession(browser, opts) {
 
       try {
         await page.goto(safe.url, { waitUntil: 'domcontentloaded', timeout: config.navigationTimeoutMs });
+        const landed = page.url();
+        const landCheck = await assertSafePublicUrl(landed);
+        if (!landCheck.ok) {
+          if (typeof opts.onLog === 'function') {
+            try {
+              opts.onLog(`Blocked post-navigation URL: ${landCheck.error} (${landed})`);
+            } catch {
+              /* ignore */
+            }
+          }
+          pageIndex += 1;
+          continue;
+        }
       } catch (err) {
         if (typeof opts.shouldCancel === 'function' && opts.shouldCancel()) {
           break;

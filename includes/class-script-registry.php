@@ -169,6 +169,13 @@ class Script_Registry {
 			return array( 'ok' => false, 'message' => $status['message'], 'services' => array() );
 		}
 
+		$safe = Http_Url_Guard::assert_safe_outbound( $url );
+		if ( is_wp_error( $safe ) ) {
+			$status['message'] = $safe->get_error_message();
+			update_option( 'ucpf_remote_registry_status', $status, false );
+			return array( 'ok' => false, 'message' => $status['message'], 'services' => array() );
+		}
+
 		if ( ! $force ) {
 			$cached = get_transient( 'ucpf_remote_registry' );
 			if ( false !== $cached && is_array( $cached ) ) {

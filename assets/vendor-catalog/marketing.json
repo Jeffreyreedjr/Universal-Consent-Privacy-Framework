@@ -155,8 +155,18 @@
       "description": "Square payment forms and processing.",
       "privacy_url": "https://squareup.com/us/en/legal/general/privacy",
       "script_patterns": ["squareup.com", "squarecdn.com", "web.squarecdn.com"],
-      "cookie_patterns": [],
-      "cookies": [],
+      "cookie_patterns": ["_savt"],
+      "cookies": [
+        {
+          "name": "_savt",
+          "pattern": "_savt",
+          "purpose": "Stores session IDs to help process payments through a secure checkout system.",
+          "retention": "Session / short-lived",
+          "category": "necessary",
+          "treatment": "necessary",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
       "iframe_patterns": ["squareup.com"],
       "default_blocking": true
     },

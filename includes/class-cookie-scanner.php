@@ -624,12 +624,11 @@ class Cookie_Scanner {
 		if ( $depth > 1 || ! $url ) {
 			return array();
 		}
-		$response = wp_remote_get(
+		$response = $this->http_get_same_site(
 			$url,
 			array(
-				'timeout'     => 4,
-				'redirection' => 2,
-				'user-agent'  => 'UCPF-Scanner/1.0 (+sitemap discovery)',
+				'timeout'    => 4,
+				'user-agent' => 'UCPF-Scanner/1.0 (+sitemap discovery)',
 			)
 		);
 		if ( is_wp_error( $response ) || 200 !== (int) wp_remote_retrieve_response_code( $response ) ) {
@@ -675,12 +674,11 @@ class Cookie_Scanner {
 		$limit    = max( 1, min( self::MAX_PICKER_URLS, (int) $limit ) );
 		$home     = home_url( '/' );
 		$host     = wp_parse_url( $home, PHP_URL_HOST );
-		$response = wp_remote_get(
+		$response = $this->http_get_same_site(
 			$home,
 			array(
-				'timeout'     => 5,
-				'redirection' => 2,
-				'user-agent'  => 'UCPF-Scanner/1.0 (+link discovery)',
+				'timeout'    => 5,
+				'user-agent' => 'UCPF-Scanner/1.0 (+link discovery)',
 			)
 		);
 		if ( is_wp_error( $response ) || 200 !== (int) wp_remote_retrieve_response_code( $response ) ) {
@@ -1829,12 +1827,68 @@ class Cookie_Scanner {
 	 * @param bool   $as_logged_in Use current admin cookies.
 	 * @return array|\WP_Error { body: string, cookies: string[], cf_challenged?: bool }
 	 */
+	/**
+	 * HTTP GET that only follows redirects staying on the same site.
+	 *
+	 * @param string $url  Start URL.
+	 * @param array  $args wp_remote_get args (redirection forced to 0).
+	 * @param int    $max  Max redirects.
+	 * @return array|\WP_Error
+	 */
+	private function http_get_same_site( $url, array $args = array(), $max = 2 ) {
+		$url = (string) $url;
+		if ( ! $url || ! $this->is_same_site_url( $url ) ) {
+			return new \WP_Error( 'ucpf_scan_redirect', 'URL not same-site' );
+		}
+		$args['redirection'] = 0;
+		if ( ! isset( $args['timeout'] ) ) {
+			$args['timeout'] = self::FETCH_TIMEOUT;
+		}
+		$current = $url;
+		for ( $i = 0; $i <= $max; $i++ ) {
+			$response = wp_remote_get( $current, $args );
+			if ( is_wp_error( $response ) ) {
+				return $response;
+			}
+			$code = (int) wp_remote_retrieve_response_code( $response );
+			if ( $code < 300 || $code >= 400 ) {
+				return $response;
+			}
+			$location = wp_remote_retrieve_header( $response, 'location' );
+			if ( ! $location ) {
+				return new \WP_Error( 'ucpf_scan_redirect', 'Redirect without Location' );
+			}
+			$next = $this->resolve_redirect_url( $current, (string) $location );
+			if ( ! $next || ! $this->is_same_site_url( $next ) ) {
+				return new \WP_Error( 'ucpf_scan_redirect', 'Redirect left same-site boundary' );
+			}
+			// Do not forward auth cookies across hops to a different host (same-site may differ by www).
+			$prev_host = wp_parse_url( $current, PHP_URL_HOST );
+			$next_host = wp_parse_url( $next, PHP_URL_HOST );
+			if ( $prev_host && $next_host && strtolower( (string) $prev_host ) !== strtolower( (string) $next_host ) ) {
+				unset( $args['cookies'] );
+			}
+			$current = $next;
+		}
+		return new \WP_Error( 'ucpf_scan_redirect', 'Too many redirects' );
+	}
+
+	/**
+	 * Resolve a redirect Location against the current request URL.
+	 *
+	 * @param string $current  Current absolute URL.
+	 * @param string $location Location header value.
+	 * @return string Empty if unresolvable.
+	 */
+	private function resolve_redirect_url( $current, $location ) {
+		return Same_Site_Http::resolve_redirect_url( $current, $location );
+	}
+
 	private function fetch_page( $url, $as_logged_in = false ) {
 		$args = array(
-			'timeout'     => self::FETCH_TIMEOUT,
-			'redirection' => 2,
-			'sslverify'   => true,
-			'headers'     => array(
+			'timeout'   => self::FETCH_TIMEOUT,
+			'sslverify' => true,
+			'headers'   => array(
 				// Browser-like UA reduces Cloudflare Bot Fight false positives on loopback.
 				'User-Agent'      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 UCPF-Scanner/' . UCPF_VERSION,
 				'Accept'          => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -1877,7 +1931,7 @@ class Cookie_Scanner {
 		 */
 		$args = apply_filters( 'ucpf_scanner_fetch_args', $args, $url, $as_logged_in );
 
-		$response = wp_remote_get( $url, $args );
+		$response = $this->http_get_same_site( $url, $args, 2 );
 		if ( is_wp_error( $response ) ) {
 			return $response;
 		}

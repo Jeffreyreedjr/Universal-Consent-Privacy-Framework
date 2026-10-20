@@ -555,6 +555,10 @@ class Admin {
 				'contributeIssueUrl' => Cookie_Knowledge::contribute_issue_url(),
 				'reverifyHint'       => Privacy_Scan_Importer::reverify_hint_from_last_scan(),
 				'activeScan'         => Active_Scan::instance()->get_for_rest(),
+				'i18n'               => array(
+					'showSecret' => __( 'Show', 'universal-consent-privacy-framework' ),
+					'hideSecret' => __( 'Hide', 'universal-consent-privacy-framework' ),
+				),
 			)
 		);
 
@@ -794,7 +798,7 @@ class Admin {
 				}
 			}
 			if ( isset( $input['remote_registry_url'] ) ) {
-				$clean['remote_registry_url'] = esc_url_raw( $input['remote_registry_url'] );
+				$clean['remote_registry_url'] = Settings::normalize_outbound_url( (string) $input['remote_registry_url'] );
 			}
 			if ( isset( $input['log_retention_days'] ) ) {
 				$days = max( 1, min( 3650, (int) $input['log_retention_days'] ) );
@@ -803,7 +807,7 @@ class Admin {
 				Audit_Log::instance()->recompute_expires( $days );
 			}
 			if ( isset( $input['scanner_api_url'] ) ) {
-				$clean['scanner_api_url'] = Settings::normalize_url( (string) $input['scanner_api_url'] );
+				$clean['scanner_api_url'] = Settings::normalize_outbound_url( (string) $input['scanner_api_url'] );
 			}
 			if ( array_key_exists( 'scanner_api_key', $input ) ) {
 				$key_in = Settings::sanitize_secret( (string) $input['scanner_api_key'] );
@@ -821,7 +825,7 @@ class Admin {
 				}
 			}
 			if ( isset( $input['privacy_api_url'] ) ) {
-				$clean['privacy_api_url'] = Settings::normalize_url( (string) $input['privacy_api_url'] );
+				$clean['privacy_api_url'] = Settings::normalize_outbound_url( (string) $input['privacy_api_url'] );
 			}
 			if ( array_key_exists( 'privacy_api_key', $input ) ) {
 				$key_in = Settings::sanitize_secret( (string) $input['privacy_api_key'] );
@@ -887,8 +891,8 @@ class Admin {
 
 		if ( ! empty( $input['_ucpf_pages_form'] ) ) {
 			$clean['auto_refresh_cookie_policy_after_scan'] = ! empty( $input['auto_refresh_cookie_policy_after_scan'] );
-			$clean['data_request_page_url']                 = isset( $input['data_request_page_url'] ) ? esc_url_raw( (string) $input['data_request_page_url'] ) : '';
-			$clean['do_not_sell_page_url']                  = isset( $input['do_not_sell_page_url'] ) ? esc_url_raw( (string) $input['do_not_sell_page_url'] ) : '';
+			$clean['data_request_page_url']                 = isset( $input['data_request_page_url'] ) ? ucpf_sanitize_public_http_url( (string) $input['data_request_page_url'] ) : '';
+			$clean['do_not_sell_page_url']                  = isset( $input['do_not_sell_page_url'] ) ? ucpf_sanitize_public_http_url( (string) $input['do_not_sell_page_url'] ) : '';
 			$ai_disclosure                                  = isset( $input['ai_image_disclosure'] ) ? sanitize_key( (string) $input['ai_image_disclosure'] ) : 'off';
 			$clean['ai_image_disclosure']                   = in_array( $ai_disclosure, array( 'off', 'website' ), true ) ? $ai_disclosure : 'off';
 		}
@@ -915,7 +919,7 @@ class Admin {
 		}
 
 		if ( array_key_exists( 'logo_url', $input ) ) {
-			$clean['logo_url'] = esc_url_raw( (string) $input['logo_url'] );
+			$clean['logo_url'] = ucpf_sanitize_public_http_url( (string) $input['logo_url'] );
 		}
 
 		if ( array_key_exists( 'accent_2_color', $input ) ) {
@@ -1854,7 +1858,7 @@ class Admin {
 
 		// Scanner API (wizard step before Website Scan) — same keys as Advanced Settings.
 		if ( isset( $_POST['scanner_api_url'] ) ) {
-			$update['scanner_api_url'] = Settings::normalize_url( sanitize_text_field( wp_unslash( $_POST['scanner_api_url'] ) ) );
+			$update['scanner_api_url'] = Settings::normalize_outbound_url( sanitize_text_field( wp_unslash( $_POST['scanner_api_url'] ) ) );
 		}
 		if ( array_key_exists( 'scanner_api_key', $_POST ) ) {
 			$key_in = Settings::sanitize_secret( sanitize_text_field( wp_unslash( $_POST['scanner_api_key'] ) ) );
@@ -1888,10 +1892,14 @@ class Admin {
 		}
 
 		if ( isset( $_POST['data_request_page_url'] ) ) {
-			$update['data_request_page_url'] = esc_url_raw( wp_unslash( $_POST['data_request_page_url'] ) );
+			$update['data_request_page_url'] = ucpf_sanitize_public_http_url(
+				sanitize_text_field( wp_unslash( $_POST['data_request_page_url'] ) )
+			);
 		}
 		if ( isset( $_POST['do_not_sell_page_url'] ) ) {
-			$update['do_not_sell_page_url'] = esc_url_raw( wp_unslash( $_POST['do_not_sell_page_url'] ) );
+			$update['do_not_sell_page_url'] = ucpf_sanitize_public_http_url(
+				sanitize_text_field( wp_unslash( $_POST['do_not_sell_page_url'] ) )
+			);
 		}
 
 		$coverage_blocked = 0;

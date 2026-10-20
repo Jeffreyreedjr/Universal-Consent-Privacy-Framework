@@ -153,7 +153,7 @@ $wizard_max_step   = 11;
 						<tr>
 							<th><label for="ucpf-wizard-cf-token"><?php esc_html_e( 'API Token', 'universal-consent-privacy-framework' ); ?></label></th>
 							<td>
-								<input type="password" class="regular-text" id="ucpf-wizard-cf-token" name="cloudflare_api_token" value="" autocomplete="new-password" placeholder="<?php echo $cf_token_set ? esc_attr__( '•••••••• (leave blank to keep)', 'universal-consent-privacy-framework' ) : ''; ?>" />
+								<input type="password" class="regular-text ucpf-secret-input" id="ucpf-wizard-cf-token" name="cloudflare_api_token" value="" autocomplete="new-password" placeholder="<?php echo $cf_token_set ? esc_attr__( '•••••••• (leave blank to keep)', 'universal-consent-privacy-framework' ) : ''; ?>" />
 								<p class="description"><?php esc_html_e( 'Token needs Zone → Cache Purge and Zone → Zone → Read. Leave blank when saving to keep an existing token. Stored encrypted; or set UCPF_CLOUDFLARE_API_TOKEN in wp-config.php.', 'universal-consent-privacy-framework' ); ?></p>
 							</td>
 						</tr>
@@ -261,7 +261,7 @@ $wizard_max_step   = 11;
 						<tr>
 							<th><label for="ucpf-wizard-scanner-api-key"><?php esc_html_e( 'Scanner API key', 'universal-consent-privacy-framework' ); ?></label></th>
 							<td>
-								<input type="password" class="regular-text" id="ucpf-wizard-scanner-api-key" name="scanner_api_key" value="" placeholder="<?php echo $scanner_key_set ? esc_attr__( '•••••••• (leave blank to keep)', 'universal-consent-privacy-framework' ) : ''; ?>" autocomplete="new-password" />
+								<input type="password" class="regular-text ucpf-secret-input" id="ucpf-wizard-scanner-api-key" name="scanner_api_key" value="" placeholder="<?php echo $scanner_key_set ? esc_attr__( '•••••••• (leave blank to keep)', 'universal-consent-privacy-framework' ) : ''; ?>" autocomplete="new-password" />
 								<?php if ( $scanner_key_set ) : ?>
 									<p class="description"><?php esc_html_e( 'A key is already saved (encrypted). Leave blank to keep it, or enter a new key to replace it.', 'universal-consent-privacy-framework' ); ?></p>
 									<?php if ( is_multisite() && ! \UCPF\Network_Settings::site_has_override( 'scanner_api_key' ) && \UCPF\Network_Settings::secret_is_set( 'scanner_api_key' ) ) : ?>

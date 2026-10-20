@@ -6,6 +6,54 @@ import { Notice } from '../components/Notice';
 const GROUP_ORDER = [ 'consent', 'pages', 'scan', 'signals', 'stack' ];
 
 /**
+ * Allow only http(s) absolute URLs or same-origin-relative paths for UI links.
+ *
+ * @param {unknown} url
+ * @return {string}
+ */
+function safeUiHref( url ) {
+	const u = String( url || '' ).trim();
+	if ( ! u ) {
+		return '';
+	}
+	if ( u.startsWith( '/' ) && ! u.startsWith( '//' ) ) {
+		return u;
+	}
+	try {
+		const parsed = new URL(
+			u,
+			typeof window !== 'undefined' ? window.location.origin : 'https://example.invalid'
+		);
+		if ( parsed.protocol === 'http:' || parsed.protocol === 'https:' ) {
+			return u;
+		}
+	} catch ( e ) {
+		/* ignore */
+	}
+	return '';
+}
+
+/**
+ * @param {unknown} url
+ * @return {string}
+ */
+function safeHttpUrl( url ) {
+	const u = String( url || '' ).trim();
+	if ( ! u ) {
+		return '';
+	}
+	try {
+		const parsed = new URL( u );
+		if ( parsed.protocol === 'http:' || parsed.protocol === 'https:' ) {
+			return u;
+		}
+	} catch ( e ) {
+		/* ignore */
+	}
+	return '';
+}
+
+/**
  * @param {string} template
  * @param {...(string|number)} args
  */
@@ -44,9 +92,9 @@ function HealthRow( { check, i18n, compact } ) {
 			<div className="ucpf-health__body">
 				<strong className="ucpf-health__label">{ check.label }</strong>
 				<p className="ucpf-health__detail">{ check.detail }</p>
-				{ check.action_url && status !== 'ok' && (
+				{ safeUiHref( check.action_url ) && status !== 'ok' && (
 					<p className="ucpf-health__action">
-						<a href={ check.action_url }>
+						<a href={ safeUiHref( check.action_url ) }>
 							{ check.action_label || i18n.fix || 'Fix' }
 						</a>
 					</p>
@@ -74,9 +122,9 @@ function AttentionCard( { check, i18n } ) {
 				<h3 className="ucpf-dash__attention-title">{ check.label }</h3>
 			</div>
 			<p className="ucpf-dash__attention-detail">{ check.detail }</p>
-			{ check.action_url ? (
+			{ safeUiHref( check.action_url ) ? (
 				<p className="ucpf-dash__attention-action">
-					<a className="ucpf-btn ucpf-btn--primary" href={ check.action_url }>
+					<a className="ucpf-btn ucpf-btn--primary" href={ safeUiHref( check.action_url ) }>
 						{ check.action_label || i18n.fix || 'Fix' }
 					</a>
 				</p>
@@ -95,7 +143,7 @@ export function Dashboard( { data } ) {
 	const warnings = Array.isArray( data.warnings ) ? data.warnings : [];
 	const wizardDone = !! data.wizardCompleted;
 	const productName = data.productName || 'UCPF';
-	const brandMarkUrl = data.brandMarkUrl || '';
+	const brandMarkUrl = safeHttpUrl( data.brandMarkUrl || '' );
 	const urls = data.urls || {};
 	const i18n = data.i18n || {};
 	const scan = data.scanSummary || {};

@@ -48,19 +48,25 @@ const __dirname = path.dirname( fileURLToPath( import.meta.url ) );
 const defaultDataDir = path.join( __dirname, '..', 'data' );
 
 export const config = {
-  host: process.env.UCPF_SCANNER_HOST || '0.0.0.0',
+  // Default loopback; set UCPF_SCANNER_HOST=0.0.0.0 only behind a trusted reverse proxy.
+  host: process.env.UCPF_SCANNER_HOST || '127.0.0.1',
   port: Number(process.env.UCPF_SCANNER_PORT || 3847),
   apiKeys: (process.env.UCPF_SCANNER_API_KEYS || process.env.UCPF_SCANNER_API_KEY || '')
     .split(',')
     .map((k) => k.trim())
     .filter(Boolean),
-  /** Keys allowed to cancel-all / reset slots (comma-separated). Defaults to first API key. */
+  /** Keys allowed to cancel-all / reset slots / list all jobs (comma-separated). No first-key fallback. */
   adminKeys: (process.env.UCPF_SCANNER_ADMIN_KEYS || '')
     .split(',')
     .map((k) => k.trim())
     .filter(Boolean),
   /** Allow unauthenticated local use only when no keys configured and bind is loopback-ish. */
   allowUnauthenticatedLocal: process.env.UCPF_SCANNER_ALLOW_LOCAL === '1',
+  /**
+   * Trust X-Forwarded-For for req.ip / rate limits. Off by default — enable only
+   * behind a trusted reverse proxy (UCPF_SCANNER_TRUST_PROXY=1).
+   */
+  trustProxy: process.env.UCPF_SCANNER_TRUST_PROXY === '1',
   maxPagesPerScan: Number(process.env.UCPF_SCANNER_MAX_PAGES || 100),
   maxConcurrentScans: Math.max(1, Number(process.env.UCPF_SCANNER_MAX_CONCURRENT || 2)),
   /** Waiting queue depth when all Chromium slots are busy (agency fleets). */
@@ -94,9 +100,7 @@ export const config = {
   ),
 };
 
-/** Effective admin keys: explicit list, else first configured API key. */
+/** Effective admin keys — only explicitly configured UCPF_SCANNER_ADMIN_KEYS. */
 export function getAdminKeys() {
-  if (config.adminKeys.length) return config.adminKeys;
-  if (config.apiKeys.length) return [config.apiKeys[0]];
-  return [];
+  return config.adminKeys.length ? [...config.adminKeys] : [];
 }

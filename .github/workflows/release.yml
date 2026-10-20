@@ -22,8 +22,9 @@ jobs:
           cache: npm
           cache-dependency-path: package.json
 
+      # Root package has no package-lock.json — npm ci unavailable (documented residual).
       - name: Install dependencies
-        run: npm install --no-fund --no-audit
+        run: npm install --no-fund --no-audit --ignore-scripts
 
       - name: Build and package plugin zip
         shell: pwsh
@@ -59,7 +60,7 @@ jobs:
           Write-Host "SHA256: $hash"
 
       - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v2.2.2
         with:
           files: |
             dist/universal-consent-privacy-framework.zip

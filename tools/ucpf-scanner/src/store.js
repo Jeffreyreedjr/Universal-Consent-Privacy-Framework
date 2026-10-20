@@ -423,17 +423,29 @@ export function getJob(id) {
   return jobs.get(id) || null;
 }
 
-export function listJobs() {
-  return [...jobs.values()].map((j) => ({
-    id: j.id,
-    status: j.status,
-    created_at: j.created_at,
-    updated_at: j.updated_at,
-    url: j.url,
-    key_fp: j.key_fp ? `${String(j.key_fp).slice(0, 6)}…` : '',
-    queue_position: j.status === 'queued' ? getQueuePosition(j.id) : 0,
-    cancel_requested: !!cancelFlags.get(j.id),
-  }));
+/**
+ * List jobs visible to the caller. Non-admins only see their own key_fp.
+ * @param {{ keyFp?: string, isAdmin?: boolean }} [caller]
+ */
+export function listJobs(caller = {}) {
+  const admin = !!caller.isAdmin;
+  const keyFp = caller.keyFp || '';
+  return [...jobs.values()]
+    .filter((j) => {
+      if (admin) return true;
+      if (!keyFp) return true; // local unauthenticated mode
+      return !j.key_fp || j.key_fp === keyFp;
+    })
+    .map((j) => ({
+      id: j.id,
+      status: j.status,
+      created_at: j.created_at,
+      updated_at: j.updated_at,
+      url: j.url,
+      key_fp: j.key_fp ? `${String(j.key_fp).slice(0, 6)}…` : '',
+      queue_position: j.status === 'queued' ? getQueuePosition(j.id) : 0,
+      cancel_requested: !!cancelFlags.get(j.id),
+    }));
 }
 
 export function updateJob(id, patch) {
@@ -564,6 +576,15 @@ export function cancelAllJobs(opts = {}) {
  * @param {{ keyFp: string, isAdmin: boolean }} caller
  */
 export function canCancelJob(job, caller) {
+  return canAccessJob(job, caller);
+}
+
+/**
+ * Whether caller may read or mutate this job (ownership / admin).
+ * @param {object} job
+ * @param {{ keyFp: string, isAdmin: boolean }} caller
+ */
+export function canAccessJob(job, caller) {
   if (!job) return false;
   if (caller.isAdmin) return true;
   if (!caller.keyFp) return true; // local unauthenticated mode

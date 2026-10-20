@@ -58,7 +58,7 @@ $active_log      = ( ! empty( $active_progress['log'] ) && is_array( $active_pro
 			);
 			?>
 			<?php if ( $policy_url ) : ?>
-				<a href="<?php echo esc_url( $policy_url ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'View Cookie Policy', 'universal-consent-privacy-framework' ); ?></a>
+				<a href="<?php echo esc_url( $policy_url ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'View Cookie Policy', 'universal-consent-privacy-framework' ); ?></a>
 			<?php endif; ?>
 		</p>
 	<?php endif; ?>
@@ -729,12 +729,12 @@ $active_log      = ( ! empty( $active_progress['log'] ) && is_array( $active_pro
 					<?php
 					$url     = isset( $sus['url'] ) ? (string) $sus['url'] : '';
 					$pattern = isset( $sus['pattern'] ) ? (string) $sus['pattern'] : \UCPF\Suspicion::suggest_pattern_from_url( $url );
-					$cat     = ! empty( $sus['suggested_category'] ) ? (string) $sus['suggested_category'] : 'marketing';
+					$sug_cat = ! empty( $sus['suggested_category'] ) ? (string) $sus['suggested_category'] : 'marketing';
 					if ( $pattern && in_array( strtolower( $pattern ), $ignored_sus, true ) ) {
 						continue;
 					}
 					?>
-					<tr data-url="<?php echo esc_attr( $url ); ?>" data-pattern="<?php echo esc_attr( $pattern ); ?>" data-category="<?php echo esc_attr( $cat ); ?>" data-label="<?php echo esc_attr( isset( $sus['provider'] ) ? (string) $sus['provider'] : '' ); ?>">
+					<tr data-url="<?php echo esc_attr( $url ); ?>" data-pattern="<?php echo esc_attr( $pattern ); ?>" data-category="<?php echo esc_attr( $sug_cat ); ?>" data-label="<?php echo esc_attr( isset( $sus['provider'] ) ? (string) $sus['provider'] : '' ); ?>">
 						<td><code style="word-break:break-all;"><?php echo esc_html( $url ); ?></code>
 							<?php if ( ! empty( $sus['note'] ) ) : ?>
 								<br /><span class="description"><?php echo esc_html( (string) $sus['note'] ); ?></span>
@@ -743,7 +743,7 @@ $active_log      = ( ! empty( $active_progress['log'] ) && is_array( $active_pro
 						<td>
 							<select class="ucpf-sus-category">
 								<?php foreach ( array( 'marketing', 'analytics', 'preferences', 'functional', 'security' ) as $opt ) : ?>
-									<option value="<?php echo esc_attr( $opt ); ?>" <?php selected( $cat, $opt ); ?>><?php echo esc_html( $opt ); ?></option>
+									<option value="<?php echo esc_attr( $opt ); ?>" <?php selected( $sug_cat, $opt ); ?>><?php echo esc_html( $opt ); ?></option>
 								<?php endforeach; ?>
 							</select>
 						</td>
@@ -869,8 +869,8 @@ $active_log      = ( ! empty( $active_progress['log'] ) && is_array( $active_pro
 							</td>
 							<td class="ucpf-cell-cat">
 								<select class="ucpf-sug-category">
-									<?php foreach ( array( 'analytics', 'marketing', 'preferences', 'functional' ) as $cat ) : ?>
-										<option value="<?php echo esc_attr( $cat ); ?>" <?php selected( $sug['category'], $cat ); ?>><?php echo esc_html( $cat ); ?></option>
+									<?php foreach ( array( 'analytics', 'marketing', 'preferences', 'functional' ) as $cat_opt ) : ?>
+										<option value="<?php echo esc_attr( $cat_opt ); ?>" <?php selected( $sug['category'], $cat_opt ); ?>><?php echo esc_html( $cat_opt ); ?></option>
 									<?php endforeach; ?>
 								</select>
 							</td>
@@ -933,7 +933,13 @@ $active_log      = ( ! empty( $active_progress['log'] ) && is_array( $active_pro
 						body: JSON.stringify({ host: host, category: cat })
 					}).then(function (r) { return r.json(); }).then(function (data) {
 						flash((data && data.message) || 'Applied.');
-						if (data && data.success) { row.querySelector('.ucpf-badge') || row.cells[0].insertAdjacentHTML('beforeend', ' <span class="ucpf-badge">applied</span>'); }
+						if (data && data.success && !row.querySelector('.ucpf-badge') && row.cells[0]) {
+							var badge = document.createElement('span');
+							badge.className = 'ucpf-badge';
+							badge.textContent = 'applied';
+							row.cells[0].appendChild(document.createTextNode(' '));
+							row.cells[0].appendChild(badge);
+						}
 					}).catch(function () { flash('Request failed.'); });
 				});
 			});

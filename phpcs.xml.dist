@@ -51,6 +51,12 @@
 		<exclude-pattern>*/templates/*</exclude-pattern>
 	</rule>
 
+	<!-- Included view/template locals are not runtime WP globals; renamed away from $title/$page/$cat anyway. -->
+	<rule ref="WordPress.WP.GlobalVariablesOverride.Prohibited">
+		<exclude-pattern>*/admin/views/*</exclude-pattern>
+		<exclude-pattern>*/templates/*</exclude-pattern>
+	</rule>
+
 	<!-- WP Consent API compatibility requires unprefixed wp_consent_* hook names. -->
 	<rule ref="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound">
 		<exclude-pattern>*/includes/integrations/class-wp-consent-api-shim.php</exclude-pattern>

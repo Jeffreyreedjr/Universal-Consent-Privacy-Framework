@@ -43,11 +43,15 @@ export function isPrivateOrBlockedIp(ip) {
     return false;
   }
 
-  // IPv6 private / ULA / link-local
+  // IPv6 private / ULA / link-local / IPv4-mapped / documentation
   if (net.isIPv6(normalized)) {
     if (normalized.startsWith('fc') || normalized.startsWith('fd')) return true; // ULA
     if (normalized.startsWith('fe80')) return true;
     if (normalized.startsWith('ff')) return true; // multicast
+    if (normalized.startsWith('2001:db8')) return true; // documentation
+    // IPv4-mapped :ffff:x.x.x.x
+    const mapped = normalized.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i);
+    if (mapped && isPrivateOrBlockedIp(mapped[1])) return true;
     return false;
   }
 

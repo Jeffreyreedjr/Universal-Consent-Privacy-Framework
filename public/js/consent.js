@@ -1019,15 +1019,6 @@
     return (ctx || document).querySelector(sel);
   }
 
-  function escapeHtml(str) {
-    return String(str == null ? '' : str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
   function getFocusable(container) {
     if (!container) return [];
     return Array.prototype.slice.call(
@@ -1202,7 +1193,9 @@
   function renderPrefs() {
     var container = document.getElementById('ucpf-prefs-categories');
     if (!container) return;
-    container.innerHTML = '';
+    while (container.firstChild) {
+      container.removeChild(container.firstChild);
+    }
     Object.keys(config.categories || {}).forEach(function (slug) {
       var cat = config.categories[slug];
       var row = document.createElement('div');
@@ -1210,25 +1203,48 @@
       row.setAttribute('data-ucpf-pref-slug', slug);
       var checked = !!state.categories[slug];
       var locked = !!cat.required;
-      var labelId = 'ucpf-cat-label-' + slug;
-      var descId = 'ucpf-cat-desc-' + slug;
+      var safeId = String(slug).replace(/[^a-zA-Z0-9_-]/g, '_');
+      var labelId = 'ucpf-cat-label-' + safeId;
+      var descId = 'ucpf-cat-desc-' + safeId;
       var switchLabel = (cat.label || slug) + (locked ? ' (always on)' : '');
-      row.innerHTML =
-        '<div>' +
-          '<p class="ucpf-prefs__category-name" id="' + labelId + '">' + escapeHtml(cat.label || slug) + '</p>' +
-          '<p class="ucpf-prefs__category-desc" id="' + descId + '">' + escapeHtml(cat.description || '') + '</p>' +
-        '</div>' +
-        '<button type="button" class="ucpf-toggle' + (locked ? ' ucpf-toggle--locked' : '') + '"' +
-          ' role="switch"' +
-          ' aria-checked="' + (checked ? 'true' : 'false') + '"' +
-          ' aria-labelledby="' + labelId + '"' +
-          ' aria-describedby="' + descId + '"' +
-          (locked ? ' aria-disabled="true" tabindex="-1"' : '') +
-          ' data-category="' + escapeHtml(slug) + '"' +
-          ' title="' + escapeHtml(switchLabel) + '">' +
-          '<span class="ucpf-toggle__thumb" aria-hidden="true"></span>' +
-          '<span class="screen-reader-text">' + escapeHtml(switchLabel) + '</span>' +
-        '</button>';
+
+      var textWrap = document.createElement('div');
+      var nameEl = document.createElement('p');
+      nameEl.className = 'ucpf-prefs__category-name';
+      nameEl.id = labelId;
+      nameEl.textContent = cat.label || slug;
+      var descEl = document.createElement('p');
+      descEl.className = 'ucpf-prefs__category-desc';
+      descEl.id = descId;
+      descEl.textContent = cat.description || '';
+      textWrap.appendChild(nameEl);
+      textWrap.appendChild(descEl);
+
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'ucpf-toggle' + (locked ? ' ucpf-toggle--locked' : '');
+      btn.setAttribute('role', 'switch');
+      btn.setAttribute('aria-checked', checked ? 'true' : 'false');
+      btn.setAttribute('aria-labelledby', labelId);
+      btn.setAttribute('aria-describedby', descId);
+      if (locked) {
+        btn.setAttribute('aria-disabled', 'true');
+        btn.tabIndex = -1;
+      }
+      btn.setAttribute('data-category', slug);
+      btn.title = switchLabel;
+
+      var thumb = document.createElement('span');
+      thumb.className = 'ucpf-toggle__thumb';
+      thumb.setAttribute('aria-hidden', 'true');
+      var sr = document.createElement('span');
+      sr.className = 'screen-reader-text';
+      sr.textContent = switchLabel;
+      btn.appendChild(thumb);
+      btn.appendChild(sr);
+
+      row.appendChild(textWrap);
+      row.appendChild(btn);
       container.appendChild(row);
     });
 

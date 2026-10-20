@@ -111,10 +111,19 @@ class Secrets {
 	}
 
 	/**
+	 * Last seal failure (WP_Error) from seal_in_array, or null.
+	 *
+	 * @var \WP_Error|null
+	 */
+	private static $last_seal_error = null;
+
+	/**
 	 * Encrypt plaintext for storage. Empty stays empty. Already sealed left as-is.
 	 *
+	 * Fail-closed: returns WP_Error when encryption is unavailable (never plaintext).
+	 *
 	 * @param string $plaintext Secret.
-	 * @return string
+	 * @return string|\WP_Error
 	 */
 	public static function seal( $plaintext ) {
 		$plaintext = (string) $plaintext;
@@ -123,6 +132,18 @@ class Secrets {
 		}
 		if ( self::is_sealed( $plaintext ) ) {
 			return $plaintext;
+		}
+
+		/**
+		 * Force seal failure (tests / emergency). Default false.
+		 *
+		 * @param bool $deny Deny sealing.
+		 */
+		if ( apply_filters( 'ucpf_secrets_deny_seal', false ) ) {
+			return new \WP_Error(
+				'ucpf_seal_failed',
+				__( 'Unable to encrypt API secrets at rest. Install sodium or OpenSSL with AES-256-GCM, or set secrets via wp-config constants.', 'universal-consent-privacy-framework' )
+			);
 		}
 
 		$key = self::key_bytes();
@@ -146,11 +167,23 @@ class Secrets {
 					return self::PREFIX_OPENSSL . base64_encode( $iv . $tag . $cipher ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
 				}
 			} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
-				// Last resort: store plaintext (same as pre-hardening).
+				// Fail closed below.
 			}
 		}
 
-		return $plaintext;
+		return new \WP_Error(
+			'ucpf_seal_failed',
+			__( 'Unable to encrypt API secrets at rest. Install sodium or OpenSSL with AES-256-GCM, or set secrets via wp-config constants.', 'universal-consent-privacy-framework' )
+		);
+	}
+
+	/**
+	 * Last error from seal_in_array, if any.
+	 *
+	 * @return \WP_Error|null
+	 */
+	public static function last_seal_error() {
+		return self::$last_seal_error;
 	}
 
 	/**
@@ -200,15 +233,24 @@ class Secrets {
 	/**
 	 * Seal secret keys present in an array (in place copy).
 	 *
+	 * On seal failure the key is omitted so callers keep the previous sealed value.
+	 *
 	 * @param array $settings Settings.
 	 * @return array
 	 */
 	public static function seal_in_array( array $settings ) {
+		self::$last_seal_error = null;
 		foreach ( self::KEYS as $key ) {
 			if ( ! array_key_exists( $key, $settings ) ) {
 				continue;
 			}
-			$settings[ $key ] = self::seal( (string) $settings[ $key ] );
+			$sealed = self::seal( (string) $settings[ $key ] );
+			if ( is_wp_error( $sealed ) ) {
+				self::$last_seal_error = $sealed;
+				unset( $settings[ $key ] );
+				continue;
+			}
+			$settings[ $key ] = $sealed;
 		}
 		return $settings;
 	}
@@ -250,7 +292,11 @@ class Secrets {
 			if ( self::is_sealed( $raw[ $key ] ) ) {
 				continue;
 			}
-			$raw[ $key ] = self::seal( $raw[ $key ] );
+			$sealed = self::seal( $raw[ $key ] );
+			if ( is_wp_error( $sealed ) ) {
+				continue;
+			}
+			$raw[ $key ] = $sealed;
 			$changed     = true;
 		}
 		if ( ! $changed ) {

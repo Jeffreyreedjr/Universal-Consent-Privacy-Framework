@@ -1,0 +1,107 @@
+name: Security checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  osv:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install OSV-Scanner
+        run: |
+          curl -sSfL https://github.com/google/osv-scanner/releases/download/v2.0.3/osv-scanner_linux_amd64 -o /usr/local/bin/osv-scanner
+          chmod +x /usr/local/bin/osv-scanner
+          osv-scanner --version
+
+      - name: Scan dependency manifests
+        # Fail the job on scanner errors; vulnerabilities are reported but do not hard-fail
+        # until the backlog is triaged (exit 1 = vulns found). Use --all-packages for npm.
+        run: |
+          set +e
+          osv-scanner scan --recursive \
+            --skip-git \
+            ./package.json \
+            ./tools/ucpf-scanner/package-lock.json
+          code=$?
+          if [ "$code" -eq 0 ] || [ "$code" -eq 1 ]; then
+            # 0 = clean, 1 = vulnerabilities found (reported; do not block until baseline cleared)
+            exit 0
+          fi
+          # Other codes = tool/config failure — fail visibly
+          exit "$code"
+
+  scanner-security:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tools/ucpf-scanner
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: tools/ucpf-scanner/package-lock.json
+
+      - name: Install (no Playwright browsers)
+        run: npm ci --ignore-scripts
+
+      - name: Security unit tests
+        run: npm run test:security
+
+  php-security-selftests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+
+      - name: Http_Url_Guard self-test
+        run: php tests/security/http-url-guard-selftest.php
+
+      - name: CSS sanitize self-test
+        run: php tests/security/css-sanitize-selftest.php
+
+      - name: Connection pairing self-test
+        run: php tests/security/connection-pairing-selftest.php
+
+      - name: Same-site HTTP redirect self-test
+        run: php tests/security/same-site-http-selftest.php
+
+      - name: Privacy signature self-test
+        run: php tests/security/privacy-signature-selftest.php
+
+      - name: Secrets seal self-test
+        run: php tests/security/secrets-seal-selftest.php
+
+      - name: UI-safe href self-test
+        run: php tests/security/ui-safe-href-selftest.php

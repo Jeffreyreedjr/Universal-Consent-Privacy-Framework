@@ -11,6 +11,7 @@
     "start": "node src/index.js",
     "scan": "node src/cli.js",
     "test:classify": "node scripts/acceptance-fixtures.mjs",
+    "test:security": "node scripts/security-tests.mjs",
     "coverage:fleet": "node scripts/coverage-report.mjs",
     "sync:plugin-paths": "node scripts/sync-plugin-paths-from-fingerprints.mjs",
     "postinstall": "npx playwright install chromium"

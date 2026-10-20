@@ -60,7 +60,9 @@ UCPF_SCANNER_API_KEYS=generate-a-long-random-secret-here
 | `UCPF_SCANNER_MAX_QUEUE` | Waiting jobs when slots are full (default **200**) |
 | `UCPF_SCANNER_MAX_RUNNING_PER_KEY` | Max running jobs per API key (default **1**) |
 | `UCPF_SCANNER_MAX_QUEUED_PER_KEY` | Max queued jobs per API key (default **2**) |
-| `UCPF_SCANNER_ADMIN_KEYS` | Keys allowed to `cancel-all` (default: first key in `API_KEYS`) |
+| `UCPF_SCANNER_ADMIN_KEYS` | Keys allowed to `cancel-all` and list all tenants’ jobs. **Required** for admin ops — there is no first-key fallback. |
+| `UCPF_SCANNER_TRUST_PROXY` | Set to `1` only behind a trusted reverse proxy so `X-Forwarded-For` is used for rate limits. Default off. |
+| `UCPF_SCANNER_RECIPE` | Optional local recipe JSON path (env/CLI only — **never** accepted from HTTP `options`). |
 | `UCPF_SCANNER_DATA_DIR` | Durable queue/job store (SQLite on Node 22+, else JSON) |
 | `UCPF_SCANNER_SETTLE_MS` | Wait after nav / consent before cookie capture (default **2500**) |
 | `UCPF_SCANNER_PAGE_GAP_MS` | Pause between pages in a session (default **600**) |
@@ -223,7 +225,7 @@ The scanner is **dummy-proof for shared hosts**:
 2. **Per-key caps** stop one chatty site from filling the node (`MAX_RUNNING_PER_KEY` / `MAX_QUEUED_PER_KEY`).
 3. WordPress **never auto cancel-all** on busy — that used to kill every tenant’s job.
 4. Jobs persist under `UCPF_SCANNER_DATA_DIR` (SQLite on Node 22+, else JSON) so a restart re-queues work.
-5. `cancel-all` requires an **admin key** (`UCPF_SCANNER_ADMIN_KEYS` or the first API key).
+5. `cancel-all` requires an **admin key** in `UCPF_SCANNER_ADMIN_KEYS` (no first-key fallback).
 6. Stuck **“Queued — position 1 of 1” at 0%** after restart: usually a hung/persisted job or Chromium slot desync — not a missing WordPress integration. Clear with **Advanced → Emergency: reset all scanner jobs**, or on the host:
 
 ```bash

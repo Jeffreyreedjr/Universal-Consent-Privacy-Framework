@@ -470,8 +470,9 @@ class Theme_Manager {
 		}
 
 		if ( array_key_exists( 'logo_url', $theme ) ) {
-			$url = esc_url_raw( (string) $theme['logo_url'] );
-			$clean['logo_url'] = $url ? $url : '';
+			$clean['logo_url'] = function_exists( 'ucpf_sanitize_public_http_url' )
+				? ucpf_sanitize_public_http_url( (string) $theme['logo_url'] )
+				: esc_url_raw( (string) $theme['logo_url'] );
 		}
 
 		// Optional tokens block overlays color fields when present.
@@ -546,6 +547,12 @@ class Theme_Manager {
 		$css = preg_replace( '/<\/?\s*style\b[^>]*>/i', '', $css );
 		// Prevent leaving the `.ucpf-custom { ... }` wrapper.
 		$css = str_replace( array( '{', '}' ), '', $css );
+		// Block CSS-based exfil / remote include vectors.
+		$css = preg_replace( '/@import\b[^;]*/i', '', $css );
+		$css = preg_replace( '/url\s*\([^)]*\)/i', '', $css );
+		$css = preg_replace( '/expression\s*\([^)]*\)/i', '', $css );
+		$css = preg_replace( '/-moz-binding\s*:[^;]*/i', '', $css );
+		$css = preg_replace( '/behavior\s*:[^;]*/i', '', $css );
 		return trim( (string) $css );
 	}
 

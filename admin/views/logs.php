@@ -4,10 +4,10 @@ defined( 'ABSPATH' ) || exit;
 // phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- included template; locals are not plugin globals.
 
 $items      = isset( $logs['items'] ) && is_array( $logs['items'] ) ? $logs['items'] : array();
-$page       = isset( $logs['page'] ) ? max( 1, (int) $logs['page'] ) : 1;
-$pages      = isset( $logs['pages'] ) ? max( 0, (int) $logs['pages'] ) : 0;
-$total      = isset( $logs['total'] ) ? max( 0, (int) $logs['total'] ) : 0;
-$per_page   = isset( $logs['per_page'] ) ? max( 1, (int) $logs['per_page'] ) : 50;
+$log_page     = isset( $logs['page'] ) ? max( 1, (int) $logs['page'] ) : 1;
+$log_pages    = isset( $logs['pages'] ) ? max( 0, (int) $logs['pages'] ) : 0;
+$total        = isset( $logs['total'] ) ? max( 0, (int) $logs['total'] ) : 0;
+$log_per_page = isset( $logs['per_page'] ) ? max( 1, (int) $logs['per_page'] ) : 50;
 $retention  = isset( $retention_days ) ? max( 1, (int) $retention_days ) : 360;
 $filters    = isset( $logs['filters'] ) && is_array( $logs['filters'] ) ? $logs['filters'] : array();
 $view       = isset( $logs['view'] ) ? sanitize_key( (string) $logs['view'] ) : 'by_day';
@@ -167,7 +167,7 @@ if ( 'by_day' === $view ) {
 		<span class="description"><?php esc_html_e( 'Exports matching events (up to 5,000), including categories and region.', 'universal-consent-privacy-framework' ); ?></span>
 	</form>
 
-	<?php if ( $pages > 1 ) : ?>
+	<?php if ( $log_pages > 1 ) : ?>
 		<div class="tablenav top">
 			<div class="tablenav-pages">
 				<span class="displaying-num">
@@ -176,8 +176,8 @@ if ( 'by_day' === $view ) {
 						sprintf(
 							/* translators: 1: current page, 2: total pages */
 							__( 'Page %1$d of %2$d', 'universal-consent-privacy-framework' ),
-							$page,
-							$pages
+							$log_page,
+							$log_pages
 						)
 					);
 					?>
@@ -188,8 +188,8 @@ if ( 'by_day' === $view ) {
 						array(
 							'base'      => add_query_arg( 'paged', '%#%', $base_url ),
 							'format'    => '',
-							'current'   => $page,
-							'total'     => $pages,
+							'current'   => $log_page,
+							'total'     => $log_pages,
 							'prev_text' => '&laquo;',
 							'next_text' => '&raquo;',
 							'type'      => 'plain',
@@ -346,7 +346,7 @@ if ( 'by_day' === $view ) {
 	<?php endif; ?>
 	</div>
 
-	<?php if ( $pages > 1 ) : ?>
+	<?php if ( $log_pages > 1 ) : ?>
 		<div class="tablenav bottom">
 			<div class="tablenav-pages">
 				<?php
@@ -355,8 +355,8 @@ if ( 'by_day' === $view ) {
 						array(
 							'base'      => add_query_arg( 'paged', '%#%', $base_url ),
 							'format'    => '',
-							'current'   => $page,
-							'total'     => $pages,
+							'current'   => $log_page,
+							'total'     => $log_pages,
 							'prev_text' => '&laquo;',
 							'next_text' => '&raquo;',
 							'type'      => 'plain',

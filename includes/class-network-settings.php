@@ -218,7 +218,7 @@ class Network_Settings {
 		$clean = array();
 
 		if ( isset( $input['scanner_api_url'] ) ) {
-			$clean['scanner_api_url'] = Settings::normalize_url( (string) $input['scanner_api_url'] );
+			$clean['scanner_api_url'] = Settings::normalize_outbound_url( (string) $input['scanner_api_url'] );
 		}
 		if ( array_key_exists( 'scanner_api_key', $input ) ) {
 			$key_in = Settings::sanitize_secret( (string) $input['scanner_api_key'] );
@@ -227,7 +227,7 @@ class Network_Settings {
 			}
 		}
 		if ( isset( $input['privacy_api_url'] ) ) {
-			$clean['privacy_api_url'] = Settings::normalize_url( (string) $input['privacy_api_url'] );
+			$clean['privacy_api_url'] = Settings::normalize_outbound_url( (string) $input['privacy_api_url'] );
 		}
 		if ( array_key_exists( 'privacy_api_key', $input ) ) {
 			$key_in = Settings::sanitize_secret( (string) $input['privacy_api_key'] );
@@ -250,7 +250,7 @@ class Network_Settings {
 		}
 		$clean['remote_registry_enabled'] = ! empty( $input['remote_registry_enabled'] );
 		if ( isset( $input['remote_registry_url'] ) ) {
-			$clean['remote_registry_url'] = esc_url_raw( (string) $input['remote_registry_url'] );
+			$clean['remote_registry_url'] = Settings::normalize_outbound_url( (string) $input['remote_registry_url'] );
 		}
 
 		return $clean;

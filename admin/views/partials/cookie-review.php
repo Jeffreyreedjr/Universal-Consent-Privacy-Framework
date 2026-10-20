@@ -238,8 +238,8 @@ $default_tab    = $unknown_count > 0 ? 'attention' : 'known';
 									<label class="screen-reader-text" for="ucpf-unknown-cat-scanner-<?php echo esc_attr( (string) $i ); ?>"><?php esc_html_e( 'Category', 'universal-consent-privacy-framework' ); ?></label>
 									<select id="ucpf-unknown-cat-scanner-<?php echo esc_attr( (string) $i ); ?>" class="ucpf-unknown-category" required>
 										<option value=""><?php esc_html_e( '— Select category —', 'universal-consent-privacy-framework' ); ?></option>
-										<?php foreach ( $categories as $cat_key => $cat ) : ?>
-											<option value="<?php echo esc_attr( $cat_key ); ?>" <?php selected( $cat_val, $cat_key ); ?>><?php echo esc_html( isset( $cat['label'] ) ? $cat['label'] : $cat_key ); ?></option>
+										<?php foreach ( $categories as $cat_key => $cat_def ) : ?>
+											<option value="<?php echo esc_attr( $cat_key ); ?>" <?php selected( $cat_val, $cat_key ); ?>><?php echo esc_html( isset( $cat_def['label'] ) ? $cat_def['label'] : $cat_key ); ?></option>
 										<?php endforeach; ?>
 									</select>
 								</td>
@@ -322,8 +322,8 @@ $default_tab    = $unknown_count > 0 ? 'attention' : 'known';
 								</td>
 								<td>
 									<select class="ucpf-known-category">
-										<?php foreach ( $categories as $cat_key => $cat ) : ?>
-											<option value="<?php echo esc_attr( $cat_key ); ?>" <?php selected( $cat_val, $cat_key ); ?>><?php echo esc_html( isset( $cat['label'] ) ? $cat['label'] : $cat_key ); ?></option>
+										<?php foreach ( $categories as $cat_key => $cat_def ) : ?>
+											<option value="<?php echo esc_attr( $cat_key ); ?>" <?php selected( $cat_val, $cat_key ); ?>><?php echo esc_html( isset( $cat_def['label'] ) ? $cat_def['label'] : $cat_key ); ?></option>
 										<?php endforeach; ?>
 									</select>
 								</td>
@@ -375,8 +375,8 @@ $default_tab    = $unknown_count > 0 ? 'attention' : 'known';
 							<td><?php echo esc_html( $sname ); ?></td>
 							<td>
 								<select class="ucpf-service-override-category">
-									<?php foreach ( $categories as $cat_key => $cat ) : ?>
-										<option value="<?php echo esc_attr( $cat_key ); ?>" <?php selected( $scat, $cat_key ); ?>><?php echo esc_html( isset( $cat['label'] ) ? $cat['label'] : $cat_key ); ?></option>
+									<?php foreach ( $categories as $cat_key => $cat_def ) : ?>
+										<option value="<?php echo esc_attr( $cat_key ); ?>" <?php selected( $scat, $cat_key ); ?>><?php echo esc_html( isset( $cat_def['label'] ) ? $cat_def['label'] : $cat_key ); ?></option>
 									<?php endforeach; ?>
 								</select>
 							</td>
@@ -474,8 +474,8 @@ $default_tab    = $unknown_count > 0 ? 'attention' : 'known';
 							</td>
 							<td>
 								<select class="ucpf-known-category">
-									<?php foreach ( $categories as $cat_key => $cat ) : ?>
-										<option value="<?php echo esc_attr( $cat_key ); ?>" <?php selected( $cat_val, $cat_key ); ?>><?php echo esc_html( isset( $cat['label'] ) ? $cat['label'] : $cat_key ); ?></option>
+									<?php foreach ( $categories as $cat_key => $cat_def ) : ?>
+										<option value="<?php echo esc_attr( $cat_key ); ?>" <?php selected( $cat_val, $cat_key ); ?>><?php echo esc_html( isset( $cat_def['label'] ) ? $cat_def['label'] : $cat_key ); ?></option>
 									<?php endforeach; ?>
 								</select>
 							</td>
@@ -561,8 +561,8 @@ $default_tab    = $unknown_count > 0 ? 'attention' : 'known';
 								<label class="screen-reader-text" for="ucpf-unknown-cat-wizard-<?php echo esc_attr( (string) $i ); ?>"><?php esc_html_e( 'Category', 'universal-consent-privacy-framework' ); ?></label>
 								<select id="ucpf-unknown-cat-wizard-<?php echo esc_attr( (string) $i ); ?>" class="ucpf-unknown-category" name="unknown_cookies[<?php echo esc_attr( (string) $i ); ?>][category]" required>
 									<option value=""><?php esc_html_e( '— Select category —', 'universal-consent-privacy-framework' ); ?></option>
-									<?php foreach ( $categories as $cat_key => $cat ) : ?>
-										<option value="<?php echo esc_attr( $cat_key ); ?>" <?php selected( $cat_val, $cat_key ); ?>><?php echo esc_html( isset( $cat['label'] ) ? $cat['label'] : $cat_key ); ?></option>
+									<?php foreach ( $categories as $cat_key => $cat_def ) : ?>
+										<option value="<?php echo esc_attr( $cat_key ); ?>" <?php selected( $cat_val, $cat_key ); ?>><?php echo esc_html( isset( $cat_def['label'] ) ? $cat_def['label'] : $cat_key ); ?></option>
 									<?php endforeach; ?>
 								</select>
 							</td>
@@ -613,8 +613,8 @@ $default_tab    = $unknown_count > 0 ? 'attention' : 'known';
 						</td>
 						<td>
 							<select class="ucpf-service-override-category" name="service_overrides[<?php echo esc_attr( $skey ); ?>][category]">
-								<?php foreach ( $categories as $cat_key => $cat ) : ?>
-									<option value="<?php echo esc_attr( $cat_key ); ?>" <?php selected( $scat, $cat_key ); ?>><?php echo esc_html( isset( $cat['label'] ) ? $cat['label'] : $cat_key ); ?></option>
+								<?php foreach ( $categories as $cat_key => $cat_def ) : ?>
+									<option value="<?php echo esc_attr( $cat_key ); ?>" <?php selected( $scat, $cat_key ); ?>><?php echo esc_html( isset( $cat_def['label'] ) ? $cat_def['label'] : $cat_key ); ?></option>
 								<?php endforeach; ?>
 							</select>
 						</td>

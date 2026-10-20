@@ -48,15 +48,15 @@ $labels = array(
 		<ul class="ucpf-page-list">
 			<?php foreach ( $labels as $key => $label ) : ?>
 				<?php
-				$id  = isset( $settings['generated_pages'][ $key ] ) ? (int) $settings['generated_pages'][ $key ] : 0;
-				$url = $id ? get_permalink( $id ) : '';
+				$page_id = isset( $settings['generated_pages'][ $key ] ) ? (int) $settings['generated_pages'][ $key ] : 0;
+				$url     = $page_id ? get_permalink( $page_id ) : '';
 				?>
 				<li class="ucpf-page-list__item">
 					<span class="ucpf-page-list__label"><?php echo esc_html( $label ); ?></span>
 					<?php if ( $url ) : ?>
 						<span class="ucpf-page-list__actions">
-							<a href="<?php echo esc_url( $url ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'View', 'universal-consent-privacy-framework' ); ?></a>
-							<a href="<?php echo esc_url( get_edit_post_link( $id ) ); ?>"><?php esc_html_e( 'Edit', 'universal-consent-privacy-framework' ); ?></a>
+							<a href="<?php echo esc_url( $url ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'View', 'universal-consent-privacy-framework' ); ?></a>
+							<a href="<?php echo esc_url( get_edit_post_link( $page_id ) ); ?>"><?php esc_html_e( 'Edit', 'universal-consent-privacy-framework' ); ?></a>
 						</span>
 					<?php else : ?>
 						<span class="ucpf-page-list__meta"><?php esc_html_e( 'Not created', 'universal-consent-privacy-framework' ); ?></span>
@@ -127,7 +127,7 @@ $labels = array(
 						<?php if ( $resolved_dr ) : ?>
 							<p class="ucpf-resolved">
 								<?php esc_html_e( 'Resolved link:', 'universal-consent-privacy-framework' ); ?>
-								<span class="ucpf-resolved__url"><a href="<?php echo esc_url( $resolved_dr ); ?>" target="_blank" rel="noopener"><?php echo esc_html( $resolved_dr ); ?></a></span>
+								<span class="ucpf-resolved__url"><a href="<?php echo esc_url( $resolved_dr ); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html( $resolved_dr ); ?></a></span>
 							</p>
 						<?php endif; ?>
 					</td>
@@ -139,7 +139,7 @@ $labels = array(
 						<?php if ( $resolved_dns ) : ?>
 							<p class="ucpf-resolved">
 								<?php esc_html_e( 'Resolved link:', 'universal-consent-privacy-framework' ); ?>
-								<span class="ucpf-resolved__url"><a href="<?php echo esc_url( $resolved_dns ); ?>" target="_blank" rel="noopener"><?php echo esc_html( $resolved_dns ); ?></a></span>
+								<span class="ucpf-resolved__url"><a href="<?php echo esc_url( $resolved_dns ); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html( $resolved_dns ); ?></a></span>
 							</p>
 						<?php endif; ?>
 					</td>

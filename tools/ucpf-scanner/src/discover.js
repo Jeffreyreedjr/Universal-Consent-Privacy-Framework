@@ -5,6 +5,7 @@
 
 import { URL } from 'node:url';
 import { assertSafePublicUrl } from './ssrf.js';
+import { safeFetch } from './safe-fetch.js';
 
 const PRIORITY_RE = [
   { re: /(checkout|cart|payment)/i, score: 0 },
@@ -66,17 +67,9 @@ export async function discoverSitePaths(siteUrl, opts = {}) {
   }
 
   try {
-    const homeRes = await fetch(origin + '/', {
-      redirect: 'follow',
-      headers: {
-        'user-agent':
-          process.env.UCPF_SCANNER_UA ||
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-      },
-      signal: AbortSignal.timeout(15000),
-    });
-    if (homeRes.ok) {
-      const html = await homeRes.text();
+    const home = await safeFetch(origin + '/', { timeoutMs: 15000 });
+    if (home.ok && home.response.ok) {
+      const html = await home.response.text();
       const hrefRe = /<a\s[^>]*href\s*=\s*["']([^"']+)["']/gi;
       let m;
       while ((m = hrefRe.exec(html)) !== null) {
@@ -105,18 +98,9 @@ export async function discoverSitePaths(siteUrl, opts = {}) {
 async function fetchSitemapLocs(url, host, depth) {
   if (depth > 1) return [];
   try {
-    const safe = await assertSafePublicUrl(url);
-    if (!safe.ok) return [];
-    const res = await fetch(safe.url, {
-      redirect: 'follow',
-      headers: {
-        'user-agent':
-          process.env.UCPF_SCANNER_UA ||
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-      },
-      signal: AbortSignal.timeout(12000),
-    });
-    if (!res.ok) return [];
+    const fetched = await safeFetch(url, { timeoutMs: 12000 });
+    if (!fetched.ok || !fetched.response.ok) return [];
+    const res = fetched.response;
     const body = await res.text();
     if (!/<loc/i.test(body)) return [];
 

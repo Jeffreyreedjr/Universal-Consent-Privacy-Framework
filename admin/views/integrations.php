@@ -43,10 +43,10 @@ $gtm_pending = \UCPF\Tracking_Templates::get_pending_gtm_scan_suggestions( $serv
 				foreach ( $templates as $key => $meta ) :
 					$row     = isset( $service_ids[ $key ] ) && is_array( $service_ids[ $key ] ) ? $service_ids[ $key ] : array();
 					$enabled = ! empty( $row['enabled'] );
-					$id      = isset( $row['id'] ) ? $row['id'] : '';
+					$svc_id  = isset( $row['id'] ) ? $row['id'] : '';
 					$tag_id  = isset( $row['tag_id'] ) ? $row['tag_id'] : '';
 					$code    = isset( $row['code'] ) ? $row['code'] : '';
-					$cat     = isset( $meta['category'] ) ? (string) $meta['category'] : '';
+					$svc_cat = isset( $meta['category'] ) ? (string) $meta['category'] : '';
 					?>
 					<article class="ucpf-integration-card<?php echo $enabled ? ' is-enabled' : ''; ?>">
 						<div class="ucpf-integration-card__enable">
@@ -59,8 +59,8 @@ $gtm_pending = \UCPF\Tracking_Templates::get_pending_gtm_scan_suggestions( $serv
 							<div class="ucpf-integration-card__head">
 								<h3 class="ucpf-integration-card__title"><?php echo esc_html( $meta['label'] ); ?></h3>
 								<code class="ucpf-slug"><?php echo esc_html( $key ); ?></code>
-								<?php if ( $cat ) : ?>
-									<span class="ucpf-cat ucpf-cat--<?php echo esc_attr( sanitize_key( $cat ) ); ?>"><?php echo esc_html( $cat ); ?></span>
+								<?php if ( $svc_cat ) : ?>
+									<span class="ucpf-cat ucpf-cat--<?php echo esc_attr( sanitize_key( $svc_cat ) ); ?>"><?php echo esc_html( $svc_cat ); ?></span>
 								<?php endif; ?>
 							</div>
 							<div class="ucpf-integration-card__fields">
@@ -80,7 +80,7 @@ $gtm_pending = \UCPF\Tracking_Templates::get_pending_gtm_scan_suggestions( $serv
 										class="regular-text"
 										id="ucpf-id-<?php echo esc_attr( $key ); ?>"
 										name="<?php echo esc_attr( $option_key ); ?>[service_ids][<?php echo esc_attr( $key ); ?>][id]"
-										value="<?php echo esc_attr( $id ); ?>"
+										value="<?php echo esc_attr( $svc_id ); ?>"
 										placeholder="<?php echo esc_attr( $meta['placeholder'] ); ?>"
 										autocomplete="off"
 									/>

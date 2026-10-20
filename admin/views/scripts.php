@@ -35,12 +35,12 @@ defined( 'ABSPATH' ) || exit;
 				</thead>
 				<tbody>
 				<?php foreach ( $services as $service ) :
-					$cat    = isset( $service['category'] ) ? (string) $service['category'] : '';
+					$svc_cat = isset( $service['category'] ) ? (string) $service['category'] : '';
 					$source = isset( $service['source'] ) ? (string) $service['source'] : 'core';
 					$hay    = strtolower(
 						( isset( $service['key'] ) ? $service['key'] : '' ) . ' ' .
 						( isset( $service['name'] ) ? $service['name'] : '' ) . ' ' .
-						$cat . ' ' .
+						$svc_cat . ' ' .
 						( isset( $service['provider'] ) ? $service['provider'] : '' ) . ' ' .
 						$source
 					);
@@ -52,7 +52,7 @@ defined( 'ABSPATH' ) || exit;
 								<span class="ucpf-service-name"><?php echo esc_html( $service['name'] ); ?></span>
 							</div>
 						</td>
-						<td><span class="ucpf-cat ucpf-cat--<?php echo esc_attr( sanitize_key( $cat ) ); ?>"><?php echo esc_html( $cat ); ?></span></td>
+						<td><span class="ucpf-cat ucpf-cat--<?php echo esc_attr( sanitize_key( $svc_cat ) ); ?>"><?php echo esc_html( $svc_cat ); ?></span></td>
 						<td><?php echo esc_html( $service['provider'] ); ?></td>
 						<td><?php echo esc_html( $source ); ?></td>
 					</tr>
