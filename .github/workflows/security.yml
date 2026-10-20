@@ -39,8 +39,8 @@ jobs:
         # until the backlog is triaged (exit 1 = vulns found). Use --all-packages for npm.
         run: |
           set +e
+          # OSV-Scanner v2+: root git scan is off by default (--skip-git removed).
           osv-scanner scan --recursive \
-            --skip-git \
             ./package.json \
             ./tools/ucpf-scanner/package-lock.json
           code=$?
