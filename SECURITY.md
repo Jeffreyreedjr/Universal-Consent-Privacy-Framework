@@ -34,3 +34,7 @@ Out of scope:
 - Scanner API requires keys for non-loopback clients
 - Prefer `UCPF_SCANNER_API_KEY` in `wp-config.php` over storing keys only in the database on production
 - Do not commit scan reports that contain client inventories
+- Scanner job reads are key-scoped; `cancel-all` requires `UCPF_SCANNER_ADMIN_KEYS`
+- Living hardening docs: [`docs/security/`](docs/security/) (threat model, coverage, findings, verification, runbook)
+
+A completed checklist or green CI job does **not** prove every vulnerability is gone.

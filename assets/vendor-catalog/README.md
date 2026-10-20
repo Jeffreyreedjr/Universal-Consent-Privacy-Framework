@@ -43,6 +43,9 @@ Current catalog defaults (keep categories aligned when adding vendors):
 - **MNTN** (`marketing.json`): `guid`, `tt` on `mountain.com` / `steelhouse.com` → `marketing` / `consent` (host context required)
 - **Akamai** (`core.json`): `rt` (mPulse / cache) → `necessary` / `necessary` (first-party RT allowed; `requires_host_context: false`)
 - **StreamYard** (`media-embeds.json`): `jwt`, `jwtOnAir` → `functional` / `consent`; `csrfToken` → `security` / `necessary` (host context on `streamyard.com`)
+- **WP Voting Contest** (`fleet-services.json`): `wpvc_contestant_URL` → `necessary`; `wpvc_freevoting_authorize` / `wpvc_freevoting_token` → `security` / `consent`
+- **Securenet Systems** (`media-embeds.json`): `STATIONCALLSIGN` radio player station cookie → `functional` / `consent` (host: `securenetsystems.net`)
+- **Square `_savt`** (`marketing.json` / square service): secure checkout session ID → `necessary` / `necessary` (scripts stay Embeds / consent)
 
 ## Public Cookie Policy display
 

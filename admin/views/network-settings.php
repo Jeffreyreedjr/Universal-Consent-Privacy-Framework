@@ -54,7 +54,7 @@ $notice = isset( $_GET['ucpf_net'] ) ? sanitize_key( wp_unslash( $_GET['ucpf_net
 			<tr>
 				<th scope="row"><label for="ucpf-net-scanner-key"><?php esc_html_e( 'Scanner API key', 'universal-consent-privacy-framework' ); ?></label></th>
 				<td>
-					<input type="password" class="regular-text" id="ucpf-net-scanner-key" name="scanner_api_key" value="" autocomplete="new-password" placeholder="<?php echo $scanner_key_set ? esc_attr__( '•••••••• (leave blank to keep)', 'universal-consent-privacy-framework' ) : ''; ?>" />
+					<input type="password" class="regular-text ucpf-secret-input" id="ucpf-net-scanner-key" name="scanner_api_key" value="" autocomplete="new-password" placeholder="<?php echo $scanner_key_set ? esc_attr__( '•••••••• (leave blank to keep)', 'universal-consent-privacy-framework' ) : ''; ?>" />
 					<p class="description"><?php esc_html_e( 'Shared key for the network (encrypted at rest). Prefer UCPF_SCANNER_API_KEY in wp-config.php on production. Sites may still set a per-site override key.', 'universal-consent-privacy-framework' ); ?></p>
 				</td>
 			</tr>
@@ -71,7 +71,7 @@ $notice = isset( $_GET['ucpf_net'] ) ? sanitize_key( wp_unslash( $_GET['ucpf_net
 			<tr>
 				<th scope="row"><label for="ucpf-net-privacy-key"><?php esc_html_e( 'API key', 'universal-consent-privacy-framework' ); ?></label></th>
 				<td>
-					<input type="password" class="regular-text" id="ucpf-net-privacy-key" name="privacy_api_key" value="" autocomplete="new-password" placeholder="<?php echo $privacy_key_set ? esc_attr__( '•••••••• (leave blank to keep)', 'universal-consent-privacy-framework' ) : ''; ?>" />
+					<input type="password" class="regular-text ucpf-secret-input" id="ucpf-net-privacy-key" name="privacy_api_key" value="" autocomplete="new-password" placeholder="<?php echo $privacy_key_set ? esc_attr__( '•••••••• (leave blank to keep)', 'universal-consent-privacy-framework' ) : ''; ?>" />
 				</td>
 			</tr>
 			<tr>

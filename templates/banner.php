@@ -22,7 +22,10 @@ if ( ! in_array( $position, array( 'left', 'center', 'right' ), true ) ) {
 $theme  = \UCPF\Theme_Manager::instance()->resolve_preset( Settings::get( 'banner_theme' ) );
 $layout_class = 'ucpf-banner--' . esc_attr( $layout ) . ' ucpf-banner--pos-' . esc_attr( $position );
 $cookie_policy_url = \UCPF\Page_Generator::instance()->get_page_url( 'cookie_policy' );
-$logo_url = Settings::get( 'logo_url' );
+$logo_raw = (string) Settings::get( 'logo_url' );
+$logo_url = function_exists( 'ucpf_sanitize_public_http_url' )
+	? ucpf_sanitize_public_http_url( $logo_raw )
+	: esc_url_raw( $logo_raw );
 $business_name = Settings::get( 'business_name' );
 $pack = \UCPF\Jurisdiction::instance()->resolve();
 $copy = isset( $pack['copy'] ) && is_array( $pack['copy'] ) ? $pack['copy'] : array();

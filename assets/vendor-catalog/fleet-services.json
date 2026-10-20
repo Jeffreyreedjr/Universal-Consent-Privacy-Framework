@@ -1494,6 +1494,56 @@
       "cookies": [],
       "iframe_patterns": [],
       "default_blocking": true
+    },
+    {
+      "key": "wp_voting_contest",
+      "name": "WP Voting Contest",
+      "provider": "WP Voting Contest",
+      "category": "necessary",
+      "treatment": "necessary",
+      "description": "WP Voting Contest / contest voting cookies (site URL + free-vote authorization tokens).",
+      "privacy_url": "",
+      "script_patterns": [
+        "/wp-content/plugins/wp-voting-contest",
+        "/wp-content/plugins/wp-voting-contest-lite",
+        "wp-voting-contest"
+      ],
+      "cookie_patterns": [
+        "wpvc_contestant_URL",
+        "wpvc_freevoting_authorize",
+        "wpvc_freevoting_token"
+      ],
+      "cookies": [
+        {
+          "name": "wpvc_contestant_URL",
+          "pattern": "wpvc_contestant_URL",
+          "purpose": "Stores the site URL used by the contest plugin’s voting features.",
+          "retention": "Session / days",
+          "category": "necessary",
+          "treatment": "necessary",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "wpvc_freevoting_authorize",
+          "pattern": "wpvc_freevoting_authorize",
+          "purpose": "Holds a short-lived authorization value for the free-voting flow.",
+          "retention": "Session / short-lived",
+          "category": "security",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        },
+        {
+          "name": "wpvc_freevoting_token",
+          "pattern": "wpvc_freevoting_token",
+          "purpose": "Holds a token used to validate free-vote requests.",
+          "retention": "Session / short-lived",
+          "category": "security",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"]
+        }
+      ],
+      "iframe_patterns": [],
+      "default_blocking": false
     }
   ]
 }

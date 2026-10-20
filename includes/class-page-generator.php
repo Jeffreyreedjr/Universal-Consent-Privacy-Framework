@@ -413,7 +413,9 @@ class Page_Generator {
 		if ( isset( $setting_map[ $key ] ) ) {
 			$external = trim( (string) Settings::get( $setting_map[ $key ], '' ) );
 			if ( '' !== $external ) {
-				return esc_url_raw( $external );
+				return function_exists( 'ucpf_sanitize_public_http_url' )
+					? ucpf_sanitize_public_http_url( $external )
+					: esc_url_raw( $external );
 			}
 		}
 		return $this->get_generated_page_url( $key );

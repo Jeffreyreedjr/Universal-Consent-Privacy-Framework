@@ -133,13 +133,59 @@
     $el.toggleClass('is-error', !!isError);
   }
 
-  function setStatusHtml(selector, html, isError) {
+  /**
+   * Set status content. Accepts a jQuery/DOM node for structured markup;
+   * string arguments are treated as plain text (never parsed as HTML).
+   */
+  function setStatusHtml(selector, content, isError) {
     var $el = $(selector);
     if (!$el.length) {
       return;
     }
-    $el.prop('hidden', false).html(html);
+    $el.prop('hidden', false).empty();
+    if (content && content.jquery) {
+      $el.append(content);
+    } else if (content && content.nodeType) {
+      $el.append(content);
+    } else if (content != null && content !== '') {
+      $el.text(String(content));
+    }
     $el.toggleClass('is-error', !!isError);
+  }
+
+  function setStatusNode(selector, text) {
+    var $el = $(selector);
+    if (!$el.length) {
+      return;
+    }
+    $el.empty().append($('<p class="description"></p>').text(text));
+  }
+
+  function enhanceSecretFields(root) {
+    $(root || document).find('input.ucpf-secret-input').each(function () {
+      var $input = $(this);
+      if ($input.data('ucpfSecretEnhanced') || $input.closest('.ucpf-secret-field').length) {
+        return;
+      }
+      $input.data('ucpfSecretEnhanced', true);
+      var $wrap = $('<span class="ucpf-secret-field"></span>');
+      $input.before($wrap);
+      $wrap.append($input);
+      var showLabel = (ucpfAdmin && ucpfAdmin.i18n && ucpfAdmin.i18n.showSecret) || 'Show';
+      var hideLabel = (ucpfAdmin && ucpfAdmin.i18n && ucpfAdmin.i18n.hideSecret) || 'Hide';
+      var $btn = $('<button type="button" class="button ucpf-secret-toggle"></button>')
+        .attr('aria-pressed', 'false')
+        .attr('aria-label', showLabel)
+        .text(showLabel);
+      $wrap.append($btn);
+      $btn.on('click', function () {
+        var revealing = $input.attr('type') === 'password';
+        $input.attr('type', revealing ? 'text' : 'password');
+        $btn.attr('aria-pressed', revealing ? 'true' : 'false')
+          .attr('aria-label', revealing ? hideLabel : showLabel)
+          .text(revealing ? hideLabel : showLabel);
+      });
+    });
   }
 
   function showReverifyPrompt(selector, message) {
@@ -705,7 +751,7 @@
   function loadScanUrls(depth, opts) {
     depth = depth || currentScanDepth();
     scanPickerState.depth = depth;
-    $('#ucpf-scanner-pages').html('<p class="description">Discovering pages…</p>');
+    setStatusNode('#ucpf-scanner-pages', 'Discovering pages…');
     // Depth is sent only for crawl-cap metadata; catalog is always full on the server.
     return restGet('scan/urls?depth=' + encodeURIComponent(depth)).then(function (payload) {
       applyScanUrlPayload(payload, opts || {});
@@ -1116,7 +1162,7 @@
       return;
     }
     loadScanUrls(currentScanDepth(), { preferSaved: true }).catch(function () {
-      $('#ucpf-scanner-pages').html('<p class="description">Could not load page list.</p>');
+      setStatusNode('#ucpf-scanner-pages', 'Could not load page list.');
       $('#ucpf-scanner-chips').empty();
     });
   }
@@ -2159,6 +2205,9 @@
   });
 
   $('#ucpf-stop-scan').on('click', function () {
+    if (!window.confirm('Stop the current scan? In-flight work on the scanner host may continue briefly.')) {
+      return;
+    }
     hardStopScan('#ucpf-scan-status');
   });
 
@@ -3306,6 +3355,7 @@
   syncCookieReviewTabFromHash();
   $(window).on('hashchange', syncCookieReviewTabFromHash);
 
+  enhanceSecretFields();
   wrapWideTables();
   if (window.MutationObserver) {
     var mo = new MutationObserver(function (mutations) {
@@ -3317,6 +3367,7 @@
       });
       if (needs) {
         wrapWideTables();
+        enhanceSecretFields();
       }
     });
     var main = document.querySelector('.ucpf-shell__main') || document.querySelector('.ucpf-admin');

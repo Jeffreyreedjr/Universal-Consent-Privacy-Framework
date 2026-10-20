@@ -7,6 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/ui-safe.php';
+
 /**
  * Check consent for a category or service.
  *

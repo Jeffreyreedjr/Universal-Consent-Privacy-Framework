@@ -298,7 +298,105 @@ class Settings {
 	 * @return array
 	 */
 	public static function prepare_for_storage( array $settings ) {
-		return Secrets::seal_in_array( $settings );
+		$stored = Secrets::seal_in_array( $settings );
+		$err    = Secrets::last_seal_error();
+		if ( $err && function_exists( 'add_settings_error' ) ) {
+			add_settings_error(
+				'ucpf_settings',
+				'ucpf_seal_failed',
+				$err->get_error_message(),
+				'error'
+			);
+		}
+		return $stored;
+	}
+
+	/**
+	 * Connection URL keys paired with API secrets (multisite inheritance safety).
+	 *
+	 * @return array<string, string> url_key => secret_key
+	 */
+	public static function connection_url_secret_pairs() {
+		return array(
+			'scanner_api_url' => 'scanner_api_key',
+			'privacy_api_url' => 'privacy_api_key',
+		);
+	}
+
+	/**
+	 * Whether the site option has a non-blank value for a network connection key.
+	 *
+	 * @param string $key Setting key.
+	 * @param array  $raw Site raw options.
+	 * @return bool
+	 */
+	private static function site_has_connection_value( $key, array $raw ) {
+		if ( ! array_key_exists( $key, $raw ) ) {
+			return false;
+		}
+		return ! Network_Settings::is_blank_value( $key, $raw[ $key ] );
+	}
+
+	/**
+	 * Pure decision helper: force network URL when site URL would inherit a network secret.
+	 *
+	 * @param string $url_key URL setting key.
+	 * @param array  $ctx {
+	 *     @type bool $is_multisite       Whether multisite.
+	 *     @type bool $has_constant       Secret provided via wp-config constant.
+	 *     @type bool $site_has_secret    Site option has non-blank secret.
+	 *     @type bool $site_has_url       Site option has non-blank URL.
+	 *     @type bool $network_has_secret Network option has non-blank secret.
+	 * }
+	 * @return bool
+	 */
+	public static function evaluate_force_network_connection_url( $url_key, array $ctx ) {
+		$pairs = self::connection_url_secret_pairs();
+		if ( ! isset( $pairs[ $url_key ] ) ) {
+			return false;
+		}
+		if ( empty( $ctx['is_multisite'] ) ) {
+			return false;
+		}
+		if ( ! empty( $ctx['has_constant'] ) ) {
+			return false;
+		}
+		if ( ! empty( $ctx['site_has_secret'] ) ) {
+			return false;
+		}
+		if ( empty( $ctx['site_has_url'] ) ) {
+			return false;
+		}
+		return ! empty( $ctx['network_has_secret'] );
+	}
+
+	/**
+	 * When a site sets a connection URL but inherits the secret from the network,
+	 * ignore the site URL and use the network URL (prevents secret exfiltration).
+	 *
+	 * @param string $url_key URL setting key.
+	 * @param array  $raw     Site raw options.
+	 * @return bool True when site URL override must be ignored.
+	 */
+	public static function must_force_network_connection_url( $url_key, array $raw = null ) {
+		$pairs = self::connection_url_secret_pairs();
+		if ( ! isset( $pairs[ $url_key ] ) ) {
+			return false;
+		}
+		if ( null === $raw ) {
+			$raw = self::raw();
+		}
+		$secret_key = $pairs[ $url_key ];
+		return self::evaluate_force_network_connection_url(
+			$url_key,
+			array(
+				'is_multisite'       => is_multisite(),
+				'has_constant'       => null !== Secrets::constant_value( $secret_key ),
+				'site_has_secret'    => self::site_has_connection_value( $secret_key, $raw ),
+				'site_has_url'       => self::site_has_connection_value( $url_key, $raw ),
+				'network_has_secret' => ( null !== Network_Settings::get( $secret_key ) && '' !== (string) Network_Settings::get( $secret_key ) ),
+			)
+		);
 	}
 
 	/**
@@ -307,6 +405,9 @@ class Settings {
 	 * Resolve order for connection keys on multisite:
 	 * wp-config constant → non-empty site setting → network setting → brand/default.
 	 * Banner, consent, inventory, and other keys stay blog-scoped only.
+	 *
+	 * Connection URLs cannot be overridden at the site level while inheriting the
+	 * paired network API key (blocks secret exfiltration via URL redirect).
 	 *
 	 * @param string $key     Setting key.
 	 * @param mixed  $default Default.
@@ -335,6 +436,30 @@ class Settings {
 		$network  = Network_Settings::is_network_key( $key );
 
 		if ( $network ) {
+			// Multisite: block site URL override when the paired secret is network-inherited.
+			if ( self::must_force_network_connection_url( $key, $raw ) ) {
+				$from_net = Network_Settings::get( $key );
+				if ( null !== $from_net && '' !== (string) $from_net ) {
+					self::$get_cache[ $blog ][ $key ] = $from_net;
+					return $from_net;
+				}
+				// Fall through to brand/default without using the site URL.
+				if ( 'scanner_api_url' === $key ) {
+					$brand = Brand::config();
+					if ( ! empty( $brand['scanner_api_url'] ) ) {
+						$value = esc_url_raw( (string) $brand['scanner_api_url'] );
+						self::$get_cache[ $blog ][ $key ] = $value;
+						return $value;
+					}
+				}
+				if ( array_key_exists( $key, $defaults ) ) {
+					self::$get_cache[ $blog ][ $key ] = $defaults[ $key ];
+					return $defaults[ $key ];
+				}
+				self::$get_cache[ $blog ][ $key ] = $default;
+				return $default;
+			}
+
 			if ( array_key_exists( $key, $raw ) && ! Network_Settings::is_blank_value( $key, $raw[ $key ] ) ) {
 				if ( 'privacy_fail_closed' === $key || 'remote_registry_enabled' === $key ) {
 					$value = (bool) $raw[ $key ];
@@ -458,6 +583,16 @@ class Settings {
 			$raw = 'https://' . ltrim( $raw, '/' );
 		}
 		return esc_url_raw( $raw );
+	}
+
+	/**
+	 * Normalize and SSRF-check an outbound connection URL (scanner / privacy / registry).
+	 *
+	 * @param string $raw Raw URL.
+	 * @return string Empty when blocked.
+	 */
+	public static function normalize_outbound_url( $raw ) {
+		return Http_Url_Guard::sanitize_outbound_url( $raw );
 	}
 
 	/**

@@ -151,6 +151,40 @@
       ],
       "iframe_patterns": ["streamyard.com"],
       "default_blocking": true
+    },
+    {
+      "key": "securenet_systems",
+      "name": "Securenet Systems",
+      "provider": "Securenet Systems",
+      "category": "functional",
+      "treatment": "consent",
+      "description": "Embedded Securenet Systems radio / streaming player (station selection and stream delivery).",
+      "privacy_url": "https://www.securenetsystems.net/",
+      "script_patterns": [
+        "securenetsystems.net",
+        "radio.securenetsystems.net",
+        "ice.securenetsystems.net",
+        "rdo.to"
+      ],
+      "cookie_patterns": ["STATIONCALLSIGN"],
+      "cookies": [
+        {
+          "name": "STATIONCALLSIGN",
+          "pattern": "STATIONCALLSIGN",
+          "purpose": "Identifies the radio station for the embedded player so it can load the right stream.",
+          "retention": "Session / days",
+          "category": "functional",
+          "treatment": "consent",
+          "contexts": ["guest", "logged_in"],
+          "requires_host_context": true
+        }
+      ],
+      "iframe_patterns": [
+        "securenetsystems.net",
+        "radio.securenetsystems.net",
+        "rdo.to"
+      ],
+      "default_blocking": true
     }
   ]
 }

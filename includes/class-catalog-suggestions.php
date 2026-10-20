@@ -94,6 +94,8 @@ class Catalog_Suggestions {
 				'mountain.com'         => 'mntn',
 				'steelhouse.com'       => 'mntn',
 				'streamyard.com'       => 'streamyard',
+				'securenetsystems.net' => 'securenet_systems',
+				'radio.securenetsystems.net' => 'securenet_systems',
 				'akamaihd.net'         => 'akamai',
 				'akamaized.net'        => 'akamai',
 				'go-mpulse.net'        => 'akamai',

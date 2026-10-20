@@ -5,6 +5,7 @@
  * allowed when ALLOW_LOCAL=1 AND the client is loopback.
  */
 
+import crypto from 'node:crypto';
 import { config, getAdminKeys } from './config.js';
 import { fingerprintKey } from './persist.js';
 
@@ -19,6 +20,29 @@ function isLoopback(req) {
   const raw = String(req.ip || req.socket?.remoteAddress || '');
   const ip = raw.replace(/^::ffff:/, '');
   return ip === '127.0.0.1' || ip === '::1' || ip === 'localhost';
+}
+
+/**
+ * Constant-time membership check for API keys (hashes both sides when lengths differ).
+ * @param {string} token
+ * @param {string[]} keys
+ * @returns {boolean}
+ */
+export function keyListIncludes(token, keys) {
+  if (!token || !keys?.length) return false;
+  const tokenBuf = Buffer.from(String(token), 'utf8');
+  for (const candidate of keys) {
+    const candBuf = Buffer.from(String(candidate), 'utf8');
+    if (tokenBuf.length === candBuf.length) {
+      if (crypto.timingSafeEqual(tokenBuf, candBuf)) return true;
+      continue;
+    }
+    // Different lengths: compare SHA-256 digests to avoid early length leaks.
+    const a = crypto.createHash('sha256').update(tokenBuf).digest();
+    const b = crypto.createHash('sha256').update(candBuf).digest();
+    if (crypto.timingSafeEqual(a, b)) return true;
+  }
+  return false;
 }
 
 /**
@@ -44,12 +68,12 @@ export function extractApiKey(req) {
 export function requireAuth(req, res, next) {
   if (config.apiKeys.length) {
     const token = extractApiKey(req);
-    if (!token || !config.apiKeys.includes(token)) {
+    if (!token || !keyListIncludes(token, config.apiKeys)) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
     req.ucpfApiKey = token;
     req.ucpfKeyFp = fingerprintKey(token);
-    req.ucpfIsAdmin = getAdminKeys().includes(token);
+    req.ucpfIsAdmin = keyListIncludes(token, getAdminKeys());
     return next();
   }
 

@@ -9,6 +9,7 @@ import express from 'express';
 import { randomUUID } from 'node:crypto';
 import { config } from './config.js';
 import { requireAuth, rateLimit } from './auth.js';
+import { sanitizeHttpScanOptions } from './scan-options.js';
 import {
   getJob,
   updateJob,
@@ -29,6 +30,7 @@ import {
   setRunHandler,
   initStore,
   canCancelJob,
+  canAccessJob,
   estimatedWaitHint,
   fingerprintKey,
   reclaimStaleJobs,
@@ -44,7 +46,9 @@ const SCANNER_FEATURES = Object.freeze({ exactPaths: true });
 const PROCESS_STARTED_AT = new Date().toISOString();
 
 const app = express();
-app.set('trust proxy', 1);
+if (config.trustProxy) {
+  app.set('trust proxy', 1);
+}
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(express.text({ type: ['text/plain', 'text/*'], limit: '1mb' }));
@@ -369,7 +373,8 @@ app.post('/v1/verify-domain', requireAuth, rateLimit, async (req, res) => {
       });
     }
     const body = (await resp.text()).trim();
-    const verified = body === token || body.includes(token);
+    // Exact match only — substring checks weaken domain proof.
+    const verified = body === token;
     return res.json({
       verified,
       method: 'well-known',
@@ -387,8 +392,9 @@ app.post('/v1/verify-domain', requireAuth, rateLimit, async (req, res) => {
 app.post('/v1/scans', requireAuth, rateLimit, async (req, res) => {
   coerceJsonBody(req);
   const url = req.body?.url;
-  const reqOptions =
-    req.body?.options && typeof req.body.options === 'object' ? { ...req.body.options } : {};
+  const reqOptions = sanitizeHttpScanOptions(
+    req.body?.options && typeof req.body.options === 'object' ? { ...req.body.options } : {}
+  );
   const exactPaths = reqOptions.exactPaths !== false;
   const optMax = Math.max(0, Number(reqOptions.maxPages) || 0);
   const parsedPaths = collectScanPaths(req.body);
@@ -572,7 +578,7 @@ app.post('/v1/scans/cancel-all', requireAuth, rateLimit, async (req, res) => {
   if (!req.ucpfIsAdmin) {
     return res.status(403).json({
       error: 'Forbidden',
-      hint: 'cancel-all requires an admin API key (UCPF_SCANNER_ADMIN_KEYS or the first key in UCPF_SCANNER_API_KEYS). Use per-job cancel instead.',
+      hint: 'cancel-all requires an admin API key in UCPF_SCANNER_ADMIN_KEYS. Use per-job cancel instead.',
     });
   }
   const ids = cancelAllJobs({ admin: true });
@@ -589,19 +595,28 @@ app.post('/v1/scans/cancel-all', requireAuth, rateLimit, async (req, res) => {
   });
 });
 
-app.get('/v1/scans', requireAuth, rateLimit, (_req, res) => {
+app.get('/v1/scans', requireAuth, rateLimit, (req, res) => {
+  const caller = {
+    keyFp: req.ucpfKeyFp || '',
+    isAdmin: !!req.ucpfIsAdmin,
+  };
   res.json({
     active: getActiveCount(),
     max: config.maxConcurrentScans,
     queue: getQueueLength(),
     max_queue: config.maxQueue,
-    jobs: listJobs(),
+    jobs: listJobs(caller),
   });
 });
 
 app.get('/v1/scans/:id', requireAuth, rateLimit, (req, res) => {
   const job = getJob(req.params.id);
-  if (!job) {
+  const caller = {
+    keyFp: req.ucpfKeyFp || '',
+    isAdmin: !!req.ucpfIsAdmin,
+  };
+  // 404 for missing or foreign jobs — avoid cross-tenant existence leaks.
+  if (!job || !canAccessJob(job, caller)) {
     return res.status(404).json({ error: 'Scan not found or expired' });
   }
   const withReport =

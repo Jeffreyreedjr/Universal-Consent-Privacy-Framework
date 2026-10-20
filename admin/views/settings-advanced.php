@@ -208,7 +208,7 @@ $tab_labels = array(
 					?>
 					<p>
 						<label for="ucpf-scanner-api-key"><?php esc_html_e( 'Scanner API key', 'universal-consent-privacy-framework' ); ?></label><br />
-						<input type="password" class="regular-text" id="ucpf-scanner-api-key" name="<?php echo esc_attr( $option_key ); ?>[scanner_api_key]" value="" autocomplete="new-password" placeholder="<?php echo $scanner_key_set ? esc_attr__( '•••••••• (leave blank to keep)', 'universal-consent-privacy-framework' ) : ''; ?>" />
+						<input type="password" class="regular-text ucpf-secret-input" id="ucpf-scanner-api-key" name="<?php echo esc_attr( $option_key ); ?>[scanner_api_key]" value="" autocomplete="new-password" placeholder="<?php echo $scanner_key_set ? esc_attr__( '•••••••• (leave blank to keep)', 'universal-consent-privacy-framework' ) : ''; ?>" />
 					</p>
 					<?php
 					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
@@ -377,7 +377,7 @@ $tab_labels = array(
 					?>
 					<p>
 						<label for="ucpf-privacy-api-key"><?php esc_html_e( 'Privacy API key', 'universal-consent-privacy-framework' ); ?></label><br />
-						<input type="password" class="regular-text" id="ucpf-privacy-api-key" name="<?php echo esc_attr( $option_key ); ?>[privacy_api_key]" value="" autocomplete="new-password" placeholder="<?php echo $privacy_api_key_set ? esc_attr__( '•••••••• (leave blank to keep)', 'universal-consent-privacy-framework' ) : ''; ?>" />
+						<input type="password" class="regular-text ucpf-secret-input" id="ucpf-privacy-api-key" name="<?php echo esc_attr( $option_key ); ?>[privacy_api_key]" value="" autocomplete="new-password" placeholder="<?php echo $privacy_api_key_set ? esc_attr__( '•••••••• (leave blank to keep)', 'universal-consent-privacy-framework' ) : ''; ?>" />
 					</p>
 					<?php
 					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
@@ -544,7 +544,7 @@ $tab_labels = array(
 					<?php endif; ?>
 					<p>
 						<label for="ucpf-cf-api-token"><?php esc_html_e( 'Cloudflare API Token', 'universal-consent-privacy-framework' ); ?></label><br />
-						<input type="password" class="regular-text" id="ucpf-cf-api-token" name="<?php echo esc_attr( $option_key ); ?>[cloudflare_api_token]" value="" autocomplete="new-password" placeholder="<?php echo $cf_token_set ? esc_attr__( '•••••••• (leave blank to keep)', 'universal-consent-privacy-framework' ) : ''; ?>" />
+						<input type="password" class="regular-text ucpf-secret-input" id="ucpf-cf-api-token" name="<?php echo esc_attr( $option_key ); ?>[cloudflare_api_token]" value="" autocomplete="new-password" placeholder="<?php echo $cf_token_set ? esc_attr__( '•••••••• (leave blank to keep)', 'universal-consent-privacy-framework' ) : ''; ?>" />
 					</p>
 					<p class="description"><?php esc_html_e( 'Create a token with Zone → Cache Purge (and Zone → Zone → Read). Leave blank when saving to keep the existing token. Tokens are encrypted at rest; prefer UCPF_CLOUDFLARE_API_TOKEN in wp-config.php on production.', 'universal-consent-privacy-framework' ); ?></p>
 					<?php if ( ! empty( $cf_last['time'] ) ) : ?>

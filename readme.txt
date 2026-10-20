@@ -4,7 +4,7 @@ Tags: privacy, gdpr, cookies, consent, cookie banner
 Requires at least: 6.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.41-alpha
+Stable tag: 0.1.45-alpha
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -97,6 +97,14 @@ Created and developed by Jeffrey Reed Jr.
 Cookie descriptions may fall back to a bundled offline snapshot of the Open Cookie Database (https://github.com/jkwakman/Open-Cookie-Database). Attribution to jkwakman/Open-Cookie-Database. The snapshot is local only (no runtime phone-home to cookiedatabase.org) and is not a compliance guarantee.
 
 == Changelog ==
+
+= 0.1.45-alpha =
+
+* Security: Scanner ownership checks, SSRF/safe-fetch, recipeFile strip, trust-proxy default off, secrets fail-closed, URL guard, same-site redirects, privacy signatures, CSS sanitize
+* Security: UI sinks — http(s)-only branding/action URLs, DOM prefs rendering, admin status text-only, Dashboard safe hrefs
+* Changed: Consent logging remains privacy-minimized (no IP addresses; UUID/action/categories/timestamps only)
+* Fix: Shared scanner queue reclaim / slot heal after stuck jobs
+* Added: Ads/DSP catalog coverage; Site Kit gtag park; marketing disclosure voice
 
 = 0.1.41-alpha =
 

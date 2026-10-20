@@ -2062,10 +2062,19 @@ class Privacy_Scan_Importer {
 	 */
 	public static function api_base() {
 		if ( defined( 'UCPF_SCANNER_API_URL' ) && UCPF_SCANNER_API_URL ) {
-			return untrailingslashit( (string) UCPF_SCANNER_API_URL );
+			$url = untrailingslashit( (string) UCPF_SCANNER_API_URL );
+		} else {
+			$url = Settings::get( 'scanner_api_url', '' );
+			$url = $url ? untrailingslashit( (string) $url ) : '';
 		}
-		$url = Settings::get( 'scanner_api_url', '' );
-		return $url ? untrailingslashit( (string) $url ) : '';
+		if ( ! $url ) {
+			return '';
+		}
+		$ok = Http_Url_Guard::assert_safe_outbound( $url );
+		if ( is_wp_error( $ok ) ) {
+			return '';
+		}
+		return $url;
 	}
 
 	/**

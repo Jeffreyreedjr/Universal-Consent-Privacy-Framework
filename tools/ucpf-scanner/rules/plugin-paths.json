@@ -4061,9 +4061,18 @@
     "wp-voting-contest-lite": {
       "provider": "WP Voting Contest Lite",
       "category": "necessary",
-      "treatment": "ignore",
-      "importance": "ignore",
-      "note": "Fleet inventory seed — admin/theme companion; promote if scans show visitor signals.; inferred_slug: true"
+      "treatment": "necessary",
+      "importance": "essential",
+      "note": "Contest voting cookies (wpvc_*); free-vote tokens are security/consent.",
+      "service_key": "wp_voting_contest"
+    },
+    "wp-voting-contest": {
+      "provider": "WP Voting Contest",
+      "category": "necessary",
+      "treatment": "necessary",
+      "importance": "essential",
+      "note": "Contest voting cookies (wpvc_*); free-vote tokens are security/consent.",
+      "service_key": "wp_voting_contest"
     },
     "wpdm-elementor": {
       "provider": "WPDM - Elementor",

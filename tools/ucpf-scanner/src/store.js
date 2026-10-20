@@ -225,12 +225,16 @@ export function enqueueJob(job) {
     };
   }
 
+  const waitingOnKey = runningForKey >= config.maxRunningPerKey;
   job.status = 'queued';
   job.progress = {
     ...(job.progress || {}),
     phase: 'queued',
-    message: 'Queued — waiting for a Chromium slot…',
+    message: waitingOnKey
+      ? `Queued — waiting for another scan on this API key (max ${config.maxRunningPerKey} running per key)…`
+      : 'Queued — waiting for a Chromium slot…',
     queue_position: waitQueue.length + 1,
+    waiting_on_api_key: waitingOnKey,
   };
   putJob(job.id, job, { skipPurge: true });
   waitQueue.push(job.id);
@@ -249,13 +253,20 @@ function refreshQueuePositions() {
   waitQueue.forEach((id, i) => {
     const job = jobs.get(id);
     if (!job || job.status !== 'queued') return;
+    const keyFp = job.key_fp || '';
+    const runningForKey = countForKey(keyFp, ['running', 'cancelling']);
+    const waitingOnKey = runningForKey >= config.maxRunningPerKey;
+    const msg = waitingOnKey
+      ? `Queued — position ${i + 1} of ${waitQueue.length} (waiting for another scan on this API key; per-key limit ${config.maxRunningPerKey})`
+      : `Queued — position ${i + 1} of ${waitQueue.length}`;
     updateJob(id, {
       progress: {
         ...(job.progress || {}),
         phase: 'queued',
-        message: `Queued — position ${i + 1} of ${waitQueue.length}`,
+        message: msg,
         queue_position: i + 1,
         queue_length: waitQueue.length,
+        waiting_on_api_key: waitingOnKey,
       },
     });
   });
@@ -412,17 +423,29 @@ export function getJob(id) {
   return jobs.get(id) || null;
 }
 
-export function listJobs() {
-  return [...jobs.values()].map((j) => ({
-    id: j.id,
-    status: j.status,
-    created_at: j.created_at,
-    updated_at: j.updated_at,
-    url: j.url,
-    key_fp: j.key_fp ? `${String(j.key_fp).slice(0, 6)}…` : '',
-    queue_position: j.status === 'queued' ? getQueuePosition(j.id) : 0,
-    cancel_requested: !!cancelFlags.get(j.id),
-  }));
+/**
+ * List jobs visible to the caller. Non-admins only see their own key_fp.
+ * @param {{ keyFp?: string, isAdmin?: boolean }} [caller]
+ */
+export function listJobs(caller = {}) {
+  const admin = !!caller.isAdmin;
+  const keyFp = caller.keyFp || '';
+  return [...jobs.values()]
+    .filter((j) => {
+      if (admin) return true;
+      if (!keyFp) return true; // local unauthenticated mode
+      return !j.key_fp || j.key_fp === keyFp;
+    })
+    .map((j) => ({
+      id: j.id,
+      status: j.status,
+      created_at: j.created_at,
+      updated_at: j.updated_at,
+      url: j.url,
+      key_fp: j.key_fp ? `${String(j.key_fp).slice(0, 6)}…` : '',
+      queue_position: j.status === 'queued' ? getQueuePosition(j.id) : 0,
+      cancel_requested: !!cancelFlags.get(j.id),
+    }));
 }
 
 export function updateJob(id, patch) {
@@ -553,6 +576,15 @@ export function cancelAllJobs(opts = {}) {
  * @param {{ keyFp: string, isAdmin: boolean }} caller
  */
 export function canCancelJob(job, caller) {
+  return canAccessJob(job, caller);
+}
+
+/**
+ * Whether caller may read or mutate this job (ownership / admin).
+ * @param {object} job
+ * @param {{ keyFp: string, isAdmin: boolean }} caller
+ */
+export function canAccessJob(job, caller) {
   if (!job) return false;
   if (caller.isAdmin) return true;
   if (!caller.keyFp) return true; // local unauthenticated mode

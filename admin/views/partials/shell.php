@@ -14,8 +14,8 @@ defined( 'ABSPATH' ) || exit;
 
 $product = \UCPF\Brand::product_name();
 $current = isset( $ucpf_shell_current ) ? (string) $ucpf_shell_current : 'dashboard';
-$title   = isset( $ucpf_shell_title ) ? (string) $ucpf_shell_title : $product;
-$lede    = isset( $ucpf_shell_lede ) ? (string) $ucpf_shell_lede : '';
+$shell_title = isset( $ucpf_shell_title ) ? (string) $ucpf_shell_title : $product;
+$lede        = isset( $ucpf_shell_lede ) ? (string) $ucpf_shell_lede : '';
 
 $nav = array(
 	'dashboard'    => array( __( 'Dashboard', 'universal-consent-privacy-framework' ), admin_url( 'admin.php?page=ucpf-dashboard' ) ),
@@ -60,7 +60,7 @@ $nav = array(
 		</nav>
 		<div class="ucpf-shell__main">
 			<?php if ( empty( $ucpf_shell_hide_heading ) ) : ?>
-				<h1 class="ucpf-shell__title"><?php echo esc_html( $title ); ?></h1>
+				<h1 class="ucpf-shell__title"><?php echo esc_html( $shell_title ); ?></h1>
 				<?php if ( $lede ) : ?>
 					<p class="ucpf-shell__lede"><?php echo esc_html( $lede ); ?></p>
 				<?php endif; ?>

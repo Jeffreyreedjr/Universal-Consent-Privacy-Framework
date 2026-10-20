@@ -4,10 +4,30 @@ All notable changes to Universal Consent & Privacy Framework are documented here
 
 ## [Unreleased]
 
+## [0.1.45-alpha] — 2026-10-20
+
+### Security
+- **Scanner cross-tenant reads:** Job list/get/report require the same `key_fp` ownership as cancel; foreign IDs return 404.
+- **Scanner admin blast radius:** Default bind `127.0.0.1`; `cancel-all` requires explicit `UCPF_SCANNER_ADMIN_KEYS` (no first-key fallback); timing-safe API key compare.
+- **Scanner SSRF:** Manual redirect validation (`safe-fetch`), Playwright route guard, post-navigation URL recheck.
+- **Scanner HTTP options:** Strip `recipeFile` / `recipe` from POST body (recipes via env/CLI only).
+- **Scanner trust proxy:** Off by default; enable with `UCPF_SCANNER_TRUST_PROXY=1` behind a trusted proxy only.
+- **Multisite secret pairing:** Site cannot override scanner/privacy URL while inheriting the network API key.
+- **Secrets at rest:** Fail closed when seal/encrypt is unavailable (no new plaintext token writes).
+- **Outbound URL guard:** Block private/metadata hosts for scanner/privacy/registry URLs (`Http_Url_Guard`; opt-in `UCPF_ALLOW_PRIVATE_SCANNER_URL`).
+- **WP helper scan redirects:** Same-site revalidation on every hop (`Same_Site_Http`).
+- **Privacy policy signatures:** Real ed25519 verify when `UCPF_PRIVACY_PUBLIC_KEY` is set; reject signed payloads without a key.
+- **Custom CSS:** Strip `@import`, `url()`, `expression()`, `-moz-binding`.
+- **UI sinks:** http(s)-only branding and action URLs (`ucpf_sanitize_public_http_url` / safe href allowlist); consent prefs DOM rendering (no string `innerHTML`); admin status strings text-only; Dashboard/Button safe hrefs; secret-field show/hide; stop-scan confirm.
+- **Release workflow:** Pin `softprops/action-gh-release@v2.2.2`; `npm install --ignore-scripts` (no root lockfile for `npm ci`).
+- **Docs / CI:** `docs/security/*`, security workflow (Gitleaks, OSV, scanner + PHP self-tests), `ui-safe-href-selftest.php`.
+
 ### Added
 - **Ads / DSP catalog coverage:** Amazon Ads (`amazon-adsystem.com`) and Website Visitor ID / Semcasting / AdTini (`semcasting_wvid`) as Marketing services with network-gate patterns; refresh Beeswax/Yahoo privacy URLs; Google Ads Integrations template for `AW-` IDs.
 - **Marketing disclosure voice:** Preferences Marketing description plus Cookie/Privacy Policy prose cover pixels, DSPs, page-view/IP/device signals, and that cookie-less advertising tech still needs Marketing consent where the CMP applies.
 - **MNTN / Akamai / StreamYard cookies:** Catalog `guid`+`tt` (MNTN, Marketing), `rt` (Akamai, Essential), `jwt`/`jwtOnAir` (StreamYard embeds) and `csrfToken` (StreamYard CSRF, Security); cookie-level `requires_host_context` so short/ambiguous names do not misclassify.
+- **WP Voting Contest / Securenet cookies:** Catalog `wpvc_contestant_URL` (Essential), `wpvc_freevoting_authorize` / `wpvc_freevoting_token` (Security, consent), and Securenet `STATIONCALLSIGN` (Embeds, consent).
+- **Square `_savt`:** Secure checkout session cookie → Essential / always allow (Square scripts remain Embeds / consent).
 
 ### Fixed
 - **Shared scanner queue stuck at 0% / position 1 of 1:** Reclaim hung `running` jobs with no progress and heal Chromium slot desync so waiting jobs can drain after a clogged restart (no new WordPress integration required — use Emergency reset for an immediate clear).
@@ -19,6 +39,7 @@ All notable changes to Universal Consent & Privacy Framework are documented here
 
 ### Changed
 - **Cookie Scanner review tabs:** Known cookies and Service treatments move to their own tabs (Needs attention / Known cookies / Service treatments) so the main scanner page is not a long scroll wall. Wizard cookie review stays stacked.
+- **Consent logging:** Remains privacy-minimized — no IP addresses stored (UUID, action, categories, timestamps only).
 
 ## [0.1.41-alpha] — 2026-10-08
 

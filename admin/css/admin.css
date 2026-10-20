@@ -2844,3 +2844,21 @@
   align-items: center;
 }
 
+/* Secret fields: show/hide without leaving values in the DOM as type=text by default */
+.ucpf-secret-field {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 100%;
+}
+
+.ucpf-secret-field .ucpf-secret-input {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.ucpf-secret-field .ucpf-secret-toggle {
+  flex: 0 0 auto;
+}
+

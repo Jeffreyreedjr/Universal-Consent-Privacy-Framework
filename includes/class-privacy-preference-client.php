@@ -70,7 +70,13 @@ class Privacy_Preference_Client {
 		 */
 		$url = apply_filters( 'ucpf_privacy_preference_url', $url, $subject_hmac );
 
-		$response = wp_remote_get( esc_url_raw( $url ), $args );
+		$url = esc_url_raw( $url );
+		$safe = Http_Url_Guard::assert_safe_outbound( $url );
+		if ( is_wp_error( $safe ) ) {
+			return self::fail_closed_stub( $subject_hmac );
+		}
+
+		$response = wp_remote_get( $url, $args );
 		if ( is_wp_error( $response ) ) {
 			return self::fail_closed_stub( $subject_hmac );
 		}
@@ -116,21 +122,94 @@ class Privacy_Preference_Client {
 	/**
 	 * Verify detached signature when UCPF_PRIVACY_PUBLIC_KEY is defined.
 	 *
+	 * Rules:
+	 * - No signature + no public key → allow (unsigned agency mode).
+	 * - Signature present without public key → reject (fail closed).
+	 * - Public key defined → require valid ed25519 detached signature over canonical JSON.
+	 *
 	 * @param array $payload Policy.
 	 * @return bool
 	 */
 	public static function verify_signature( array $payload ) {
-		if ( empty( $payload['signature'] ) ) {
-			// Unsigned agency responses allowed when no public key configured.
-			return ! defined( 'UCPF_PRIVACY_PUBLIC_KEY' ) || ! UCPF_PRIVACY_PUBLIC_KEY;
+		$has_sig = ! empty( $payload['signature'] );
+		$pub     = ( defined( 'UCPF_PRIVACY_PUBLIC_KEY' ) && UCPF_PRIVACY_PUBLIC_KEY )
+			? trim( (string) UCPF_PRIVACY_PUBLIC_KEY )
+			: '';
+
+		if ( ! $has_sig ) {
+			return '' === $pub;
 		}
+
+		if ( '' === $pub ) {
+			// Signed payload without a configured verifier must not be trusted.
+			return false;
+		}
+
+		$ok = self::crypto_verify_detached( $payload, $pub );
+
 		/**
-		 * Filter signature verification (agencies may wire sodium_crypto_sign_verify_detached).
+		 * Filter signature verification after cryptographic check.
+		 * Default is the crypto result (false when verification failed).
 		 *
-		 * @param bool  $ok Default true when unverified hook.
+		 * @param bool  $ok      Verification result.
 		 * @param array $payload Payload.
 		 */
-		return (bool) apply_filters( 'ucpf_verify_privacy_policy_signature', true, $payload );
+		return (bool) apply_filters( 'ucpf_verify_privacy_policy_signature', $ok, $payload );
+	}
+
+	/**
+	 * Verify ed25519 detached signature (sodium) over canonical policy JSON.
+	 *
+	 * @param array  $payload Policy including signature (hex or base64).
+	 * @param string $pub     Public key (hex 64 chars or base64 32 raw bytes).
+	 * @return bool
+	 */
+	private static function crypto_verify_detached( array $payload, $pub ) {
+		if ( ! function_exists( 'sodium_crypto_sign_verify_detached' ) ) {
+			return false;
+		}
+
+		$sig_raw = self::decode_key_or_sig( (string) $payload['signature'] );
+		$pub_raw = self::decode_key_or_sig( $pub );
+		if ( false === $sig_raw || false === $pub_raw ) {
+			return false;
+		}
+		if ( SODIUM_CRYPTO_SIGN_BYTES !== strlen( $sig_raw ) || SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES !== strlen( $pub_raw ) ) {
+			return false;
+		}
+
+		$copy = $payload;
+		unset( $copy['signature'] );
+		ksort( $copy );
+		$message = wp_json_encode( $copy );
+		if ( ! is_string( $message ) ) {
+			return false;
+		}
+
+		try {
+			return (bool) sodium_crypto_sign_verify_detached( $sig_raw, $message, $pub_raw );
+		} catch ( \Throwable $e ) {
+			return false;
+		}
+	}
+
+	/**
+	 * Decode hex or base64 key/signature material.
+	 *
+	 * @param string $raw Raw.
+	 * @return string|false Binary or false.
+	 */
+	private static function decode_key_or_sig( $raw ) {
+		$raw = trim( (string) $raw );
+		if ( '' === $raw ) {
+			return false;
+		}
+		if ( preg_match( '/^[0-9a-fA-F]+$/', $raw ) && 0 === strlen( $raw ) % 2 ) {
+			$bin = @hex2bin( $raw ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+			return false === $bin ? false : $bin;
+		}
+		$bin = base64_decode( $raw, true ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
+		return false === $bin ? false : $bin;
 	}
 
 	/**
