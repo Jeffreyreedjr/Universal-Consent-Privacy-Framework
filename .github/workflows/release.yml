@@ -60,7 +60,7 @@ jobs:
           Write-Host "SHA256: $hash"
 
       - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2.2.2
+        uses: softprops/action-gh-release@v3.0.3
         with:
           files: |
             dist/universal-consent-privacy-framework.zip
